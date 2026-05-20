@@ -572,7 +572,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <div><div class="settings-label">Change Password</div><div class="settings-sub" id="settings-username"></div></div>
       <span style="color:var(--muted)">›</span>
     </div>
-    <div class="settings-row" style="cursor:pointer" onclick="App.closeSettings();App.setTab('pricing')">
+    <div class="settings-row" style="cursor:pointer" onclick="App.closeSettings();App.openPricingModal()">
       <div><div class="settings-label">Pricing Manager</div><div class="settings-sub">Calculate retail prices per product</div></div>
       <span style="color:var(--muted)">›</span>
     </div>
@@ -584,6 +584,17 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <div><div class="settings-label" style="color:var(--red)">Log Out</div><div class="settings-sub">Return to login screen</div></div>
       <span style="color:var(--muted)">›</span>
     </div>
+  </div>
+</div>
+<!-- PRICING MODAL -->
+<div class="modal-overlay" id="modal-pricing">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr">
+      <div class="modal-title">💰 Pricing Manager</div>
+      <button class="modal-close" onclick="App.closeModal('modal-pricing')">×</button>
+    </div>
+    <div class="modal-body" id="pricing-modal-body"></div>
   </div>
 </div>
 <!-- GLOBAL SEARCH OVERLAY -->
@@ -2352,58 +2363,62 @@ const App = {
     const statusEl = document.getElementById('mwfc-status');
     if(statusEl) statusEl.innerHTML = '<span style="color:var(--muted)">Searching MWFC...</span>';
     try {
-      // Call via Supabase Edge Function proxy (avoids CORS block from github.io)
       const encoded = encodeURIComponent(name.trim());
       const res = await fetch(
         this.SB_URL + '/functions/v1/mwfc-lookup?name=' + encoded,
         { headers: { 'apikey': this.SB_KEY, 'Authorization': 'Bearer ' + this.SB_KEY } }
       );
 
-      if(!res.ok){
-        const err = await res.json().catch(()=>({}));
-        throw new Error(err.error || 'HTTP ' + res.status);
+      const data = await res.json();
+
+      // Partial match — show suggestion list
+      if(!res.ok && data.suggestions && data.suggestions.length > 0){
+        const btns = data.suggestions.map(s =>
+          '<button onclick="App.lookupMWFC(\''+this.h(s.title)+'\')" style="display:block;width:100%;text-align:left;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:5px;font-family:Lato,sans-serif;font-size:.83rem;color:var(--text);cursor:pointer">'+
+          this.h(s.title)+'</button>'
+        ).join('');
+        if(statusEl) statusEl.innerHTML =
+          '<div style="margin-bottom:6px;font-size:.76rem;color:var(--muted)">No exact match — did you mean:</div>'+btns;
+        return;
       }
 
-      const p = await res.json();
-      if(p.error) throw new Error(p.error);
+      if(!res.ok || data.error) throw new Error(data.error || 'HTTP ' + res.status);
 
-      // Populate form fields
+      // Exact match — populate form
       const setVal = (id, val) => { const el=document.getElementById(id); if(el && val) el.value = val; };
-      setVal('ff-name', p.name);
-      setVal('ff-desc', p.description);
-      setVal('ff-maxsoap', p.max_usage_soap || '');
-      setVal('ff-maxlotion', p.max_usage_lotion || '');
-      setVal('ff-url', p.mwfc_url || '');
-      // CP fields — these are select elements so use setSelect helper
+      setVal('ff-name', data.name);
+      setVal('ff-desc', data.description);
+      setVal('ff-maxsoap', data.max_usage_soap || '');
+      setVal('ff-maxlotion', data.max_usage_lotion || '');
+      setVal('ff-url', data.mwfc_url || '');
+
       const setSelect = (id, val) => {
         const el = document.getElementById(id);
         if(!el || !val) return;
-        // Try exact match first, then partial match
         const opts = Array.from(el.options).map(o => o.value);
         const exact = opts.find(o => o.toLowerCase() === val.toLowerCase());
         if(exact){ el.value = exact; return; }
         const partial = opts.find(o => val.toLowerCase().includes(o.toLowerCase()) && o !== 'Unknown');
         if(partial) el.value = partial;
       };
-      setSelect('ff-acc', p.cp_acceleration || '');
-      setSelect('ff-rice', p.cp_ricing || '');
-      setSelect('ff-dis', p.cp_discoloration || '');
-      // CP notes: prefer design notes, fall back to full raw CP string
+      setSelect('ff-acc', data.cp_acceleration || '');
+      setSelect('ff-rice', data.cp_ricing || '');
+      setSelect('ff-dis', data.cp_discoloration || '');
       const cpText = document.getElementById('ff-cpnotes');
-      if(cpText) cpText.value = p.cp_notes || p.cp_raw || '';
+      if(cpText) cpText.value = data.cp_notes || data.cp_raw || '';
 
-      // Set fragrance note pill tags
-      if(p.top_notes)    this._setNoteFieldVal('ff-top', p.top_notes);
-      if(p.middle_notes) this._setNoteFieldVal('ff-mid', p.middle_notes);
-      if(p.base_notes)   this._setNoteFieldVal('ff-base', p.base_notes);
+      if(data.top_notes)    this._setNoteFieldVal('ff-top', data.top_notes);
+      if(data.middle_notes) this._setNoteFieldVal('ff-mid', data.middle_notes);
+      if(data.base_notes)   this._setNoteFieldVal('ff-base', data.base_notes);
 
-      if(statusEl) statusEl.innerHTML = '<span style="color:var(--sage)">✅ Found: ' + this.h(p.name) + '</span>';
+      // Also update mwfc name input to reflect the matched name
+      const mwfcInp = document.getElementById('mwfc-name-inp');
+      if(mwfcInp) mwfcInp.value = data.name;
+
+      if(statusEl) statusEl.innerHTML = '<span style="color:var(--sage)">✅ Found: ' + this.h(data.name) + '</span>';
       this._toast('MWFC data loaded!');
     } catch(e){
-      const msg = e.message === 'not_found'
-        ? 'Not found — try adding "-fragrance-oil" to the name, e.g. "Lavender Fragrance Oil"'
-        : '⚠️ ' + (e.message || 'Search failed');
-      if(statusEl) statusEl.innerHTML = '<span style="color:var(--amber)">' + msg + '</span>';
+      if(statusEl) statusEl.innerHTML = '<span style="color:var(--amber)">⚠️ ' + (e.message || 'Search failed — check connection') + '</span>';
     }
   },
 
@@ -2793,9 +2808,15 @@ const App = {
   // ── PRICING MANAGER ──────────────────────────────────────────
   _pricing: {},
 
+  async openPricingModal(){
+    document.getElementById('modal-pricing').classList.add('open');
+    await this.renderPricing();
+  },
+
   async renderPricing(){
-    const wrap = document.getElementById('pricing-body');
+    const wrap = document.getElementById('pricing-modal-body');
     if(!wrap) return;
+    wrap.style.padding = '4px 0 8px';
 
     // Load pricing data from Supabase
     try {
