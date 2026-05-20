@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <title>Sudsy Sisters</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -170,11 +171,39 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
 .confirm-btns button{flex:1;border:none;border-radius:12px;padding:11px;font-family:Lato,sans-serif;font-weight:700;font-size:.88rem;cursor:pointer}
 .cbtn-cancel{background:var(--cream);color:var(--text);border:1.5px solid var(--border)!important}
 .cbtn-ok{background:var(--red);color:#fff}
+.cbtn-make{background:var(--brown);color:#fff}
+.batch-ing-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.batch-ing-row:last-child{border-bottom:none}
+.batch-ing-left{font-size:.85rem;color:var(--text)}
+.batch-ing-right{font-size:.82rem;font-weight:700;text-align:right}
+.batch-found{color:var(--red)}
+.batch-notfound{color:var(--muted);font-style:italic}
+.batch-inv-note{font-size:.72rem;color:var(--muted);margin-top:1px}
 .toast{position:fixed;bottom:calc(var(--bar-h) + var(--safe-b) + 14px);left:50%;transform:translateX(-50%) translateY(16px);background:var(--brown-d);color:#fff;padding:10px 20px;border-radius:24px;font-size:.82rem;font-weight:700;z-index:700;opacity:0;transition:all .28s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px var(--shadow)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .adj-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
 .adj-row input{flex:1;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none}
 .adj-row select{background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;font-family:Lato,sans-serif;font-size:.85rem;color:var(--text);outline:none;-webkit-appearance:none}
+.scan-overlay{position:fixed;inset:0;background:#000;z-index:800;display:none;flex-direction:column}
+.scan-overlay.open{display:flex}
+.scan-header{padding:calc(var(--safe-t) + 14px) 16px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.scan-title{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600}
+.scan-close{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.4rem;padding:6px 12px;border-radius:10px;cursor:pointer;font-family:Lato,sans-serif}
+#scan-viewport{flex:1;position:relative;overflow:hidden}
+#scan-viewport video{width:100%;height:100%;object-fit:cover}
+.scan-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-box{width:240px;height:160px;border:2px solid var(--brown);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.5)}
+.scan-line{position:absolute;top:50%;left:50%;transform:translate(-120px,-1px);width:240px;height:2px;background:var(--brown);animation:scanline 1.8s ease-in-out infinite}
+@keyframes scanline{0%,100%{top:calc(50% - 75px)}50%{top:calc(50% + 75px)}}
+.scan-hint{color:rgba(255,255,255,.8);font-size:.8rem;text-align:center;padding:10px;flex-shrink:0}
+.scan-status{color:#fff;font-size:.85rem;text-align:center;padding:8px 16px;min-height:36px;flex-shrink:0}
+.scan-lookup{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--sage-l)}
+.scan-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan-btn-row{padding:12px 16px calc(var(--safe-b) + 12px);display:flex;gap:10px;flex-shrink:0}
+.btn-scan-action{flex:1;border:none;border-radius:12px;padding:12px;font-family:Lato,sans-serif;font-weight:700;font-size:.88rem;cursor:pointer}
+.btn-scan-manual{background:rgba(255,255,255,.15);color:#fff}
+.btn-scan-use{background:var(--brown);color:#fff;display:none}
 </style>
 </head>
 <body>
@@ -319,7 +348,40 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
     </div>
   </div>
 </div>
+<!-- BATCH CONFIRM MODAL -->
+<div class="confirm-overlay" id="modal-batch">
+  <div class="confirm-box" style="max-width:340px">
+    <h3 id="batch-title">Make Batch?</h3>
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:12px">These ingredients will be subtracted from your inventory:</p>
+    <div id="batch-ing-list" style="max-height:260px;overflow-y:auto;margin-bottom:14px;text-align:left"></div>
+    <div id="batch-warn" style="display:none;background:#FFF3E0;border-radius:8px;padding:8px 10px;font-size:.76rem;color:#E65100;margin-bottom:12px;text-align:left"></div>
+    <div class="confirm-btns">
+      <button class="cbtn-cancel" onclick="App.closeModal('modal-batch')">Cancel</button>
+      <button class="cbtn-make" id="batch-ok">Confirm Batch</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
+<!-- BARCODE SCANNER -->
+<div class="scan-overlay" id="scan-overlay">
+  <div class="scan-header">
+    <div class="scan-title">📷 Scan Barcode</div>
+    <button class="scan-close" onclick="App.closeScanner()">✕ Cancel</button>
+  </div>
+  <div id="scan-viewport">
+    <div id="scan-reader"></div>
+    <div class="scan-frame">
+      <div class="scan-box"></div>
+      <div class="scan-line"></div>
+    </div>
+  </div>
+  <div class="scan-hint">Hold steady — center the barcode in the box</div>
+  <div class="scan-status" id="scan-status"></div>
+  <div class="scan-btn-row">
+    <button class="btn-scan-action btn-scan-manual" onclick="App.closeScanner()">Enter Manually</button>
+    <button class="btn-scan-action btn-scan-use" id="scan-use-btn" onclick="App.useScanResult()">Use This Product ✓</button>
+  </div>
+</div>
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────
 const R_CATS  = ['Bar Soap','Liquid Soap','Lotion','Body Butter','Body Oil','Scrub','Other'];
@@ -487,6 +549,9 @@ const App = {
         ${ings?`<div class="section"><div class="section-title">Ingredients</div>${ings}</div>`:''}
         ${r.instructions?`<div class="section"><div class="section-title">Instructions</div><div class="prose">${this.h(r.instructions)}</div></div>`:''}
         ${r.notes?`<div class="section"><div class="section-title">Notes</div><div class="prose-muted">${this.h(r.notes)}</div></div>`:''}
+        <div style="padding:0 14px 10px">
+          <button class="btn btn-primary btn-full" onclick="App.makeBatch('${r.id}')">🧼 Make This Batch</button>
+        </div>
         <div class="detail-actions">
           <button class="btn btn-outline" onclick="App.openRecipeModal('${r.id}')">✏️ Edit</button>
           <button class="btn btn-danger" onclick="App.delRecipe('${r.id}')">🗑 Delete</button>
@@ -702,6 +767,7 @@ const App = {
   _iForm(i){
     const so=(a,v)=>a.map(o=>`<option${o===v?' selected':''}>${o}</option>`).join('');
     return `
+      <button type="button" class="btn btn-outline btn-full" style="margin-bottom:14px" onclick="App.openScanner()">📷 Scan Barcode to Auto-Fill</button>
       <div class="form-group"><label>Item Name *</label><input id="iin" value="${this.h(i.name)}" placeholder="e.g. Coconut Oil"/></div>
       <div class="form-row">
         <div class="form-group"><label>Category</label><select id="iic">${so(I_CATS,i.category)}</select></div>
@@ -816,8 +882,196 @@ const App = {
     navigator.clipboard.writeText(lines.join('\n')).then(()=>this._toast('Copied to clipboard!')).catch(()=>this._toast('Copy failed'));
   },
 
+  // ── MAKE BATCH ───────────────────────────────────────────────
+  makeBatch(id){
+    const r=this.recipes.find(x=>x.id===id);
+    if(!r||!r.ingredients||!r.ingredients.length){this._toast('No ingredients listed');return;}
+    // Match each ingredient to inventory by name (case-insensitive partial match)
+    const matches=r.ingredients.map(ing=>{
+      const nm=ing.name.toLowerCase();
+      const inv=this.inventory.find(i=>
+        i.name.toLowerCase()===nm||
+        i.name.toLowerCase().includes(nm)||
+        nm.includes(i.name.toLowerCase())
+      );
+      return {ing, inv};
+    });
+    const found=matches.filter(m=>m.inv);
+    const notFound=matches.filter(m=>!m.inv);
+    // Build ingredient list HTML
+    const rows=matches.map(m=>{
+      if(m.inv){
+        const after=Math.max(0,m.inv.quantity-(parseFloat(m.ing.amount)||0));
+        const willBelow=after<=m.inv.reorderAt;
+        return `<div class="batch-ing-row">
+          <div class="batch-ing-left">${this.h(m.ing.name)}</div>
+          <div class="batch-ing-right">
+            <div class="batch-found">− ${m.ing.amount} ${m.ing.unit}</div>
+            <div class="batch-inv-note">${m.inv.quantity} → ${Math.round(after*1000)/1000} ${m.inv.unit}${willBelow?' ⚠️':''}</div>
+          </div>
+        </div>`;
+      } else {
+        return `<div class="batch-ing-row">
+          <div class="batch-ing-left">${this.h(m.ing.name)}</div>
+          <div class="batch-ing-right batch-notfound">Not in inventory</div>
+        </div>`;
+      }
+    }).join('');
+    document.getElementById('batch-title').textContent=`Make: ${r.name}`;
+    document.getElementById('batch-ing-list').innerHTML=rows;
+    // Warning if some items not in inventory
+    const warn=document.getElementById('batch-warn');
+    if(notFound.length){
+      warn.style.display='block';
+      warn.textContent=`⚠️ ${notFound.length} ingredient${notFound.length>1?'s':''} not found in inventory and will be skipped.`;
+    } else {
+      warn.style.display='none';
+    }
+    document.getElementById('batch-ok').onclick=()=>{
+      this.closeModal('modal-batch');
+      this._applyBatch(matches);
+    };
+    document.getElementById('modal-batch').classList.add('open');
+  },
+  _applyBatch(matches){
+    let changed=0;
+    matches.forEach(m=>{
+      if(!m.inv) return;
+      const amt=parseFloat(m.ing.amount)||0;
+      m.inv.quantity=Math.round(Math.max(0,m.inv.quantity-amt)*1000)/1000;
+      changed++;
+    });
+    this._saveI();
+    this.renderInventory();
+    this.renderOrders();
+    this._toast(`Batch logged — ${changed} inventory item${changed!==1?'s':''} updated`);
+  },
+
   // ── MODALS & UTILS ───────────────────────────────────────────
   closeModal(id){ document.getElementById(id).classList.remove('open'); },
+
+  // ── BARCODE SCANNER ──────────────────────────────────────────
+  _scanner: null,
+  _scanResult: null,
+
+  openScanner(){
+    this._scanResult = null;
+    document.getElementById('scan-status').innerHTML = '';
+    document.getElementById('scan-use-btn').style.display = 'none';
+    document.getElementById('scan-overlay').classList.add('open');
+    // Small delay to let overlay render before camera init
+    setTimeout(() => this._startCamera(), 300);
+  },
+
+  _startCamera(){
+    if(this._scanner){ this._scanner.clear(); this._scanner = null; }
+    try {
+      this._scanner = new Html5Qrcode('scan-reader');
+      this._scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 220, height: 140 }, aspectRatio: 1.7 },
+        (code) => this._onScanSuccess(code),
+        () => {} // ignore per-frame errors
+      ).catch(err => {
+        document.getElementById('scan-status').innerHTML =
+          `<span style="color:#ff6b6b">Camera error: ${err.message || 'Permission denied'}</span>`;
+      });
+    } catch(e) {
+      document.getElementById('scan-status').innerHTML =
+        `<span style="color:#ff6b6b">Scanner unavailable. Try Chrome or update your browser.</span>`;
+    }
+  },
+
+  closeScanner(){
+    if(this._scanner){
+      this._scanner.stop().catch(()=>{}).finally(()=>{
+        this._scanner.clear();
+        this._scanner = null;
+      });
+    }
+    document.getElementById('scan-overlay').classList.remove('open');
+  },
+
+  _onScanSuccess(code){
+    if(this._scanResult && this._scanResult.barcode === code) return; // already processed
+    // Stop scanning after first hit
+    if(this._scanner) this._scanner.stop().catch(()=>{});
+    this._scanResult = { barcode: code, product: null };
+    document.getElementById('scan-status').innerHTML =
+      `<div class="scan-lookup"><div class="scan-spinner"></div> Looking up barcode ${code}…</div>`;
+    this._lookupBarcode(code);
+  },
+
+  async _lookupBarcode(code){
+    let product = null;
+    const statusEl = document.getElementById('scan-status');
+
+    // Try Open Food Facts first (free, no key)
+    try {
+      const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`);
+      const data = await res.json();
+      if(data.status === 1 && data.product){
+        const p = data.product;
+        const name = p.product_name || p.product_name_en || '';
+        const brand = p.brands || '';
+        product = {
+          name: brand && !name.toLowerCase().includes(brand.toLowerCase()) ? `${brand} ${name}`.trim() : name,
+          barcode: code,
+          source: 'Open Food Facts'
+        };
+      }
+    } catch(e){}
+
+    // Fallback: UPC Item DB
+    if(!product || !product.name){
+      try {
+        const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`);
+        const data = await res.json();
+        if(data.items && data.items.length){
+          const item = data.items[0];
+          product = {
+            name: item.title || item.brand || '',
+            barcode: code,
+            source: 'UPC ItemDB'
+          };
+        }
+      } catch(e){}
+    }
+
+    if(product && product.name){
+      this._scanResult = { barcode: code, product };
+      statusEl.innerHTML = `<span style="color:#a8e6b8;font-weight:700">✅ Found: ${this.h(product.name)}</span>`;
+      document.getElementById('scan-use-btn').style.display = 'block';
+    } else {
+      // Not found in database — still let them use the barcode
+      this._scanResult = { barcode: code, product: { name: '', barcode: code, source: null } };
+      statusEl.innerHTML = `<span style="color:#ffd97d">⚠️ Barcode ${code} not found in database.<br>You can still add it manually.</span>`;
+      document.getElementById('scan-use-btn').style.display = 'block';
+      document.getElementById('scan-use-btn').textContent = 'Add Manually ✓';
+    }
+  },
+
+  useScanResult(){
+    if(!this._scanResult) return;
+    this.closeScanner();
+    // Pre-fill form if it's open
+    const nameField = document.getElementById('iin');
+    if(nameField && this._scanResult.product && this._scanResult.product.name){
+      nameField.value = this._scanResult.product.name;
+      nameField.focus();
+      // Store barcode in notes if field exists
+      const notesField = document.getElementById('iino');
+      if(notesField && !notesField.value){
+        notesField.value = `Barcode: ${this._scanResult.barcode}`;
+      }
+      this._toast(`Auto-filled: ${this._scanResult.product.name}`);
+    } else {
+      // No product name found — just put barcode in notes
+      const notesField = document.getElementById('iino');
+      if(notesField) notesField.value = `Barcode: ${this._scanResult.barcode}`;
+      this._toast('Barcode saved to notes — enter name manually');
+    }
+  },
   _confirm(title,msg,cb){
     document.getElementById('confirm-title').textContent=title;
     document.getElementById('confirm-msg').textContent=msg;
