@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js"></script>
 <title>Sudsy Sisters</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -186,7 +186,7 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
 .adj-row select{background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;font-family:Lato,sans-serif;font-size:.85rem;color:var(--text);outline:none;-webkit-appearance:none}
 .scan-overlay{position:fixed;inset:0;background:#000;z-index:800;display:none;flex-direction:column}
 .scan-overlay.open{display:flex}
-.scan-header{padding:calc(var(--safe-t) + 14px) 16px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.scan-header{padding:calc(var(--safe-t) + 14px) 16px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;z-index:20}
 .scan-title{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600}
 .scan-close{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.4rem;padding:6px 12px;border-radius:10px;cursor:pointer;font-family:Lato,sans-serif}
 #scan-viewport{flex:1;position:relative;overflow:hidden}
@@ -195,12 +195,12 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
 .scan-box{width:240px;height:160px;border:2px solid var(--brown);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.5)}
 .scan-line{position:absolute;top:50%;left:50%;transform:translate(-120px,-1px);width:240px;height:2px;background:var(--brown);animation:scanline 1.8s ease-in-out infinite}
 @keyframes scanline{0%,100%{top:calc(50% - 75px)}50%{top:calc(50% + 75px)}}
-.scan-hint{color:rgba(255,255,255,.8);font-size:.8rem;text-align:center;padding:10px;flex-shrink:0}
-.scan-status{color:#fff;font-size:.85rem;text-align:center;padding:8px 16px;min-height:36px;flex-shrink:0}
+.scan-hint{color:rgba(255,255,255,.8);font-size:.8rem;text-align:center;padding:10px;flex-shrink:0;position:relative;z-index:20}
+.scan-status{color:#fff;font-size:.85rem;text-align:center;padding:8px 16px;min-height:36px;flex-shrink:0;position:relative;z-index:20}
 .scan-lookup{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--sage-l)}
 .scan-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
-.scan-btn-row{padding:12px 16px calc(var(--safe-b) + 12px);display:flex;gap:10px;flex-shrink:0}
+.scan-btn-row{padding:12px 16px calc(var(--safe-b) + 12px);display:flex;gap:10px;flex-shrink:0;position:relative;z-index:20}
 .btn-scan-action{flex:1;border:none;border-radius:12px;padding:12px;font-family:Lato,sans-serif;font-weight:700;font-size:.88rem;cursor:pointer}
 .btn-scan-manual{background:rgba(255,255,255,.15);color:#fff}
 .btn-scan-use{background:var(--brown);color:#fff;display:none}
@@ -362,6 +362,47 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<!-- PHOTO LABEL SCANNER -->
+<div class="scan-overlay" id="photo-overlay">
+  <div class="scan-header" style="position:relative;z-index:20">
+    <div class="scan-title">📸 Photo Label</div>
+    <button class="scan-close" onclick="App.closePhotoScan()">✕ Cancel</button>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 20px 10px;gap:14px;overflow-y:auto;position:relative;z-index:20">
+    <div id="photo-preview-wrap" style="display:none;width:100%;max-width:340px">
+      <img id="photo-preview" style="width:100%;border-radius:12px;max-height:240px;object-fit:contain;background:rgba(255,255,255,.05)"/>
+    </div>
+    <div id="photo-initial" style="text-align:center">
+      <div style="font-size:3.5rem;margin-bottom:10px">📸</div>
+      <p style="color:rgba(255,255,255,.8);font-size:.88rem;margin-bottom:18px;line-height:1.5">Take a photo of the product label.<br>Works best with good lighting.</p>
+      <label style="background:var(--brown);color:#fff;border-radius:12px;padding:13px 28px;font-family:Lato,sans-serif;font-weight:700;font-size:.92rem;cursor:pointer;display:inline-block;margin-bottom:10px">
+        📷 Take Photo
+        <input type="file" accept="image/*" capture="environment" id="photo-capture" style="display:none" onchange="App._processLabelImage(this)"/>
+      </label>
+      <br/>
+      <label style="background:rgba(255,255,255,.14);color:#fff;border-radius:12px;padding:10px 22px;font-family:Lato,sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;display:inline-block">
+        🖼 Choose from Library
+        <input type="file" accept="image/*" id="photo-library" style="display:none" onchange="App._processLabelImage(this)"/>
+      </label>
+    </div>
+    <div id="photo-processing" style="display:none;text-align:center">
+      <div class="scan-spinner" style="width:38px;height:38px;border-width:3px;margin:0 auto 14px"></div>
+      <p id="photo-status" style="color:#fff;font-size:.88rem">Loading OCR engine…</p>
+    </div>
+    <div id="photo-result" style="display:none;width:100%;max-width:340px">
+      <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:14px">
+        <div style="color:rgba(255,255,255,.65);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Detected Product Name</div>
+        <input id="photo-name-edit" style="width:100%;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:8px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.92rem;color:#fff;outline:none" placeholder="Edit name if needed…"/>
+        <div id="photo-raw-toggle" style="color:rgba(255,255,255,.45);font-size:.72rem;margin-top:8px;cursor:pointer" onclick="App._toggleRawOCR()">▼ Show all OCR text</div>
+        <div id="photo-raw-text" style="display:none;margin-top:8px;background:rgba(0,0,0,.25);border-radius:8px;padding:10px;color:rgba(255,255,255,.6);font-size:.73rem;line-height:1.5;max-height:120px;overflow-y:auto;white-space:pre-wrap"></div>
+      </div>
+    </div>
+  </div>
+  <div id="photo-btn-row" style="display:none;position:relative;z-index:20" class="scan-btn-row">
+    <button class="btn-scan-action btn-scan-manual" onclick="App._retakePhoto()">↩ Retake</button>
+    <button class="btn-scan-action btn-scan-use" onclick="App._usePhotoResult()">Use This ✓</button>
+  </div>
+</div>
 <!-- BARCODE SCANNER -->
 <div class="scan-overlay" id="scan-overlay">
   <div class="scan-header">
@@ -369,7 +410,7 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
     <button class="scan-close" onclick="App.closeScanner()">✕ Cancel</button>
   </div>
   <div id="scan-viewport">
-    <div id="scan-reader"></div>
+    <video id="scanner-video" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></video>
     <div class="scan-frame">
       <div class="scan-box"></div>
       <div class="scan-line"></div>
@@ -767,7 +808,10 @@ const App = {
   _iForm(i){
     const so=(a,v)=>a.map(o=>`<option${o===v?' selected':''}>${o}</option>`).join('');
     return `
-      <button type="button" class="btn btn-outline btn-full" style="margin-bottom:14px" onclick="App.openScanner()">📷 Scan Barcode to Auto-Fill</button>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button type="button" class="btn btn-outline" style="flex:1;font-size:.8rem" onclick="App.openScanner()">📷 Scan Barcode</button>
+        <button type="button" class="btn btn-outline" style="flex:1;font-size:.8rem" onclick="App.openLabelPhoto()">📸 Photo Label</button>
+      </div>
       <div class="form-group"><label>Item Name *</label><input id="iin" value="${this.h(i.name)}" placeholder="e.g. Coconut Oil"/></div>
       <div class="form-row">
         <div class="form-group"><label>Category</label><select id="iic">${so(I_CATS,i.category)}</select></div>
@@ -953,125 +997,301 @@ const App = {
   // ── BARCODE SCANNER ──────────────────────────────────────────
   _scanner: null,
   _scanResult: null,
+  _scanDone: false,
 
   openScanner(){
     this._scanResult = null;
+    this._scanDone = false;
     document.getElementById('scan-status').innerHTML = '';
     document.getElementById('scan-use-btn').style.display = 'none';
+    document.getElementById('scan-use-btn').textContent = 'Use This Product ✓';
     document.getElementById('scan-overlay').classList.add('open');
-    // Small delay to let overlay render before camera init
-    setTimeout(() => this._startCamera(), 300);
+    setTimeout(() => this._startCamera(), 350);
   },
 
   _startCamera(){
-    if(this._scanner){ this._scanner.clear(); this._scanner = null; }
+    const video = document.getElementById('scanner-video');
+    const statusEl = document.getElementById('scan-status');
     try {
-      this._scanner = new Html5Qrcode('scan-reader');
-      this._scanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 220, height: 140 }, aspectRatio: 1.7 },
-        (code) => this._onScanSuccess(code),
-        () => {} // ignore per-frame errors
-      ).catch(err => {
-        document.getElementById('scan-status').innerHTML =
-          `<span style="color:#ff6b6b">Camera error: ${err.message || 'Permission denied'}</span>`;
+      if(typeof ZXingBrowser === 'undefined'){
+        statusEl.innerHTML = '<span style="color:#ff6b6b">Scanner library not loaded. Check internet connection.</span>';
+        return;
+      }
+      this._scanner = new ZXingBrowser.BrowserMultiFormatReader();
+      this._scanner.decodeFromVideoDevice(null, video, (result, err) => {
+        if(result && !this._scanDone){
+          this._scanDone = true;
+          this._onScanSuccess(result.getText());
+        }
       });
-    } catch(e) {
-      document.getElementById('scan-status').innerHTML =
-        `<span style="color:#ff6b6b">Scanner unavailable. Try Chrome or update your browser.</span>`;
+    } catch(e){
+      statusEl.innerHTML = `<span style="color:#ff6b6b">Camera error: ${e.message || 'Permission denied'}</span>`;
     }
   },
 
   closeScanner(){
-    if(this._scanner){
-      this._scanner.stop().catch(()=>{}).finally(()=>{
-        this._scanner.clear();
-        this._scanner = null;
-      });
+    try {
+      if(this._scanner){ this._scanner.reset(); this._scanner = null; }
+    } catch(e){}
+    const video = document.getElementById('scanner-video');
+    if(video && video.srcObject){
+      video.srcObject.getTracks().forEach(t => t.stop());
+      video.srcObject = null;
     }
     document.getElementById('scan-overlay').classList.remove('open');
   },
 
   _onScanSuccess(code){
-    if(this._scanResult && this._scanResult.barcode === code) return; // already processed
-    // Stop scanning after first hit
-    if(this._scanner) this._scanner.stop().catch(()=>{});
+    try { if(this._scanner){ this._scanner.reset(); this._scanner = null; } } catch(e){}
     this._scanResult = { barcode: code, product: null };
     document.getElementById('scan-status').innerHTML =
-      `<div class="scan-lookup"><div class="scan-spinner"></div> Looking up barcode ${code}…</div>`;
+      `<div class="scan-lookup"><div class="scan-spinner"></div> Looking up ${code}…</div>`;
     this._lookupBarcode(code);
   },
 
   async _lookupBarcode(code){
-    let product = null;
     const statusEl = document.getElementById('scan-status');
+    statusEl.innerHTML = `<div class="scan-lookup"><div class="scan-spinner"></div> Searching databases for ${code}…</div>`;
 
-    // Try Open Food Facts first (free, no key)
+    // Helper: parse Open*Facts response (food / beauty / products all share same format)
+    const parseOFF = (data, code) => {
+      if(data.status !== 1 || !data.product) return null;
+      const p = data.product;
+      const name  = (p.product_name || p.product_name_en || '').trim();
+      const brand = (p.brands || '').split(',')[0].trim();
+      const full  = (brand && name && !name.toLowerCase().includes(brand.toLowerCase()))
+        ? `${brand} ${name}` : (name || brand);
+      return full ? { name: full, barcode: code } : null;
+    };
+
+    // All 5 databases queried simultaneously
+    const apis = [
+      // 1. Open Food Facts — food, beverages, ingredients
+      fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`)
+        .then(r=>r.json()).then(d=>parseOFF(d,code)).catch(()=>null),
+      // 2. Open Beauty Facts — cosmetics, soaps, lotions, personal care
+      fetch(`https://world.openbeautyfacts.org/api/v2/product/${code}.json`)
+        .then(r=>r.json()).then(d=>parseOFF(d,code)).catch(()=>null),
+      // 3. Open Products Facts — household, cleaning, pharmacy, general goods
+      fetch(`https://world.openproductsfacts.org/api/v2/product/${code}.json`)
+        .then(r=>r.json()).then(d=>parseOFF(d,code)).catch(()=>null),
+      // 4. UPC Item DB — broad US retail products
+      fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`)
+        .then(r=>r.json())
+        .then(d=>(d.items&&d.items.length&&d.items[0].title)?{name:d.items[0].title,barcode:code}:null)
+        .catch(()=>null),
+      // 5. Barcode Monster — large general product database, free & no key
+      fetch(`https://barcode.monster/api/${code}`)
+        .then(r=>r.json())
+        .then(d=>(d&&d.name)?{name:d.name,barcode:code}:null)
+        .catch(()=>null),
+    ];
+
+    // Take the first non-null result (fastest wins among those that succeed)
+    let product = null;
     try {
-      const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`);
-      const data = await res.json();
-      if(data.status === 1 && data.product){
-        const p = data.product;
-        const name = p.product_name || p.product_name_en || '';
-        const brand = p.brands || '';
-        product = {
-          name: brand && !name.toLowerCase().includes(brand.toLowerCase()) ? `${brand} ${name}`.trim() : name,
-          barcode: code,
-          source: 'Open Food Facts'
-        };
-      }
-    } catch(e){}
-
-    // Fallback: UPC Item DB
-    if(!product || !product.name){
-      try {
-        const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`);
-        const data = await res.json();
-        if(data.items && data.items.length){
-          const item = data.items[0];
-          product = {
-            name: item.title || item.brand || '',
-            barcode: code,
-            source: 'UPC ItemDB'
-          };
-        }
-      } catch(e){}
-    }
+      product = await Promise.any(
+        apis.map(p => p.then(r => { if(!r||!r.name) throw new Error('empty'); return r; }))
+      );
+    } catch(e){ product = null; }
 
     if(product && product.name){
       this._scanResult = { barcode: code, product };
-      statusEl.innerHTML = `<span style="color:#a8e6b8;font-weight:700">✅ Found: ${this.h(product.name)}</span>`;
+      statusEl.innerHTML = `<span style="color:#a8e6b8;font-weight:700">✅ ${this.h(product.name)}</span>`;
       document.getElementById('scan-use-btn').style.display = 'block';
     } else {
-      // Not found in database — still let them use the barcode
-      this._scanResult = { barcode: code, product: { name: '', barcode: code, source: null } };
-      statusEl.innerHTML = `<span style="color:#ffd97d">⚠️ Barcode ${code} not found in database.<br>You can still add it manually.</span>`;
-      document.getElementById('scan-use-btn').style.display = 'block';
+      this._scanResult = { barcode: code, product: { name: '', barcode: code } };
+      statusEl.innerHTML = `
+        <span style="color:#ffd97d;display:block;margin-bottom:8px">⚠️ Barcode <b>${code}</b> not found in any database.</span>
+        <button onclick="window.open('https://www.google.com/search?q=${encodeURIComponent(code)}+product+barcode','_blank')"
+          style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:6px 14px;font-family:Lato,sans-serif;font-size:.8rem;font-weight:700;cursor:pointer">
+          🔍 Search Google for this barcode
+        </button>`;
       document.getElementById('scan-use-btn').textContent = 'Add Manually ✓';
+      document.getElementById('scan-use-btn').style.display = 'block';
     }
   },
 
   useScanResult(){
     if(!this._scanResult) return;
     this.closeScanner();
-    // Pre-fill form if it's open
     const nameField = document.getElementById('iin');
-    if(nameField && this._scanResult.product && this._scanResult.product.name){
-      nameField.value = this._scanResult.product.name;
-      nameField.focus();
-      // Store barcode in notes if field exists
-      const notesField = document.getElementById('iino');
-      if(notesField && !notesField.value){
-        notesField.value = `Barcode: ${this._scanResult.barcode}`;
+    if(nameField){
+      if(this._scanResult.product && this._scanResult.product.name){
+        nameField.value = this._scanResult.product.name;
+        this._toast(`Auto-filled: ${this._scanResult.product.name}`);
+      } else {
+        this._toast('Enter item name — barcode saved to notes');
       }
-      this._toast(`Auto-filled: ${this._scanResult.product.name}`);
-    } else {
-      // No product name found — just put barcode in notes
       const notesField = document.getElementById('iino');
-      if(notesField) notesField.value = `Barcode: ${this._scanResult.barcode}`;
-      this._toast('Barcode saved to notes — enter name manually');
+      if(notesField && !notesField.value)
+        notesField.value = `Barcode: ${this._scanResult.barcode}`;
+      nameField.focus();
     }
   },
+  // ── PHOTO LABEL OCR ──────────────────────────────────────────
+  _rawOCRText: '',
+
+  openLabelPhoto(){
+    document.getElementById('photo-initial').style.display = 'block';
+    document.getElementById('photo-processing').style.display = 'none';
+    document.getElementById('photo-result').style.display = 'none';
+    document.getElementById('photo-preview-wrap').style.display = 'none';
+    document.getElementById('photo-btn-row').style.display = 'none';
+    document.getElementById('photo-raw-text').style.display = 'none';
+    document.getElementById('photo-raw-toggle').textContent = '▼ Show all OCR text';
+    const c = document.getElementById('photo-capture');
+    const l = document.getElementById('photo-library');
+    if(c) c.value = '';
+    if(l) l.value = '';
+    document.getElementById('photo-overlay').classList.add('open');
+  },
+
+  closePhotoScan(){
+    document.getElementById('photo-overlay').classList.remove('open');
+  },
+
+  _toggleRawOCR(){
+    const raw = document.getElementById('photo-raw-text');
+    const toggle = document.getElementById('photo-raw-toggle');
+    const showing = raw.style.display !== 'none';
+    raw.style.display = showing ? 'none' : 'block';
+    toggle.textContent = showing ? '▼ Show all OCR text' : '▲ Hide OCR text';
+  },
+
+  async _processLabelImage(input){
+    if(!input.files || !input.files[0]) return;
+    const file = input.files[0];
+
+    // Show image preview
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('photo-preview').src = e.target.result;
+      document.getElementById('photo-preview-wrap').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+
+    // Switch to processing state
+    document.getElementById('photo-initial').style.display = 'none';
+    document.getElementById('photo-processing').style.display = 'block';
+    document.getElementById('photo-result').style.display = 'none';
+    document.getElementById('photo-btn-row').style.display = 'none';
+    document.getElementById('photo-status').textContent = 'Loading OCR engine…';
+
+    try {
+      await this._loadTesseract();
+      document.getElementById('photo-status').textContent = 'Reading label… 0%';
+
+      const result = await Tesseract.recognize(file, 'eng', {
+        logger: m => {
+          if(m.status === 'recognizing text'){
+            const pct = Math.round((m.progress || 0) * 100);
+            document.getElementById('photo-status').textContent = `Reading label… ${pct}%`;
+          }
+        }
+      });
+
+      const rawText = result.data.text || '';
+      this._rawOCRText = rawText;
+      const name = this._parseOCRText(rawText);
+
+      document.getElementById('photo-processing').style.display = 'none';
+      document.getElementById('photo-result').style.display = 'block';
+      document.getElementById('photo-name-edit').value = name;
+      document.getElementById('photo-raw-text').textContent = rawText.trim();
+      document.getElementById('photo-btn-row').style.display = 'flex';
+
+    } catch(e){
+      document.getElementById('photo-status').textContent =
+        'Could not read label. Try better lighting or a clearer angle.';
+      setTimeout(() => {
+        document.getElementById('photo-processing').style.display = 'none';
+        document.getElementById('photo-initial').style.display = 'block';
+      }, 2500);
+    }
+  },
+
+  _parseOCRText(text){
+    const noise = [
+      'ingredients','directions','warning','caution','net wt','fl oz','fl. oz','keep out',
+      'for external','do not','contains','distributed by','manufactured','made in','www.',
+      'http','drug facts','active ingredient','inactive ingredient','shake well',
+      'expiration','exp ','lot #','lot:','barcode','upc','see label','read all',
+      'store in','keep refrigerated','tamper','safety cap','child resistant','poison control',
+      'first aid','if swallowed','in eyes','on skin','call','toll free'
+    ];
+    const lines = text.split('
+')
+      .map(l => l.trim())
+      .filter(l => l.length >= 3 && l.length <= 60)
+      .filter(l => !/^[\d\s\.\-\%\/\]+$/.test(l))
+      .filter(l => !noise.some(n => l.toLowerCase().includes(n)));
+
+    if(!lines.length) return '';
+
+    const scored = lines.map((l, idx) => {
+      let score = 0;
+      const words = l.split(/\s+/).filter(Boolean);
+      // Prefer short product-name-length lines
+      if(words.length >= 1 && words.length <= 6) score += 4;
+      // Has uppercase (brand/product names usually do)
+      if(/[A-Z]/.test(l)) score += 2;
+      // All-caps words = brand name
+      if(words.some(w => w.length > 2 && w === w.toUpperCase())) score += 3;
+      // Percentage = likely concentration (e.g. "70% Isopropyl Alcohol")
+      if(/\d+\s*%/.test(l)) score += 3;
+      // Title case line = likely a product name
+      if(words.length > 0 && words[0][0] === words[0][0].toUpperCase()) score += 2;
+      // Favor lines near the top of the label
+      score += Math.max(0, 10 - idx);
+      return { text: l, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.length ? scored[0].text : lines[0] || '';
+  },
+
+  _loadTesseract(){
+    return new Promise((resolve, reject) => {
+      if(window.Tesseract){ resolve(); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('OCR library failed to load'));
+      document.head.appendChild(s);
+    });
+  },
+
+  _retakePhoto(){
+    document.getElementById('photo-initial').style.display = 'block';
+    document.getElementById('photo-processing').style.display = 'none';
+    document.getElementById('photo-result').style.display = 'none';
+    document.getElementById('photo-btn-row').style.display = 'none';
+    document.getElementById('photo-preview-wrap').style.display = 'none';
+    const c = document.getElementById('photo-capture');
+    const l = document.getElementById('photo-library');
+    if(c) c.value = '';
+    if(l) l.value = '';
+  },
+
+  _usePhotoResult(){
+    const name = (document.getElementById('photo-name-edit').value || '').trim();
+    this.closePhotoScan();
+    const nameField = document.getElementById('iin');
+    if(nameField){
+      if(name){
+        nameField.value = name;
+        this._toast(`Filled: ${name}`);
+      } else {
+        this._toast('Enter item name manually');
+      }
+      const notesField = document.getElementById('iino');
+      if(notesField && !notesField.value && this._rawOCRText)
+        notesField.value = 'Label text: ' + this._rawOCRText.trim().slice(0, 120);
+      nameField.focus();
+    }
+  },
+
   _confirm(title,msg,cb){
     document.getElementById('confirm-title').textContent=title;
     document.getElementById('confirm-msg').textContent=msg;
