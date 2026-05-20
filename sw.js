@@ -1,4 +1,4 @@
-const CACHE = 'sudsy-v1';
+const CACHE = 'sudsy-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,6 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png',
-  'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap'
 ];
 
 self.addEventListener('install', e => {
