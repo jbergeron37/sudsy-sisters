@@ -2205,50 +2205,47 @@ const App = {
   async lookupMWFC(name){
     if(!name){this._toast('Enter a fragrance name');return;}
     const statusEl = document.getElementById('mwfc-status');
-    if(statusEl) statusEl.textContent = 'Searching MWFC...';
+    if(statusEl) statusEl.innerHTML = '<span style="color:var(--muted)">Searching MWFC...</span>';
     try {
-      // Shopify JSON API - publicly available
-      const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-      const res = await fetch('https://midwestfragranceco.com/products/'+slug+'.json');
-      if(!res.ok) throw new Error('Not found');
-      const data = await res.json();
-      const p = data.product;
-      if(!p) throw new Error('No product');
+      // Call via Supabase Edge Function proxy (avoids CORS block from github.io)
+      const encoded = encodeURIComponent(name.trim());
+      const res = await fetch(
+        this.SB_URL + '/functions/v1/mwfc-lookup?name=' + encoded,
+        { headers: { 'apikey': this.SB_KEY, 'Authorization': 'Bearer ' + this.SB_KEY } }
+      );
 
-      // Parse description HTML for notes and CP data
-      const desc = p.body_html || '';
-      const getText = (html) => html.replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
-      const descText = getText(desc);
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.error || 'HTTP ' + res.status);
+      }
 
-      const extract = (text, label) => {
-        const re = new RegExp(label+'\\s*notes?\\s*:?\\s*([^\\n<]+)','i');
-        const m = text.match(re);
-        return m ? m[1].replace(/<[^>]+>/g,'').trim() : '';
-      };
-
-      const maxSoap = descText.match(/Max use in soap[:\s]+([0-9.]+)%/i);
-      const maxLot = descText.match(/Max use in lotion[:\s]+([0-9.]+)%/i);
+      const p = await res.json();
+      if(p.error) throw new Error(p.error);
 
       // Populate form fields
-      const setVal = (id, val) => { const el=document.getElementById(id); if(el&&val) el.value=val; };
-      setVal('ff-name', p.title||name);
-      setVal('ff-desc', p.vendor ? descText.substring(0,200) : '');
-      setVal('ff-maxsoap', maxSoap?maxSoap[1]:'');
-      setVal('ff-maxlotion', maxLot?maxLot[1]:'');
-      setVal('ff-url', 'https://midwestfragranceco.com/products/'+slug);
+      const setVal = (id, val) => { const el=document.getElementById(id); if(el && val) el.value = val; };
+      setVal('ff-name', p.name);
+      setVal('ff-desc', p.description);
+      setVal('ff-maxsoap', p.max_usage_soap || '');
+      setVal('ff-maxlotion', p.max_usage_lotion || '');
+      setVal('ff-url', p.mwfc_url || '');
+      setVal('ff-acc', p.cp_acceleration || '');
+      setVal('ff-rice', p.cp_ricing || '');
+      setVal('ff-dis', p.cp_discoloration || '');
+      setVal('ff-cpnotes', p.cp_notes || '');
 
-      // Set notes via tag system
-      const topN = extract(descText,'top');
-      const midN = extract(descText,'middle');
-      const baseN = extract(descText,'base');
-      if(topN) this._setNoteFieldVal('ff-top',topN);
-      if(midN) this._setNoteFieldVal('ff-mid',midN);
-      if(baseN) this._setNoteFieldVal('ff-base',baseN);
+      // Set fragrance note pill tags
+      if(p.top_notes)    this._setNoteFieldVal('ff-top', p.top_notes);
+      if(p.middle_notes) this._setNoteFieldVal('ff-mid', p.middle_notes);
+      if(p.base_notes)   this._setNoteFieldVal('ff-base', p.base_notes);
 
-      if(statusEl) statusEl.textContent = '✅ Found: '+p.title;
+      if(statusEl) statusEl.innerHTML = '<span style="color:var(--sage)">✅ Found: ' + this.h(p.name) + '</span>';
       this._toast('MWFC data loaded!');
     } catch(e){
-      if(statusEl) statusEl.textContent = '⚠️ Not found — try a slightly different name or enter manually';
+      const msg = e.message === 'not_found'
+        ? 'Not found — try adding "-fragrance-oil" to the name, e.g. "Lavender Fragrance Oil"'
+        : '⚠️ ' + (e.message || 'Search failed');
+      if(statusEl) statusEl.innerHTML = '<span style="color:var(--amber)">' + msg + '</span>';
     }
   },
 
@@ -2328,7 +2325,11 @@ const App = {
   _fragForm(f){
     const so=(a,v)=>a.map(o=>'<option'+(o===v?' selected':'')+'>'+o+'</option>').join('');
     const hv = v => this.h(v||'');
-    return '<div class="mwfc-lookup">'+
+    return '<div style="display:flex;gap:8px;margin-bottom:12px">'+
+      '<button type="button" class="btn btn-outline" style="flex:1;font-size:.8rem" onclick="App.openFragScanner()">📷 Scan Barcode</button>'+
+      '<button type="button" class="btn btn-outline" style="flex:1;font-size:.8rem" onclick="App.closeModal(\'modal-frag\');App.openLabelPhoto()">📸 Photo Label</button>'+
+      '</div>'+
+      '<div class="mwfc-lookup">'+
       '<input id="mwfc-name-inp" placeholder="Search MWFC by name\u2026" value="'+hv(f.name)+'"/>'+
       '<button onclick="App.lookupMWFC(document.getElementById(\'mwfc-name-inp\').value)">\uD83D\uDD0D Lookup</button>'+
       '</div><div id="mwfc-status" style="font-size:.76rem;color:var(--muted);margin:-8px 0 12px;min-height:16px"></div>'+
@@ -2733,6 +2734,13 @@ ${r.notes?'<div class="section"><h3>Recipe Notes</h3><div class="notes">'+r.note
   _scanDone: false,
   _scanFrame: null,
 
+  // Open scanner specifically for fragrance tab — checks frag DB first
+  openFragScanner(){
+    this._scanContext = 'frag';
+    this.closeModal('modal-frag');
+    this.openScanner();
+  },
+
   openScanner(){
     this._scanResult = null;
     this._scanDone = false;
@@ -2872,18 +2880,49 @@ ${r.notes?'<div class="section"><h3>Recipe Notes</h3><div class="notes">'+r.note
 
   useScanResult(){
     if(!this._scanResult) return;
+    const code = this._scanResult.barcode;
+    const ctx = this._scanContext || 'inv';
+    this._scanContext = null;
     this.closeScanner();
+
+    if(ctx === 'frag'){
+      // Check fragrance DB first by barcode
+      const existing = this.fragrances.find(f => f.barcode === code);
+      if(existing){
+        this._toast('Found: ' + existing.name);
+        this.openFragModal(existing.id);
+        return;
+      }
+      // Not in local DB — open new frag form, pre-fill barcode, auto-trigger MWFC lookup
+      const prod = this._scanResult.product;
+      this.openFragModal(null);
+      setTimeout(() => {
+        const bc = document.getElementById('ff-barcode');
+        if(bc) bc.value = code;
+        if(prod && prod.name){
+          const nameEl = document.getElementById('ff-name');
+          const mwfcInp = document.getElementById('mwfc-name-inp');
+          if(nameEl) nameEl.value = prod.name;
+          if(mwfcInp){ mwfcInp.value = prod.name; this.lookupMWFC(prod.name); }
+        } else {
+          this._toast('Barcode saved — search MWFC or enter name manually');
+        }
+      }, 400);
+      return;
+    }
+
+    // Inventory context (default)
     const nameField = document.getElementById('iin');
     if(nameField){
       if(this._scanResult.product && this._scanResult.product.name){
         nameField.value = this._scanResult.product.name;
-        this._toast(`Auto-filled: ${this._scanResult.product.name}`);
+        this._toast('Auto-filled: ' + this._scanResult.product.name);
       } else {
         this._toast('Enter item name — barcode saved to notes');
       }
       const notesField = document.getElementById('iino');
       if(notesField && !notesField.value)
-        notesField.value = `Barcode: ${this._scanResult.barcode}`;
+        notesField.value = 'Barcode: ' + code;
       nameField.focus();
     }
   },
