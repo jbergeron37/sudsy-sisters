@@ -1,0 +1,2189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Sudsy Sisters"/>
+<meta name="theme-color" content="#C2587A"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
+
+<title>Sudsy Sisters</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --cream:#FFF0F5;--white:#fff;--brown:#C2587A;--brown-l:#D4799A;--brown-d:#8B2A4A;
+  --sage:#E8A0B4;--sage-l:#F5D0DC;--amber:#E07090;--red:#C0392B;--red-l:#FADBD8;
+  --text:#3D1A2A;--muted:#9B6070;--border:#F0C0CF;--card:#fff;--shadow:rgba(180,80,120,.12);
+  --bar-h:60px;--safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);font-family:Lato,sans-serif;-webkit-text-size-adjust:100%}
+#app{height:100%;display:flex;flex-direction:column;padding-top:var(--safe-t)}
+#header{background:var(--brown);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;box-shadow:0 2px 10px var(--shadow)}
+#header-back{display:none;background:none;border:none;color:#fff;cursor:pointer;padding:4px 8px 4px 0}
+#header-back svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;display:block}
+#header-logo{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,.35)}
+#header-titles{flex:1;min-width:0}
+.sort-row{display:flex;align-items:center;gap:6px;padding:0 14px 8px;overflow-x:auto;scrollbar-width:none}
+.sort-row::-webkit-scrollbar{display:none}
+.sort-lbl{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;flex-shrink:0}
+.sort-chip{background:var(--white);border:1.5px solid var(--border);border-radius:20px;padding:4px 10px;font-size:.72rem;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s;font-family:Lato,sans-serif;flex-shrink:0}
+.sort-chip.on{background:var(--brown-d);border-color:var(--brown-d);color:#fff}
+.print-btn{background:var(--brown);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;letter-spacing:.4px;display:flex;align-items:center;gap:5px}
+.print-btn:active{background:var(--brown-d)}
+@media print{
+  #nav,#header-add,#header-back,.search-bar,.chips,.sort-row,
+  #view-recipes,#view-inventory,#view-calc,.btn,.copy-btn,.print-btn{display:none!important}
+  #header{background:#fff!important;box-shadow:none!important;border-bottom:2px solid #eee}
+  #header-title{color:#333!important;font-size:1.1rem!important}
+  #header-sub{color:#888!important}
+  #header-logo{display:block!important}
+  #content{overflow:visible!important;position:static!important}
+  #view-orders{display:block!important;position:static!important;overflow:visible!important;padding-bottom:0!important}
+  .report-wrap{padding:4px!important}
+  .report-item{box-shadow:none!important;border:1px solid #ddd!important;break-inside:avoid}
+  .ri-name{font-size:.95rem!important}
+  .report-sec-title{font-size:.75rem!important}
+}
+#header-title{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#header-sub{font-size:.68rem;font-weight:300;opacity:.72;text-transform:uppercase;letter-spacing:.9px;margin-top:1px}
+#header-add{background:rgba(255,255,255,.18);border:none;color:#fff;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;transition:background .15s}
+#header-add:active{background:rgba(255,255,255,.3)}
+#header-add svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;display:block}
+#header-sync{background:rgba(255,255,255,.18);border:none;color:#fff;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;transition:background .15s;margin-right:6px}
+#header-sync:active{background:rgba(255,255,255,.3)}
+#header-sync svg{width:19px;height:19px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;display:block}
+#header-sync.spinning svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#content{flex:1;overflow:hidden;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--bar-h) + var(--safe-b) + 10px);display:none}
+.view.active{display:block}
+#nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--bar-h) + var(--safe-b));background:var(--white);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-b);z-index:200;box-shadow:0 -2px 12px var(--shadow)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:.58rem;font-family:Lato,sans-serif;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding-top:6px;transition:color .2s}
+.nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav-btn.active{color:var(--brown)}
+.search-bar{padding:12px 14px 6px;position:sticky;top:0;background:var(--cream);z-index:10}
+.search-inner{background:var(--white);border:1.5px solid var(--border);border-radius:12px;display:flex;align-items:center;padding:8px 12px;gap:8px;box-shadow:0 1px 4px var(--shadow);transition:border-color .2s}
+.search-inner:focus-within{border-color:var(--brown-l)}
+.search-inner svg{width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.search-inner input{flex:1;border:none;outline:none;background:none;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text)}
+.search-inner input::placeholder{color:var(--muted)}
+.s-clear{background:none;border:none;cursor:pointer;color:var(--muted);padding:0 2px;font-size:1.2rem;line-height:1;display:flex}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:4px 14px 10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{background:var(--white);border:1.5px solid var(--border);border-radius:20px;padding:5px 12px;font-size:.73rem;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;letter-spacing:.3px;transition:all .15s;font-family:Lato,sans-serif}
+.chip.on{background:var(--brown);border-color:var(--brown);color:#fff}
+.empty{text-align:center;padding:52px 30px;color:var(--muted)}
+.empty-icon{font-size:2.8rem;margin-bottom:12px}
+.empty h3{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--brown-d);margin-bottom:6px}
+.empty p{font-size:.85rem;line-height:1.5}
+.r-grid{padding:0 14px 8px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.r-card{background:var(--card);border-radius:14px;overflow:hidden;box-shadow:0 2px 8px var(--shadow);cursor:pointer;border:1px solid var(--border);transition:transform .13s}
+.r-card:active{transform:scale(.97)}
+.r-card-stripe{height:5px}
+.r-card-body{padding:10px 11px 12px}
+.r-card-name{font-family:'Playfair Display',serif;font-size:.95rem;font-weight:600;line-height:1.3;color:var(--brown-d);margin-bottom:4px}
+.r-card-cat{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.r-card-tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{background:var(--cream);border:1px solid var(--border);border-radius:7px;padding:2px 7px;font-size:.66rem;color:var(--muted);font-weight:700}
+.detail{padding:14px}
+.detail-header{background:var(--white);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px var(--shadow);border:1px solid var(--border)}
+.detail-badge{display:inline-block;color:#fff;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;padding:3px 10px;border-radius:20px;margin-bottom:8px}
+.detail-name{font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:700;color:var(--brown-d);margin-bottom:6px;line-height:1.2}
+.detail-desc{font-size:.87rem;color:var(--muted);line-height:1.5}
+.meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.meta-pill{background:var(--cream);border:1px solid var(--border);border-radius:9px;padding:5px 10px;font-size:.75rem;color:var(--text)}
+.meta-pill span{font-weight:700;color:var(--brown)}
+.section{background:var(--white);border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 8px var(--shadow);border:1px solid var(--border)}
+.section-title{font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:var(--brown-d);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.ing-row{display:flex;align-items:baseline;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--cream)}
+.ing-row:last-child{border-bottom:none}
+.ing-name{font-size:.87rem;color:var(--text);flex:1}
+.ing-amt{font-size:.87rem;font-weight:700;color:var(--brown);white-space:nowrap;margin-left:10px}
+.prose{font-size:.87rem;line-height:1.68;color:var(--text);white-space:pre-wrap}
+.prose-muted{font-size:.84rem;line-height:1.62;color:var(--muted);font-style:italic;white-space:pre-wrap}
+.detail-actions{display:flex;gap:10px;padding:0 14px 14px}
+.btn{border:none;cursor:pointer;border-radius:12px;padding:11px 18px;font-family:Lato,sans-serif;font-weight:700;font-size:.87rem;display:inline-flex;align-items:center;gap:6px;justify-content:center;transition:all .15s}
+.btn-primary{background:var(--brown);color:#fff;flex:1}
+.btn-primary:active{background:var(--brown-d)}
+.btn-danger{background:var(--red-l);color:var(--red);flex:1}
+.btn-outline{background:var(--white);color:var(--brown);border:1.5px solid var(--border);flex:1}
+.btn-full{width:100%}
+.inv-list{padding:0 14px 8px;display:flex;flex-direction:column;gap:8px}
+.inv-card{background:var(--card);border-radius:13px;padding:12px 14px;box-shadow:0 2px 8px var(--shadow);border:1px solid var(--border);cursor:pointer;transition:transform .13s}
+.inv-card:active{transform:scale(.98)}
+.inv-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.inv-name{font-family:'Playfair Display',serif;font-size:.97rem;font-weight:600;color:var(--brown-d)}
+.inv-cat-tag{font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;background:var(--cream);border:1px solid var(--border);padding:2px 8px;border-radius:7px;white-space:nowrap;margin-left:6px;flex-shrink:0}
+.inv-qty-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.inv-qty{font-size:1.05rem;font-weight:700;color:var(--text)}
+.inv-qty .unit{font-size:.77rem;font-weight:400;color:var(--muted);margin-left:3px}
+.inv-status{font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:7px}
+.s-ok{background:#E8F5E9;color:#2E7D32}
+.s-low{background:#FFF3E0;color:#E65100}
+.s-out{background:var(--red-l);color:var(--red)}
+.inv-prog{height:5px;background:var(--cream);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.inv-prog-bar{height:100%;border-radius:4px;transition:width .4s}
+.p-ok{background:var(--sage)}
+.p-low{background:var(--amber)}
+.p-out{background:var(--red)}
+.calc-wrap{padding:14px}
+.calc-card{background:var(--white);border-radius:14px;padding:16px;box-shadow:0 2px 8px var(--shadow);border:1px solid var(--border);margin-bottom:12px}
+.calc-card h3{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:600;color:var(--brown-d);margin-bottom:14px}
+.form-group{margin-bottom:13px}
+.form-group label{display:block;font-size:.75rem;font-weight:700;color:var(--brown-d);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.form-group select,.form-group input,.form-group textarea{width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none;-webkit-appearance:none;appearance:none;transition:border-color .2s}
+.form-group select:focus,.form-group input:focus,.form-group textarea:focus{border-color:var(--brown-l)}
+.form-group textarea{resize:vertical;min-height:80px}
+.form-row{display:flex;gap:10px}
+.form-row .form-group{flex:1}
+.mode-row{display:flex;gap:8px}
+.mode-btn{flex:1;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s}
+.mode-btn.active{background:var(--brown);border-color:var(--brown);color:#fff}
+.calc-result{background:var(--cream);border-radius:12px;padding:14px;border:1px solid var(--border)}
+.calc-result-title{font-family:'Playfair Display',serif;font-size:.95rem;font-weight:600;color:var(--brown-d);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.calc-row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid rgba(224,212,192,.5)}
+.calc-row:last-child{border-bottom:none}
+.calc-row-name{font-size:.85rem;color:var(--text)}
+.calc-row-amt{font-size:.85rem;font-weight:700;color:var(--brown)}
+.calc-note{font-size:.76rem;color:var(--muted);text-align:center;margin-top:10px;font-style:italic}
+.report-wrap{padding:14px}
+.report-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.report-top h2{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--brown-d)}
+.copy-btn{background:var(--brown);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;letter-spacing:.4px}
+.copy-btn:active{background:var(--brown-d)}
+.report-section{margin-bottom:16px}
+.report-sec-title{font-size:.68rem;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.8px;padding-bottom:6px;border-bottom:1px solid #ddd;margin-bottom:8px}
+.report-item{background:#fff;border-radius:12px;padding:11px 13px;margin-bottom:7px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center}
+.ri-name{font-size:.88rem;font-weight:700;color:#111}
+.ri-detail{font-size:.74rem;color:#555;margin-top:2px}
+.ri-need{font-size:.88rem;font-weight:700;color:#111;text-align:right}
+.ri-have{font-size:.7rem;color:#666;text-align:right;margin-top:2px}
+.all-good{text-align:center;padding:40px 20px;color:var(--sage)}
+.all-good p{font-size:.88rem;color:var(--muted);margin-top:6px}
+.modal-overlay{position:fixed;inset:0;background:rgba(44,32,24,.48);z-index:500;display:none;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal-sheet{background:var(--cream);border-radius:20px 20px 0 0;width:100%;max-height:93vh;display:flex;flex-direction:column;padding-bottom:var(--safe-b);animation:slideUp .24s ease-out}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 2px;flex-shrink:0}
+.modal-hdr{display:flex;align-items:center;padding:10px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;color:var(--brown-d);flex:1}
+.modal-close{background:none;border:none;cursor:pointer;font-size:1.5rem;color:var(--muted);padding:0 4px;line-height:1}
+.modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;padding:14px 16px}
+.modal-foot{padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.ing-form-row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.ing-form-row input{flex:2;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:Lato,sans-serif;font-size:.85rem;color:var(--text);outline:none;min-width:0}
+.ing-form-row input.sm{flex:1}
+.ing-form-row select{flex:1;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px 6px;font-family:Lato,sans-serif;font-size:.8rem;color:var(--text);outline:none;-webkit-appearance:none;min-width:0}
+.ing-form-row input:focus,.ing-form-row select:focus{border-color:var(--brown-l)}
+.ing-del{background:none;border:none;cursor:pointer;color:var(--red);font-size:1.4rem;padding:2px 4px;line-height:1;flex-shrink:0}
+.add-row-btn{background:none;border:1.5px dashed var(--border);border-radius:10px;padding:9px;width:100%;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s;margin-top:2px}
+.add-row-btn:active{background:var(--white)}
+.tag-wrap{display:flex;flex-wrap:wrap;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;min-height:42px;cursor:text}
+.tag-wrap:focus-within{border-color:var(--brown-l)}
+.tag-pill{background:var(--brown);color:#fff;border-radius:7px;padding:2px 8px;font-size:.75rem;display:flex;align-items:center;gap:4px;font-weight:700}
+.tag-pill button{background:none;border:none;cursor:pointer;color:#fff;font-size:.9rem;padding:0;line-height:1}
+.tag-input{border:none;outline:none;background:none;font-family:Lato,sans-serif;font-size:.85rem;color:var(--text);min-width:70px;flex:1;padding:2px 0}
+.confirm-overlay{position:fixed;inset:0;background:rgba(44,32,24,.52);z-index:600;display:none;align-items:center;justify-content:center;padding:24px}
+.confirm-overlay.open{display:flex}
+.confirm-box{background:var(--white);border-radius:16px;padding:24px 20px;max-width:290px;width:100%;text-align:center;box-shadow:0 8px 32px var(--shadow)}
+.confirm-box h3{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--brown-d);margin-bottom:8px}
+.confirm-box p{font-size:.85rem;color:var(--muted);margin-bottom:18px;line-height:1.5}
+.confirm-btns{display:flex;gap:10px}
+.confirm-btns button{flex:1;border:none;border-radius:12px;padding:11px;font-family:Lato,sans-serif;font-weight:700;font-size:.88rem;cursor:pointer}
+.cbtn-cancel{background:var(--cream);color:var(--text);border:1.5px solid var(--border)!important}
+.cbtn-ok{background:var(--red);color:#fff}
+.cbtn-confirm{background:var(--brown);color:#fff}
+.passcode-overlay{position:fixed;inset:0;background:rgba(44,32,24,.6);z-index:900;display:none;align-items:center;justify-content:center;padding:24px}
+.passcode-overlay.open{display:flex}
+.passcode-box{background:var(--white);border-radius:18px;padding:28px 24px;max-width:300px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+.passcode-logo{width:64px;height:64px;border-radius:50%;margin:0 auto 12px;display:block}
+.passcode-title{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--brown-d);margin-bottom:6px}
+.passcode-sub{font-size:.82rem;color:var(--muted);margin-bottom:18px}
+.passcode-input{width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:Lato,sans-serif;font-size:1.1rem;color:var(--text);outline:none;text-align:center;letter-spacing:.2rem;margin-bottom:12px}
+.passcode-input:focus{border-color:var(--brown)}
+.passcode-btn{width:100%;background:var(--brown);color:#fff;border:none;border-radius:12px;padding:12px;font-family:Lato,sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;margin-bottom:8px}
+.passcode-btn:active{background:var(--brown-d)}
+.passcode-err{font-size:.8rem;color:var(--red);min-height:18px;margin-bottom:4px}
+.sync-status{position:fixed;top:calc(var(--safe-t) + 58px);right:12px;background:var(--brown-d);color:#fff;padding:6px 12px;border-radius:20px;font-size:.72rem;font-weight:700;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none}
+.sync-status.show{opacity:1}
+.cbtn-make{background:var(--brown);color:#fff}
+.batch-ing-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.batch-ing-row:last-child{border-bottom:none}
+.batch-ing-left{font-size:.85rem;color:var(--text)}
+.batch-ing-right{font-size:.82rem;font-weight:700;text-align:right}
+.batch-found{color:var(--red)}
+.batch-notfound{color:var(--muted);font-style:italic}
+.batch-inv-note{font-size:.72rem;color:var(--muted);margin-top:1px}
+.toast{position:fixed;bottom:calc(var(--bar-h) + var(--safe-b) + 14px);left:50%;transform:translateX(-50%) translateY(16px);background:var(--brown-d);color:#fff;padding:10px 20px;border-radius:24px;font-size:.82rem;font-weight:700;z-index:700;opacity:0;transition:all .28s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px var(--shadow)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.adj-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.adj-row input{flex:1;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none}
+.adj-row select{background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;font-family:Lato,sans-serif;font-size:.85rem;color:var(--text);outline:none;-webkit-appearance:none}
+.scan-overlay{position:fixed;inset:0;background:#000;z-index:800;display:none;flex-direction:column}
+.scan-overlay.open{display:flex}
+.scan-header{padding:calc(var(--safe-t) + 14px) 16px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;z-index:20}
+.scan-title{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600}
+.scan-close{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.4rem;padding:6px 12px;border-radius:10px;cursor:pointer;font-family:Lato,sans-serif}
+#scan-viewport{flex:1;position:relative;overflow:hidden}
+#scan-viewport video{width:100%;height:100%;object-fit:cover}
+.scan-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-box{width:240px;height:160px;border:2px solid var(--brown);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.5)}
+.scan-line{position:absolute;top:50%;left:50%;transform:translate(-120px,-1px);width:240px;height:2px;background:var(--brown);animation:scanline 1.8s ease-in-out infinite}
+@keyframes scanline{0%,100%{top:calc(50% - 75px)}50%{top:calc(50% + 75px)}}
+.scan-hint{color:rgba(255,255,255,.8);font-size:.8rem;text-align:center;padding:10px;flex-shrink:0;position:relative;z-index:20}
+.scan-status{color:#fff;font-size:.85rem;text-align:center;padding:8px 16px;min-height:36px;flex-shrink:0;position:relative;z-index:20}
+.scan-lookup{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--sage-l)}
+.scan-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan-btn-row{padding:12px 16px calc(var(--safe-b) + 12px);display:flex;gap:10px;flex-shrink:0;position:relative;z-index:20}
+.btn-scan-action{flex:1;border:none;border-radius:12px;padding:12px;font-family:Lato,sans-serif;font-weight:700;font-size:.88rem;cursor:pointer}
+.btn-scan-manual{background:rgba(255,255,255,.15);color:#fff}
+.btn-scan-use{background:var(--brown);color:#fff;display:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <button id="header-back" onclick="App.goBack()">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <img id="header-logo" src="apple-touch-icon.png" alt="Sudsy Sisters" onerror="this.style.display='none'"/>
+    <div id="header-titles">
+      <div id="header-title">Recipes</div>
+      <div id="header-sub">Sudsy Sisters</div>
+    </div>
+    <button id="header-sync" onclick="App.updateFromGitHub()" title="Update from GitHub">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+    </button>
+    <button id="header-add" onclick="App.handleAdd()">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+  <div id="content">
+    <!-- RECIPES LIST -->
+    <div id="view-recipes" class="view active">
+      <div class="search-bar">
+        <div class="search-inner">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="r-search" type="search" placeholder="Search recipes…" oninput="App.renderRecipes()"/>
+          <button class="s-clear" id="r-clear" onclick="App.clrSearch('r-search','r-clear',App.renderRecipes.bind(App))" style="display:none">×</button>
+        </div>
+      </div>
+      <div class="chips" id="r-chips"></div>
+      <div id="r-list"></div>
+      <div style="text-align:center;padding:6px 16px 14px">
+        <button onclick="App.resetToSeedRecipes()" style="background:none;border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-family:Lato,sans-serif;font-size:.72rem;font-weight:700;color:var(--muted);cursor:pointer;letter-spacing:.3px">↺ Reset to Sudsy Sisters recipes</button>
+      </div>
+    </div>
+    <!-- RECIPE DETAIL -->
+    <div id="view-recipe-detail" class="view"></div>
+    <!-- INVENTORY LIST -->
+    <div id="view-inventory" class="view">
+      <div class="search-bar">
+        <div class="search-inner">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="i-search" type="search" placeholder="Search inventory…" oninput="App.renderInventory()"/>
+          <button class="s-clear" id="i-clear" onclick="App.clrSearch('i-search','i-clear',App.renderInventory.bind(App))" style="display:none">×</button>
+        </div>
+      </div>
+      <div class="chips" id="i-chips"></div>
+      <div class="sort-row" id="i-sort-row"></div>
+      <div id="i-list"></div>
+    </div>
+    <!-- INVENTORY DETAIL -->
+    <div id="view-inv-detail" class="view"></div>
+    <!-- CALCULATOR -->
+    <div id="view-calc" class="view">
+      <div class="calc-wrap">
+        <div class="calc-card">
+          <h3>🧮 Batch Calculator</h3>
+          <div class="form-group">
+            <label>Select Recipe</label>
+            <select id="calc-recipe" onchange="App.calcUpdate()">
+              <option value="">— Choose a recipe —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Scale By</label>
+            <div class="mode-row">
+              <button class="mode-btn active" id="mode-oz" onclick="App.calcMode('oz')">Total Ounces</button>
+              <button class="mode-btn" id="mode-bars" onclick="App.calcMode('bars')">Number of Bars</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" id="grp-oz">
+              <label>Target (oz)</label>
+              <input type="number" id="calc-oz" placeholder="e.g. 48" min="1" oninput="App.calcUpdate()"/>
+            </div>
+            <div class="form-group" id="grp-bars" style="display:none">
+              <label># of Bars</label>
+              <input type="number" id="calc-bars" placeholder="e.g. 12" min="1" oninput="App.calcUpdate()"/>
+            </div>
+            <div class="form-group" id="grp-barwt" style="display:none">
+              <label>Oz / Bar</label>
+              <input type="number" id="calc-barwt" value="3.5" step="0.5" min="0.5" oninput="App.calcUpdate()"/>
+            </div>
+          </div>
+        </div>
+        <div id="calc-result"></div>
+      </div>
+    </div>
+    <!-- ORDER REPORT -->
+    <div id="view-orders" class="view">
+      <div class="report-wrap" id="report-body"></div>
+    </div>
+  </div>
+  <nav id="nav">
+    <button class="nav-btn active" id="nav-recipes" onclick="App.setTab('recipes')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Recipes
+    </button>
+    <button class="nav-btn" id="nav-inventory" onclick="App.setTab('inventory')">
+      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Inventory
+    </button>
+    <button class="nav-btn" id="nav-calc" onclick="App.setTab('calc')">
+      <svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/></svg>
+      Calc
+    </button>
+    <button class="nav-btn" id="nav-orders" onclick="App.setTab('orders')">
+      <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      Order
+    </button>
+  </nav>
+</div>
+<!-- RECIPE MODAL -->
+<div class="modal-overlay" id="modal-recipe">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr">
+      <div class="modal-title" id="modal-recipe-title">New Recipe</div>
+      <button class="modal-close" onclick="App.closeModal('modal-recipe')">×</button>
+    </div>
+    <div class="modal-body" id="modal-recipe-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-primary btn-full" onclick="App.saveRecipe()">Save Recipe</button>
+    </div>
+  </div>
+</div>
+<!-- INVENTORY MODAL -->
+<div class="modal-overlay" id="modal-inv">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr">
+      <div class="modal-title" id="modal-inv-title">New Item</div>
+      <button class="modal-close" onclick="App.closeModal('modal-inv')">×</button>
+    </div>
+    <div class="modal-body" id="modal-inv-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-primary btn-full" onclick="App.saveInv()">Save Item</button>
+    </div>
+  </div>
+</div>
+<!-- CONFIRM -->
+<div class="confirm-overlay" id="modal-confirm">
+  <div class="confirm-box">
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p id="confirm-msg">This cannot be undone.</p>
+    <div class="confirm-btns">
+      <button class="cbtn-cancel" onclick="App.closeModal('modal-confirm')">Cancel</button>
+      <button class="cbtn-ok" id="confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+<!-- BATCH CONFIRM MODAL -->
+<div class="confirm-overlay" id="modal-batch">
+  <div class="confirm-box" style="max-width:340px">
+    <h3 id="batch-title">Make Batch?</h3>
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:12px">These ingredients will be subtracted from your inventory:</p>
+    <div id="batch-ing-list" style="max-height:260px;overflow-y:auto;margin-bottom:14px;text-align:left"></div>
+    <div id="batch-warn" style="display:none;background:#FFF3E0;border-radius:8px;padding:8px 10px;font-size:.76rem;color:#E65100;margin-bottom:12px;text-align:left"></div>
+    <div class="confirm-btns">
+      <button class="cbtn-cancel" onclick="App.closeModal('modal-batch')">Cancel</button>
+      <button class="cbtn-make" id="batch-ok">Confirm Batch</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="sync-status" id="sync-status"></div>
+<!-- PASSCODE MODAL -->
+<div class="passcode-overlay" id="passcode-modal">
+  <div class="passcode-box">
+    <img class="passcode-logo" src="apple-touch-icon.png" alt="SS" onerror="this.style.display='none'"/>
+    <div class="passcode-title">Sudsy Sisters</div>
+    <div class="passcode-sub" id="passcode-sub">Enter passcode to access</div>
+    <input class="passcode-input" id="passcode-input" type="password" placeholder="••••" maxlength="20"
+      onkeydown="if(event.key==='Enter')App.submitPasscode()"/>
+    <div class="passcode-err" id="passcode-err"></div>
+    <button class="passcode-btn" onclick="App.submitPasscode()">Unlock</button>
+    <div style="font-size:.72rem;color:var(--muted)">Default passcode: 1234</div>
+  </div>
+</div>
+<!-- PHOTO LABEL SCANNER -->
+<div class="scan-overlay" id="photo-overlay">
+  <div class="scan-header" style="position:relative;z-index:20">
+    <div class="scan-title">📸 Photo Label</div>
+    <button class="scan-close" onclick="App.closePhotoScan()">✕ Cancel</button>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 20px 10px;gap:14px;overflow-y:auto;position:relative;z-index:20">
+    <div id="photo-preview-wrap" style="display:none;width:100%;max-width:340px">
+      <img id="photo-preview" style="width:100%;border-radius:12px;max-height:240px;object-fit:contain;background:rgba(255,255,255,.05)"/>
+    </div>
+    <div id="photo-initial" style="text-align:center">
+      <div style="font-size:3.5rem;margin-bottom:10px">📸</div>
+      <p style="color:rgba(255,255,255,.8);font-size:.88rem;margin-bottom:18px;line-height:1.5">Take a photo of the product label.<br>Works best with good lighting.</p>
+      <label style="background:var(--brown);color:#fff;border-radius:12px;padding:13px 28px;font-family:Lato,sans-serif;font-weight:700;font-size:.92rem;cursor:pointer;display:inline-block;margin-bottom:10px">
+        📷 Take Photo
+        <input type="file" accept="image/*" capture="environment" id="photo-capture" style="display:none" onchange="App._processLabelImage(this)"/>
+      </label>
+      <br/>
+      <label style="background:rgba(255,255,255,.14);color:#fff;border-radius:12px;padding:10px 22px;font-family:Lato,sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;display:inline-block">
+        🖼 Choose from Library
+        <input type="file" accept="image/*" id="photo-library" style="display:none" onchange="App._processLabelImage(this)"/>
+      </label>
+    </div>
+    <div id="photo-processing" style="display:none;text-align:center">
+      <div class="scan-spinner" style="width:38px;height:38px;border-width:3px;margin:0 auto 14px"></div>
+      <p id="photo-status" style="color:#fff;font-size:.88rem">Loading OCR engine…</p>
+    </div>
+    <div id="photo-result" style="display:none;width:100%;max-width:340px">
+      <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:14px">
+        <div style="color:rgba(255,255,255,.65);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Detected Product Name</div>
+        <input id="photo-name-edit" style="width:100%;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:8px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.92rem;color:#fff;outline:none" placeholder="Edit name if needed…"/>
+        <div id="photo-raw-toggle" style="color:rgba(255,255,255,.45);font-size:.72rem;margin-top:8px;cursor:pointer" onclick="App._toggleRawOCR()">▼ Show all OCR text</div>
+        <div id="photo-raw-text" style="display:none;margin-top:8px;background:rgba(0,0,0,.25);border-radius:8px;padding:10px;color:rgba(255,255,255,.6);font-size:.73rem;line-height:1.5;max-height:120px;overflow-y:auto;white-space:pre-wrap"></div>
+      </div>
+    </div>
+  </div>
+  <div id="photo-btn-row" style="display:none;position:relative;z-index:20" class="scan-btn-row">
+    <button class="btn-scan-action btn-scan-manual" onclick="App._retakePhoto()">↩ Retake</button>
+    <button class="btn-scan-action btn-scan-use" onclick="App._usePhotoResult()">Use This ✓</button>
+  </div>
+</div>
+<!-- BARCODE SCANNER -->
+<div class="scan-overlay" id="scan-overlay">
+  <div class="scan-header">
+    <div class="scan-title">📷 Scan Barcode</div>
+    <button class="scan-close" onclick="App.closeScanner()">✕ Cancel</button>
+  </div>
+  <div id="scan-viewport">
+    <video id="scanner-video" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></video>
+    <div class="scan-frame">
+      <div class="scan-box"></div>
+      <div class="scan-line"></div>
+    </div>
+  </div>
+  <div class="scan-hint">Hold steady — center the barcode in the box</div>
+  <div class="scan-status" id="scan-status"></div>
+  <div class="scan-btn-row">
+    <button class="btn-scan-action btn-scan-manual" onclick="App.closeScanner()">Enter Manually</button>
+    <button class="btn-scan-action btn-scan-use" id="scan-use-btn" onclick="App.useScanResult()">Use This Product ✓</button>
+  </div>
+</div>
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────
+const R_CATS  = ['Bar Soap','Liquid Soap','Lotion','Body Butter','Body Oil','Scrub','Other'];
+const I_CATS  = ['Oils','Lye & Alkalis','Fragrance & EO','Colorants','Additives','Packaging','Other'];
+const UNITS   = ['oz','lb','g','kg','ml','L','tsp','tbsp','cup','ea'];
+const DIFF    = ['Beginner','Intermediate','Advanced'];
+const LYE_T   = ['NaOH','KOH','Both','None'];
+const CAT_CLR = {'Bar Soap':'#C2587A','Liquid Soap':'#7A58C2','Lotion':'#D4799A','Body Butter':'#E07090','Body Oil':'#B07AB0','Scrub':'#C278A0','Other':'#9B6070'};
+
+// ── SAMPLE DATA ───────────────────────────────────────────────
+const SEED_RECIPES = [
+  // ── COLD PROCESS SOAP BARS ──────────────────────────────────
+  {
+    id:'r1',name:'Sudsy Sisters Slab+ (210 oz batch)',category:'Bar Soap',difficulty:'Intermediate',
+    cureTime:'4-6 weeks',batchSize:'311',batchUnit:'oz',superfat:'7%',lye:'NaOH',scent:'Unscented base',
+    tags:['cold process','slab','goat milk friendly','shea','olive'],
+    description:'Full slab batch from SoapCalc. Olive-heavy conditioning bar with shea butter. 40:60 sat/unsat ratio. INS 144. Yields approx. 88 bars at 3.5 oz.',
+    ingredients:[
+      {name:'Water',amount:'66.17',unit:'oz'},
+      {name:'Lye (NaOH)',amount:'28.36',unit:'oz'},
+      {name:'Olive Oil',amount:'84',unit:'oz'},
+      {name:'Coconut Oil (76 deg)',amount:'52.5',unit:'oz'},
+      {name:'Shea Butter',amount:'42',unit:'oz'},
+      {name:'Avocado Oil',amount:'21',unit:'oz'},
+      {name:'Castor Oil',amount:'10.5',unit:'oz'},
+      {name:'Fragrance Oil',amount:'6.56',unit:'oz'}
+    ],
+    instructions:'Standard cold process. Mix lye into water (or frozen goat milk) and cool to 90-100F. Melt and combine oils to same temp. Stick blend to light trace. Add fragrance and pour into slab mold. Insulate 24 hrs. Unmold after 48 hrs. Cut and cure 4-6 weeks.',
+    notes:'Lye concentration 30%. Water 31.51% of oil weight. Fragrance ratio 0.5 oz per lb of oil. Soap weight before cure: 311 oz.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r2',name:'Sudsy Sisters Slab (200 oz batch)',category:'Bar Soap',difficulty:'Intermediate',
+    cureTime:'4-6 weeks',batchSize:'296',batchUnit:'oz',superfat:'7%',lye:'NaOH',scent:'Unscented base',
+    tags:['cold process','slab','olive','shea','coconut'],
+    description:'Standard slab batch. Same formula as Slab+ at slightly smaller scale. Yields approx. 84 bars at 3.5 oz.',
+    ingredients:[
+      {name:'Water',amount:'63.02',unit:'oz'},
+      {name:'Lye (NaOH)',amount:'27.01',unit:'oz'},
+      {name:'Olive Oil',amount:'80',unit:'oz'},
+      {name:'Coconut Oil (76 deg)',amount:'50',unit:'oz'},
+      {name:'Shea Butter',amount:'40',unit:'oz'},
+      {name:'Avocado Oil',amount:'20',unit:'oz'},
+      {name:'Castor Oil',amount:'10',unit:'oz'},
+      {name:'Fragrance Oil',amount:'6.25',unit:'oz'}
+    ],
+    instructions:'Standard cold process. Mix lye into water and cool to 90-100F. Melt and combine oils to same temp. Stick blend to light trace. Add fragrance and pour into slab mold. Insulate 24 hrs. Unmold after 48 hrs. Cut and cure 4-6 weeks.',
+    notes:'Lye concentration 30%. Water 31.51% of oil weight. Fragrance ratio 0.5 oz per lb of oil.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r3',name:'Loaf Mold+ Plus (40 oz batch)',category:'Bar Soap',difficulty:'Beginner',
+    cureTime:'4-6 weeks',batchSize:'59',batchUnit:'oz',superfat:'7%',lye:'NaOH',scent:'Unscented base',
+    tags:['cold process','loaf mold','olive','shea','beginner batch'],
+    description:'Same formula as the slab recipes scaled to a standard loaf mold. Great for small test batches or seasonal scents. Yields approx. 11-12 bars.',
+    ingredients:[
+      {name:'Water',amount:'12.60',unit:'oz'},
+      {name:'Lye (NaOH)',amount:'5.40',unit:'oz'},
+      {name:'Olive Oil',amount:'16',unit:'oz'},
+      {name:'Coconut Oil (76 deg)',amount:'10',unit:'oz'},
+      {name:'Shea Butter',amount:'8',unit:'oz'},
+      {name:'Avocado Oil',amount:'4',unit:'oz'},
+      {name:'Castor Oil',amount:'2',unit:'oz'},
+      {name:'Fragrance Oil',amount:'1.25',unit:'oz'}
+    ],
+    instructions:'Standard cold process. Mix lye into water and cool to 90-100F. Melt and combine oils to same temp. Stick blend to light trace. Add fragrance and pour into loaf mold. Insulate 24 hrs. Unmold after 48 hrs. Cure 4-6 weeks.',
+    notes:'Lye concentration 30%. Water 31.51% of oil weight. Fragrance ratio 0.5. Perfect batch size for testing new scents or colors.',
+    created:'2024-01-01'
+  },
+  // ── FACIAL OILS ─────────────────────────────────────────────
+  {
+    id:'r4',name:'Facial Oil 01 - Brightening + Antioxidant',category:'Body Oil',difficulty:'Intermediate',
+    cureTime:'None',batchSize:'86',batchUnit:'g',superfat:'',lye:'None',scent:'Unscented',
+    tags:['facial oil','brightening','antioxidant','LEVO infused','hyperpigmentation','dull skin'],
+    description:'Targets hyperpigmentation, dull skin, uneven tone, and sun damage. Uses LEVO-infused carrier oils. All-natural, anhydrous. Shelf life 6-9 months in dark glass.',
+    ingredients:[
+      {name:'Calendula + Turmeric Infused Sunflower Oil (high oleic)',amount:'43',unit:'g'},
+      {name:'Green Coffee Bean Infused MCT Oil',amount:'15.5',unit:'g'},
+      {name:'Rosemary Infused Rice Bran Oil',amount:'10',unit:'g'},
+      {name:'Evening Primrose Oil',amount:'10',unit:'g'},
+      {name:'Rosehip Oil',amount:'5',unit:'g'},
+      {name:'Vitamin E Oil (tocopherol)',amount:'1',unit:'g'}
+    ],
+    instructions:'LEVO Infusions first: Calendula+Turmeric in high oleic sunflower at 155F for 3-4 hrs. Green coffee beans in MCT at 150F for 3 hrs. Rosemary in rice bran at 160F for 3-4 hrs.\n\nCombine all infused and plain oils. Top off with extra rosehip or EPO to reach 100% if needed. Pour into dark glass dropper bottles.',
+    notes:'Key actives: Chlorogenic acids (green coffee) + curcumin (turmeric) = dual-pathway brightening. Rosehip retinol precursors support cell turnover. Calendula soothes inflammation. Store in dark glass. Keep refrigerated for longest shelf life.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r5',name:'Facial Oil 02 - Anti-Aging + Firming',category:'Body Oil',difficulty:'Intermediate',
+    cureTime:'None',batchSize:'86',batchUnit:'g',superfat:'',lye:'None',scent:'Unscented',
+    tags:['facial oil','anti-aging','firming','LEVO infused','fine lines','collagen'],
+    description:'Targets fine lines, loss of firmness, oxidative stress, and collagen support. Double rosemary infusion maximizes antioxidant saturation.',
+    ingredients:[
+      {name:'Sage Infused Sunflower Oil (high oleic)',amount:'34.4',unit:'g'},
+      {name:'Rosemary Infused MCT Oil',amount:'15.5',unit:'g'},
+      {name:'Rosemary Infused Rice Bran Oil',amount:'10',unit:'g'},
+      {name:'Evening Primrose Oil',amount:'12',unit:'g'},
+      {name:'Rosehip Oil',amount:'12',unit:'g'},
+      {name:'Vitamin E Oil (tocopherol)',amount:'1.3',unit:'g'}
+    ],
+    instructions:'LEVO Infusions: Sage in high oleic sunflower at 155F for 3-4 hrs. Rosemary in MCT at 160F for 3-4 hrs. Rosemary in rice bran at 160F for 3-4 hrs.\n\nCombine all oils and pour into dark glass dropper bottles.',
+    notes:'Key actives: Rosmarinic acid (rosemary + sage) is one of the strongest plant antioxidants for collagen. Rosehip at 14% delivers meaningful retinol precursor levels. EPO GLA supports elasticity. Store in dark glass.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r6',name:'Facial Oil 03 - Balancing + Acne-Prone',category:'Body Oil',difficulty:'Intermediate',
+    cureTime:'None',batchSize:'86',batchUnit:'g',superfat:'',lye:'None',scent:'Unscented',
+    tags:['facial oil','acne','balancing','LEVO infused','breakouts','non-comedogenic'],
+    description:'Targets breakouts, excess sebum, redness, and clogged pores. Intentionally non-comedogenic throughout - no coconut oil, no heavy butters.',
+    ingredients:[
+      {name:'Lavender Infused Sunflower Oil (high oleic)',amount:'38.7',unit:'g'},
+      {name:'Basil Infused MCT Oil',amount:'17.2',unit:'g'},
+      {name:'Green Coffee Bean Infused MCT Oil',amount:'12.9',unit:'g'},
+      {name:'Rosehip Oil',amount:'8.6',unit:'g'},
+      {name:'Squalane',amount:'6.9',unit:'g'},
+      {name:'Vitamin E Oil (tocopherol)',amount:'1',unit:'g'}
+    ],
+    instructions:'LEVO Infusions: Lavender in high oleic sunflower at 150F for 2-3 hrs. Basil in MCT at 150F for 2-3 hrs. Green coffee beans in MCT at 150F for 3 hrs.\n\nCombine all oils and pour into dark glass dropper bottles. Use as PM treatment oil.',
+    notes:'IMPORTANT: Basil infusion is potent - do a patch test before full facial use. Avoid eye area. Best used as a PM treatment oil only. Key actives: Basil MCT brings antimicrobial linalool/eugenol. Squalane regulates oil production over time.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r7',name:'Facial Oil 04 - Deep Nourish + Barrier Repair',category:'Body Oil',difficulty:'Intermediate',
+    cureTime:'None',batchSize:'86',batchUnit:'g',superfat:'',lye:'None',scent:'Unscented',
+    tags:['facial oil','barrier repair','nourishing','LEVO infused','dry skin','eczema','sensitive'],
+    description:'Targets dryness, compromised barrier, sensitive skin, and eczema-prone skin. Gentlest formula of the four - no astringents, no high-fragrance herbs.',
+    ingredients:[
+      {name:'Calendula + Chamomile Infused Sunflower Oil (high oleic)',amount:'34.4',unit:'g'},
+      {name:'Borage Infused MCT Oil',amount:'12.9',unit:'g'},
+      {name:'Evening Primrose Oil',amount:'17.2',unit:'g'},
+      {name:'Rosehip Oil',amount:'8.6',unit:'g'},
+      {name:'Rice Bran Oil',amount:'11.2',unit:'g'},
+      {name:'Vitamin E Oil (tocopherol)',amount:'1.3',unit:'g'}
+    ],
+    instructions:'LEVO Infusions: Calendula+Chamomile in high oleic sunflower at 150F for 3-4 hrs. Borage leaves/flowers in MCT at 150F for 3 hrs.\n\nCombine all oils. Pour into dark glass dropper bottles. Store refrigerated.',
+    notes:'SHORTEST shelf life of the four - store refrigerated, use within 4-6 months due to high EPO content. Make in smaller batches if needed. Vitamin E bumped to 1.5% to protect high GLA content from oxidation.',
+    created:'2024-01-01'
+  },
+  // ── HAIR OILS ────────────────────────────────────────────────
+  {
+    id:'r8',name:'Hair Oil 1 - Growth & Strength',category:'Body Oil',difficulty:'Beginner',
+    cureTime:'None',batchSize:'100',batchUnit:'g',superfat:'',lye:'None',scent:'Custom EO blend',
+    tags:['hair oil','growth','fenugreek','rosemary','amla'],
+    description:'Canola-based hair oil with growth-supporting herbs. Fenugreek, rosemary, and amla are classic Ayurvedic hair growth herbs.',
+    ingredients:[
+      {name:'Canola Oil',amount:'37',unit:'g'},
+      {name:'Rice Bran Oil',amount:'23',unit:'g'},
+      {name:'Castor Oil',amount:'22',unit:'g'},
+      {name:'Sunflower Oil',amount:'7',unit:'g'},
+      {name:'Argan Oil',amount:'5',unit:'g'},
+      {name:'Essential Oil blend',amount:'2',unit:'g'},
+      {name:'Vitamin E Oil',amount:'1',unit:'g'},
+      {name:'Fenugreek (infused or powder)',amount:'1',unit:'g'},
+      {name:'Rosemary (infused or extract)',amount:'1',unit:'g'},
+      {name:'Amla (infused or powder)',amount:'1',unit:'g'}
+    ],
+    instructions:'If infusing herbs: combine herbs with carrier oils at low heat (150F) for 3-4 hrs. Strain well. Combine all oils and add essential oils and vitamin E last. Pour into dark glass bottles.',
+    notes:'Fenugreek and amla can be used as infusions or powder (strain before bottling). Rosemary can be infused or use rosemary EO as part of the essential oil blend.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r9',name:'Hair Oil 2 - Shine & Moisture',category:'Body Oil',difficulty:'Beginner',
+    cureTime:'None',batchSize:'100',batchUnit:'g',superfat:'',lye:'None',scent:'Custom EO blend',
+    tags:['hair oil','shine','grapeseed','apricot kernel','magnolia bark'],
+    description:'Lightweight grapeseed and apricot kernel base for shine and moisture. Magnolia bark and green tea add antioxidant protection.',
+    ingredients:[
+      {name:'Grapeseed Oil',amount:'38',unit:'g'},
+      {name:'Apricot Kernel Oil',amount:'33',unit:'g'},
+      {name:'Castor Oil',amount:'17',unit:'g'},
+      {name:'Evening Primrose Oil',amount:'3',unit:'g'},
+      {name:'Rosehip Oil',amount:'3',unit:'g'},
+      {name:'Essential Oil blend',amount:'2',unit:'g'},
+      {name:'Vitamin E Oil',amount:'1',unit:'g'},
+      {name:'Magnolia Bark (infused or extract)',amount:'1',unit:'g'},
+      {name:'Green Tea (infused or extract)',amount:'1',unit:'g'},
+      {name:'Common Sage (infused or extract)',amount:'1',unit:'g'}
+    ],
+    instructions:'Infuse herbs in a portion of the carrier oils at 150F for 3-4 hrs if using plant material. Strain. Combine all oils, add EO and vitamin E last. Bottle in dark glass.',
+    notes:'Very lightweight formula. Good for fine hair or as a pre-shampoo treatment. Magnolia bark and green tea provide antioxidant protection for color-treated hair.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r10',name:'Hair Oil 3 - Scalp & Thickness',category:'Body Oil',difficulty:'Beginner',
+    cureTime:'None',batchSize:'100',batchUnit:'g',superfat:'',lye:'None',scent:'Custom EO blend',
+    tags:['hair oil','scalp','thickness','hemp seed','rice bran','angelica'],
+    description:'Rice bran and hemp seed base for scalp health and thickness. Angelica, horsetail, and star anise support scalp circulation.',
+    ingredients:[
+      {name:'Rice Bran Oil',amount:'38',unit:'g'},
+      {name:'Castor Oil',amount:'20',unit:'g'},
+      {name:'Safflower Oil',amount:'22',unit:'g'},
+      {name:'Hemp Seed Oil',amount:'10',unit:'g'},
+      {name:'Sesame Oil',amount:'4',unit:'g'},
+      {name:'Essential Oil blend',amount:'2',unit:'g'},
+      {name:'Vitamin E Oil',amount:'1',unit:'g'},
+      {name:'Angelica (infused or extract)',amount:'1',unit:'g'},
+      {name:'Horsetail (infused or extract)',amount:'1',unit:'g'},
+      {name:'Star Anise (infused or extract)',amount:'1',unit:'g'}
+    ],
+    instructions:'Infuse herbs at 150F for 3-4 hrs if using plant material. Strain thoroughly - star anise in particular needs fine straining. Combine all oils. Add EO and vitamin E last. Bottle in dark glass.',
+    notes:'Hemp seed oil has a shorter shelf life - use within 6 months and store in a cool place. Star anise is potent in EO form - use sparingly if substituting for infused.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r11',name:'Hair Oil 4 - Nourish & Repair',category:'Body Oil',difficulty:'Beginner',
+    cureTime:'None',batchSize:'100',batchUnit:'g',superfat:'',lye:'None',scent:'Custom EO blend',
+    tags:['hair oil','nourishing','repair','camelina','MCT','avocado'],
+    description:'Camelina and avocado-rich formula for deep nourishment and repair. Lavender buds, rosemary, and orange peel add herbal benefits.',
+    ingredients:[
+      {name:'Camelina Oil',amount:'30',unit:'g'},
+      {name:'MCT Oil',amount:'26',unit:'g'},
+      {name:'Castor Oil',amount:'18',unit:'g'},
+      {name:'Avocado Oil',amount:'13',unit:'g'},
+      {name:'Rice Bran Oil',amount:'7',unit:'g'},
+      {name:'Essential Oil blend',amount:'2',unit:'g'},
+      {name:'Vitamin E Oil',amount:'1',unit:'g'},
+      {name:'Lavender Buds (infused)',amount:'1',unit:'g'},
+      {name:'Rosemary (infused or extract)',amount:'1',unit:'g'},
+      {name:'Orange Peel (infused or extract)',amount:'1',unit:'g'}
+    ],
+    instructions:'Infuse lavender buds, rosemary, and orange peel in a portion of the oils at 150F for 3-4 hrs. Strain well. Combine all oils. Add EO blend and vitamin E last. Bottle in dark glass.',
+    notes:'Camelina oil is rich in omega-3 and has a distinctive earthy scent - the lavender and orange peel help balance it. Good for dry, damaged, or color-treated hair.',
+    created:'2024-01-01'
+  },
+  // ── BODY OILS & LOTIONS ──────────────────────────────────────
+  {
+    id:'r12',name:"Robyn's Favorite All Natural Dry Body Oil",category:'Body Oil',difficulty:'Beginner',
+    cureTime:'None',batchSize:'86',batchUnit:'g',superfat:'',lye:'None',scent:'Unscented',
+    tags:['body oil','dry oil','absorbs fast','no alcohol','natural','sunflower'],
+    description:'Made with natural oils and contains no alcohol esters. Absorbs almost instantly and leaves skin feeling soft. High oleic sunflower dominant.',
+    ingredients:[
+      {name:'Sunflower Oil (high oleic)',amount:'60',unit:'g'},
+      {name:'Rice Bran Oil',amount:'10',unit:'g'},
+      {name:'Evening Primrose Oil',amount:'10',unit:'g'},
+      {name:'Rosehip Oil',amount:'5',unit:'g'},
+      {name:'Vitamin E Oil',amount:'1',unit:'g'}
+    ],
+    instructions:'Combine all oils and mix well. Pour into dark glass or pump bottle. Apply to damp skin after shower for best absorption.',
+    notes:'High oleic sunflower (69.77%) forms the base for fast absorption. No alcohol esters means no drying effect. Shelf life 9-12 months. Keep away from direct sunlight.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r13',name:'Magnesium Lotion (Patreon Exclusive)',category:'Lotion',difficulty:'Advanced',
+    cureTime:'None',batchSize:'600',batchUnit:'g',superfat:'',lye:'None',scent:'Custom EO/FO',
+    tags:['lotion','magnesium','body lotion','muscle recovery','sleep','ewax'],
+    description:'Magnesium chloride lotion for topical magnesium absorption. Good for muscle recovery, relaxation, and sleep support.',
+    ingredients:[
+      {name:'Water',amount:'402',unit:'g'},
+      {name:'Magnesium Chloride',amount:'84',unit:'g'},
+      {name:'Ewax NF',amount:'24',unit:'g'},
+      {name:'Grapeseed Oil',amount:'30',unit:'g'},
+      {name:'Sunflower Seed Oil',amount:'24',unit:'g'},
+      {name:'Stearic Acid',amount:'12',unit:'g'},
+      {name:'Mango Butter',amount:'9',unit:'g'},
+      {name:'Vitamin E Oil',amount:'6',unit:'g'},
+      {name:'Fragrance or Essential Oil',amount:'6',unit:'g'},
+      {name:'Preservative',amount:'3',unit:'g'}
+    ],
+    instructions:'1) Combine water and magnesium chloride. Stir until fully dissolved.\n2) In a double boiler, heat oils, mango butter, stearic acid, and Ewax NF together until fully melted.\n3) Heat water/magnesium mixture separately, then add to warm oil/butter blend.\n4) Heat combination to 70C/158F and hold for 20 minutes.\n5) Remove from heat and allow lotion to cool to under 43C/110F.\n6) Add Vitamin E oil, fragrance/EO, and preservative only after cooling below 43C.\n7) Bottle and enjoy!',
+    notes:'Do NOT add Vitamin E, fragrance, or preservative while hot - they will degrade. The 20-minute hold at 70C ensures emulsification and safety. Magnesium chloride is heavy - expect a slightly thicker lotion.',
+    created:'2024-01-01'
+  },
+  // ── SPECIALTY BARS ───────────────────────────────────────────
+  {
+    id:'r14',name:'Our Favorite Shampoo Bar',category:'Bar Soap',difficulty:'Advanced',
+    cureTime:'None',batchSize:'500',batchUnit:'g',superfat:'',lye:'None',scent:'Custom EO/FO',
+    tags:['shampoo bar','surfactant','SCI','all hair types','conditioning','solid shampoo'],
+    description:'Great for all hair types except super oily. Includes surfactants for lather and conditioners so it does not leave hair stripped. Lower surfactant level - can boost with extra SLSa if desired.',
+    ingredients:[
+      {name:'SCI Noodles',amount:'265',unit:'g'},
+      {name:'Cocamidopropyl Betaine',amount:'90',unit:'g'},
+      {name:'BTMS 50',amount:'25',unit:'g'},
+      {name:'Sodium Lactate',amount:'20',unit:'g'},
+      {name:'Cetyl Alcohol',amount:'15',unit:'g'},
+      {name:'E-wax',amount:'15',unit:'g'},
+      {name:'Mango Butter',amount:'15',unit:'g'},
+      {name:'Stearic Acid',amount:'5',unit:'g'},
+      {name:'Hydrolyzed Oat Protein',amount:'10',unit:'g'},
+      {name:'Dimethicone',amount:'10',unit:'g'},
+      {name:'Cyclomethicone',amount:'10',unit:'g'},
+      {name:'Panthenol',amount:'10',unit:'g'},
+      {name:'Fragrance or Essential Oil',amount:'5',unit:'g'},
+      {name:'Phenonip (preservative)',amount:'5',unit:'g'}
+    ],
+    instructions:'PHASE 1: Gently melt SCI noodles, stearic acid, cetyl alcohol, E-wax, BTMS 50, and mango butter together over very low heat. Stir to combine - do not overheat.\nAdd sodium lactate and cocamidopropyl betaine to Phase 1 while warm.\n\nPHASE 2 (add when cooled below 45C): Add hydrolyzed oat protein, dimethicone, cyclomethicone, panthenol, fragrance/EO, and Phenonip.\n\nMold while still workable (gloppable texture). Press firmly into molds. Allow to harden at room temperature 24-48 hrs before unmolding.',
+    notes:'Texture when molded should be gloppable. Lower surfactant level than most commercial shampoo bars - this is intentional. Add up to 5% more SLSa to boost lather if desired. Phenonip is preservative - do not omit.',
+    created:'2024-01-01'
+  }
+,
+  // ── SUGAR SCRUBS ─────────────────────────────────────────────
+  {
+    id:'r15',name:'Luxe Sugar Scrub',category:'Scrub',difficulty:'Beginner',
+    cureTime:'None',batchSize:'17.30',batchUnit:'oz',superfat:'',lye:'None',scent:'Custom FO',
+    tags:['sugar scrub','loaf mold','jojoba','meadowfoam','beeswax','exfoliating'],
+    description:'Luxurious sugar scrub with meadowfoam and jojoba oils. Beeswax and e-wax give a smooth texture that holds well in a jar.',
+    ingredients:[
+      {name:'Sugar',amount:'10.16',unit:'oz'},
+      {name:'Olive Oil',amount:'2.43',unit:'oz'},
+      {name:'Jojoba Oil',amount:'1.73',unit:'oz'},
+      {name:'E-Wax',amount:'0.88',unit:'oz'},
+      {name:'Cocoa Butter',amount:'0.88',unit:'oz'},
+      {name:'Beeswax',amount:'0.60',unit:'oz'},
+      {name:'Fragrance Oils',amount:'0.09',unit:'oz'},
+      {name:'Vitamin E Oil',amount:'0.09',unit:'oz'},
+      {name:'Germall Plus (preservative)',amount:'0.09',unit:'oz'},
+      {name:'Meadowfoam Oil',amount:'0.35',unit:'oz'}
+    ],
+    instructions:'Melt cocoa butter, beeswax, and e-wax together in a double boiler. Remove from heat and stir in olive oil, jojoba, and meadowfoam oil. Allow to cool until slightly thickened but still pourable. Stir in sugar, vitamin E, fragrance, and preservative. Pour into jars.',
+    notes:'Do not overheat the wax mixture. Add sugar after oils have cooled to avoid melting the sugar. Germall Plus is a broad-spectrum preservative - do not omit.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r16',name:'Hydration Sugar Scrub',category:'Scrub',difficulty:'Beginner',
+    cureTime:'None',batchSize:'18.18',batchUnit:'oz',superfat:'',lye:'None',scent:'Custom FO',
+    tags:['sugar scrub','hydrating','avocado','shea','loaf mold'],
+    description:'Hydrating sugar scrub with avocado and shea butter. Softer and more moisturizing than the Luxe version.',
+    ingredients:[
+      {name:'Sugar',amount:'10.16',unit:'oz'},
+      {name:'Olive Oil',amount:'2.43',unit:'oz'},
+      {name:'Avocado Oil',amount:'2.08',unit:'oz'},
+      {name:'Vitamin E Oil',amount:'0.88',unit:'oz'},
+      {name:'Cocoa Butter',amount:'0.88',unit:'oz'},
+      {name:'Shea Butter',amount:'0.88',unit:'oz'},
+      {name:'E-Wax',amount:'0.60',unit:'oz'},
+      {name:'Beeswax',amount:'0.09',unit:'oz'},
+      {name:'Fragrance Oils',amount:'0.09',unit:'oz'},
+      {name:'Germall Plus (preservative)',amount:'0.09',unit:'oz'}
+    ],
+    instructions:'Melt cocoa butter, shea butter, beeswax, and e-wax together in a double boiler. Remove from heat and stir in olive oil, avocado oil, and vitamin E. Cool until slightly thickened. Stir in sugar, fragrance, and preservative. Pour into jars.',
+    notes:'Higher vitamin E content (0.88 oz) adds extra antioxidant protection and moisturizing. Softer texture than the Luxe scrub due to lower beeswax.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r17',name:'Whipped Sugar Scrub',category:'Scrub',difficulty:'Intermediate',
+    cureTime:'None',batchSize:'19.15',batchUnit:'oz',superfat:'',lye:'None',scent:'Custom FO',
+    tags:['sugar scrub','whipped','surfactant','SCI','foaming','loaf mold'],
+    description:'Unique foaming whipped sugar scrub with SCI and Bioterge. Creates a lather while scrubbing - best of both worlds between a scrub and a body wash.',
+    ingredients:[
+      {name:'Sugar',amount:'9.21',unit:'oz'},
+      {name:'SCI',amount:'2.29',unit:'oz'},
+      {name:'Distilled Water',amount:'1.82',unit:'oz'},
+      {name:'Coco Bataine',amount:'1.82',unit:'oz'},
+      {name:'Bioterge',amount:'0.95',unit:'oz'},
+      {name:'Stearic Acid',amount:'0.95',unit:'oz'},
+      {name:'Vegetable Glycerin',amount:'0.78',unit:'oz'},
+      {name:'Sorbitol Powder',amount:'0.56',unit:'oz'},
+      {name:'Avocado Oil',amount:'0.39',unit:'oz'},
+      {name:'Fragrance Oils',amount:'0.28',unit:'oz'},
+      {name:'Liquid Germall Plus (preservative)',amount:'0.11',unit:'oz'}
+    ],
+    instructions:'Melt SCI and stearic acid gently over low heat. Stir in Bioterge and Coco Bataine while warm. Add water, glycerin, and sorbitol powder - mix well. Allow to cool to under 45C then add avocado oil, fragrance, and preservative. Fold in sugar. Pack into jars.',
+    notes:'The SCI gives this scrub a foaming quality. Bioterge adds extra lather. Do not overheat surfactants. Add sugar last to maintain exfoliant texture.',
+    created:'2024-01-01'
+  },
+  // ── BODY BUTTER & LOTION ────────────────────────────────────
+  {
+    id:'r18',name:'Best Ever Body Butter',category:'Body Butter',difficulty:'Intermediate',
+    cureTime:'None',batchSize:'20.51',batchUnit:'oz',superfat:'',lye:'None',scent:'Custom FO',
+    tags:['body butter','lotion','BTMS 25','argan','meadowfoam','jojoba','shea'],
+    description:'Rich emulsified body butter with BTMS 25 for a lightweight non-greasy finish. Shea, avocado, argan, jojoba, and meadowfoam create a luxurious skin feel.',
+    ingredients:[
+      {name:'Distilled Water',amount:'13.69',unit:'oz'},
+      {name:'Shea Butter',amount:'1.66',unit:'oz'},
+      {name:'BTMS 25',amount:'1.69',unit:'oz'},
+      {name:'Avocado Oil',amount:'0.92',unit:'oz'},
+      {name:'Vegetable Glycerin',amount:'0.53',unit:'oz'},
+      {name:'Sodium Lactate',amount:'0.39',unit:'oz'},
+      {name:'Apricot Kernel Oil',amount:'0.25',unit:'oz'},
+      {name:'Cetyl Alcohol',amount:'0.25',unit:'oz'},
+      {name:'Stearic Acid',amount:'0.25',unit:'oz'},
+      {name:'Vitamin E Oil',amount:'0.25',unit:'oz'},
+      {name:'Fragrance Oils',amount:'0.21',unit:'oz'},
+      {name:'Argan Oil',amount:'0.12',unit:'oz'},
+      {name:'Jojoba Oil',amount:'0.12',unit:'oz'},
+      {name:'Meadowfoam Oil',amount:'0.12',unit:'oz'},
+      {name:'Liquid Germall Plus (preservative)',amount:'0.07',unit:'oz'}
+    ],
+    instructions:'WATER PHASE: Heat distilled water, vegetable glycerin, and sodium lactate to 70C.\nOIL PHASE: Melt shea butter, BTMS 25, cetyl alcohol, and stearic acid together. Add avocado, apricot kernel, argan, jojoba, and meadowfoam oils.\nCombine phases at similar temperatures (70C). Mix until emulsified. Cool below 45C then add vitamin E, fragrance, and preservative. Whip to desired consistency.',
+    notes:'BTMS 25 is a conditioning emulsifier - it gives a softer skin feel than traditional emulsifying wax. Sodium lactate helps the lotion set firmer. Add fragrance and preservative only after cooling below 45C.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r19',name:'Best Ever Body Lotion',category:'Lotion',difficulty:'Intermediate',
+    cureTime:'None',batchSize:'20.64',batchUnit:'oz',superfat:'',lye:'None',scent:'Custom FO',
+    tags:['body lotion','BTMS 25','argan','meadowfoam','jojoba','lightweight'],
+    description:'Lightweight body lotion with BTMS 25. Higher water content than the body butter for a thinner, faster-absorbing formula.',
+    ingredients:[
+      {name:'Distilled Water',amount:'16.12',unit:'oz'},
+      {name:'BTMS 25',amount:'0.88',unit:'oz'},
+      {name:'Avocado Oil',amount:'1.06',unit:'oz'},
+      {name:'Stearic Acid',amount:'0.53',unit:'oz'},
+      {name:'Argan Oil',amount:'0.39',unit:'oz'},
+      {name:'Jojoba Oil',amount:'0.39',unit:'oz'},
+      {name:'Meadowfoam Oil',amount:'0.46',unit:'oz'},
+      {name:'Shea Butter',amount:'0.25',unit:'oz'},
+      {name:'Fragrance Oils',amount:'0.21',unit:'oz'},
+      {name:'Liquid Glycerin',amount:'0.14',unit:'oz'},
+      {name:'Vitamin E Oil',amount:'0.11',unit:'oz'},
+      {name:'Vegetable Glycerin',amount:'0.11',unit:'oz'}
+    ],
+    instructions:'WATER PHASE: Heat distilled water and glycerins to 70C.\nOIL PHASE: Melt BTMS 25, stearic acid, and shea butter together. Add avocado, argan, jojoba, and meadowfoam oils.\nCombine phases at similar temperatures (70C). Mix until emulsified. Cool below 45C then add vitamin E, fragrance, and preservative.',
+    notes:'Thinner than the Body Butter due to higher water content and less butter/wax. BTMS 25 provides conditioning without heaviness. Good for daytime use.',
+    created:'2024-01-01'
+  },
+  // ── SPECIALTY PRODUCTS ───────────────────────────────────────
+  {
+    id:'r20',name:'Wonder Bar',category:'Other',difficulty:'Intermediate',
+    cureTime:'None',batchSize:'37.83',batchUnit:'oz',superfat:'',lye:'None',scent:'Custom FO',
+    tags:['wonder bar','SLSA','bath product','surfactant','coco bataine','fizzing'],
+    description:'Solid bath bar with SLSA and Coco Bataine for foaming and fizzing. Rubbing alcohol binds the mixture. Kaolin clay adds slip.',
+    ingredients:[
+      {name:'Baking Soda',amount:'19.40',unit:'oz'},
+      {name:'Rubbing Alcohol 91%',amount:'4.23',unit:'oz'},
+      {name:'SLSA',amount:'5.64',unit:'oz'},
+      {name:'Coco Bataine',amount:'2.12',unit:'oz'},
+      {name:'Corn Starch',amount:'2.65',unit:'oz'},
+      {name:'Cream of Tartar',amount:'1.76',unit:'oz'},
+      {name:'Liquid Glycerin',amount:'0.71',unit:'oz'},
+      {name:'Fragrance Oils',amount:'0.42',unit:'oz'},
+      {name:'Kaolin Clay',amount:'0.35',unit:'oz'},
+      {name:'Cocoa Butter',amount:'0.35',unit:'oz'},
+      {name:'Poly 80',amount:'0.18',unit:'oz'},
+      {name:'FDNC (colorant)',amount:'0.02',unit:'oz'}
+    ],
+    instructions:'Mix all dry ingredients thoroughly (baking soda, SLSA, corn starch, cream of tartar, kaolin clay). In a separate container, combine Coco Bataine, liquid glycerin, Poly 80, fragrance, and melted cocoa butter. Slowly spritz rubbing alcohol into dry mix while stirring - add just enough to hold shape when squeezed. Add colorant and wet ingredients, mix well. Press firmly into molds. Allow to harden 24-48 hrs before unmolding.',
+    notes:'SLSA can irritate lungs - wear a mask when mixing. Add rubbing alcohol gradually - too much will cause premature fizzing. Work quickly once wet ingredients are added. Press very firmly into molds.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r21',name:'Bath Bomb',category:'Other',difficulty:'Beginner',
+    cureTime:'None',batchSize:'14.92',batchUnit:'oz',superfat:'',lye:'None',scent:'Custom FO',
+    tags:['bath bomb','goat milk','SLSA','citric acid','baking soda','kaolin clay'],
+    description:'Classic bath bomb with goat milk powder and SLSA for extra skin benefits and lather. Poly 80 helps disperse oils safely in the bath.',
+    ingredients:[
+      {name:'Baking Soda',amount:'8.82',unit:'oz'},
+      {name:'Citric Acid',amount:'3.53',unit:'oz'},
+      {name:'Goat Milk Powder',amount:'0.53',unit:'oz'},
+      {name:'SLSA',amount:'0.53',unit:'oz'},
+      {name:'Fragrance Oils',amount:'0.25',unit:'oz'},
+      {name:'Corn Starch',amount:'0.35',unit:'oz'},
+      {name:'Avocado Oil',amount:'0.18',unit:'oz'},
+      {name:'Poly 80',amount:'0.18',unit:'oz'},
+      {name:'Cream of Tartar',amount:'0.42',unit:'oz'},
+      {name:'Kaolin Clay',amount:'0.11',unit:'oz'},
+      {name:'FDNC (colorant)',amount:'0.02',unit:'oz'}
+    ],
+    instructions:'Sift together all dry ingredients (baking soda, citric acid, corn starch, cream of tartar, kaolin clay, goat milk powder, SLSA). Mix well. Combine liquid/oil ingredients separately (avocado oil, Poly 80, fragrance, colorant). Very slowly add liquid to dry ingredients while whisking constantly - do not let it fizz. Press firmly into bath bomb molds immediately. Allow to dry 24-48 hrs.',
+    notes:'Humidity is the enemy of bath bombs - work in a dry environment. Add liquid ingredients ONE DROP AT A TIME to prevent premature fizzing. Goat milk powder adds skin conditioning. Poly 80 prevents oil rings in the tub.',
+    created:'2024-01-01'
+  },
+  {
+    id:'r22',name:'Shower Steamer',category:'Other',difficulty:'Beginner',
+    cureTime:'None',batchSize:'18.10',batchUnit:'oz',superfat:'',lye:'None',scent:'Lavender EO',
+    tags:['shower steamer','menthol','lavender','aromatherapy','citric acid','baking soda'],
+    description:'Aromatherapy shower steamer with menthol crystals for a spa-like shower experience. Lavender EO for relaxation.',
+    ingredients:[
+      {name:'Baking Soda',amount:'8.82',unit:'oz'},
+      {name:'Citric Acid',amount:'3.53',unit:'oz'},
+      {name:'Corn Starch',amount:'2.47',unit:'oz'},
+      {name:'Menthol Crystals',amount:'1.41',unit:'oz'},
+      {name:'Cream of Tartar',amount:'0.85',unit:'oz'},
+      {name:'Witch Hazel',amount:'0.53',unit:'oz'},
+      {name:'Lavender Essential Oil',amount:'0.49',unit:'oz'}
+    ],
+    instructions:'Mix baking soda, citric acid, corn starch, and cream of tartar in a bowl. Crush menthol crystals finely and add to dry mix. Mix in lavender EO. Spritz witch hazel sparingly while mixing until mixture holds shape when pressed - do not over-wet. Press firmly into clamshell molds. Allow to harden 24-48 hrs before packaging.',
+    notes:'Menthol crystals can irritate eyes and skin - wear gloves and work in a ventilated area. Witch hazel binds the mixture without triggering fizzing like water would. Shower steamers are NOT for the bath - they are designed to be placed on the shower floor away from the direct spray stream.',
+    created:'2024-01-01'
+  }
+
+];
+
+const SEED_INV = [
+  {id:'i1',name:'Coconut Oil',category:'Oils',quantity:96,unit:'oz',reorderAt:16,supplier:'Brambleberry',cost:'0.18',notes:'76 degree'},
+  {id:'i2',name:'Olive Oil',category:'Oils',quantity:64,unit:'oz',reorderAt:16,supplier:'Local grocery',cost:'0.16',notes:'Pomace grade'},
+  {id:'i3',name:'Shea Butter',category:'Oils',quantity:32,unit:'oz',reorderAt:8,supplier:'Brambleberry',cost:'0.22',notes:'Refined'},
+  {id:'i4',name:'Castor Oil',category:'Oils',quantity:16,unit:'oz',reorderAt:4,supplier:'Brambleberry',cost:'0.28',notes:''},
+  {id:'i5',name:'Palm Oil',category:'Oils',quantity:8,unit:'oz',reorderAt:16,supplier:'Brambleberry',cost:'0.15',notes:'RSPO certified'},
+  {id:'i6',name:'Sweet Almond Oil',category:'Oils',quantity:24,unit:'oz',reorderAt:8,supplier:'Brambleberry',cost:'0.24',notes:''},
+  {id:'i7',name:'Lye (NaOH)',category:'Lye & Alkalis',quantity:32,unit:'oz',reorderAt:8,supplier:'Essential Depot',cost:'0.19',notes:'99% pure'},
+  {id:'i8',name:'Lavender Essential Oil',category:'Fragrance & EO',quantity:4,unit:'oz',reorderAt:2,supplier:'Brambleberry',cost:'1.85',notes:'Bulgarian'},
+  {id:'i9',name:'Vanilla Fragrance Oil',category:'Fragrance & EO',quantity:1,unit:'oz',reorderAt:3,supplier:'Brambleberry',cost:'1.50',notes:'May discolor brown'},
+  {id:'i10',name:'Peppermint Essential Oil',category:'Fragrance & EO',quantity:2,unit:'oz',reorderAt:2,supplier:'Brambleberry',cost:'1.60',notes:''},
+  {id:'i11',name:'Goat Milk (frozen)',category:'Additives',quantity:128,unit:'oz',reorderAt:32,supplier:'GGG Farm',cost:'0.05',notes:'Freeze in ice cube trays'},
+  {id:'i12',name:'Raw Honey',category:'Additives',quantity:16,unit:'oz',reorderAt:4,supplier:'Local farm',cost:'0.35',notes:''},
+  {id:'i13',name:'Colloidal Oatmeal',category:'Additives',quantity:8,unit:'oz',reorderAt:2,supplier:'Amazon',cost:'0.30',notes:''},
+  {id:'i14',name:'Goat Milk Powder',category:'Additives',quantity:12,unit:'oz',reorderAt:4,supplier:'Amazon',cost:'0.42',notes:''},
+  {id:'i15',name:'Soap Mold (Loaf)',category:'Packaging',quantity:3,unit:'ea',reorderAt:1,supplier:'Brambleberry',cost:'12.00',notes:'Silicone 10-bar'},
+  {id:'i16',name:'Kraft Soap Labels',category:'Packaging',quantity:18,unit:'ea',reorderAt:25,supplier:'Avery',cost:'0.08',notes:'4x2 inch'}
+];
+
+// ── APP ───────────────────────────────────────────────────────
+const App = {
+  tab:'recipes', subview:null,
+  selRId:null, selIId:null,
+  editR:null, editI:null,
+  _calcMode:'oz', _rCat:'', _iCat:'', _iSort:'name',
+
+  // ── SUPABASE CONFIG ─────────────────────────────────────────
+  SB_URL: 'https://brxtdstcvaudxneikazg.supabase.co',
+  SB_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c',
+  _unlocked: false,
+
+  init(){
+    this.recipes   = JSON.parse(localStorage.getItem('ss_r')||'null') || SEED_RECIPES;
+    this.inventory = JSON.parse(localStorage.getItem('ss_i')||'null') || SEED_INV;
+    if(!localStorage.getItem('ss_r')) this._localSaveR();
+    if(!localStorage.getItem('ss_i')) this._localSaveI();
+    this._buildRecipeChips();
+    this._buildChips('i-chips', I_CATS, '_iCat', 'renderInventory');
+    this._buildSortRow();
+    this.renderRecipes();
+    this.renderInventory();
+    this.populateCalcRecipes();
+    this.renderOrders();
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+    // Check passcode lock
+    const saved = sessionStorage.getItem('ss_unlocked');
+    if(saved === '1'){ this._unlocked = true; this._syncFromCloud(); }
+    else { this._showPasscode(); }
+  },
+
+  // ── LOCAL CACHE ──────────────────────────────────────────────
+  _localSaveR(){ localStorage.setItem('ss_r', JSON.stringify(this.recipes)); },
+  _localSaveI(){ localStorage.setItem('ss_i', JSON.stringify(this.inventory)); },
+
+  // ── SAVE: local + cloud ──────────────────────────────────────
+  _saveR(){
+    this._localSaveR();
+    if(this._unlocked) this._pushRecipes();
+  },
+  _saveI(){
+    this._localSaveI();
+    if(this._unlocked) this._pushInventory();
+  },
+
+  // ── PASSCODE ─────────────────────────────────────────────────
+  _showPasscode(){
+    document.getElementById('passcode-modal').classList.add('open');
+    setTimeout(()=>{ const el=document.getElementById('passcode-input'); if(el) el.focus(); }, 300);
+  },
+  async submitPasscode(){
+    const val = (document.getElementById('passcode-input').value||'').trim();
+    const errEl = document.getElementById('passcode-err');
+    if(!val){ errEl.textContent='Enter the passcode'; return; }
+    errEl.textContent='Checking...';
+
+    const LOCAL_CODE = localStorage.getItem('ss_passcode') || '1234';
+    const unlock = () => {
+      this._unlocked = true;
+      sessionStorage.setItem('ss_unlocked','1');
+      document.getElementById('passcode-modal').classList.remove('open');
+      document.getElementById('passcode-input').value='';
+      errEl.textContent='';
+      this._syncFromCloud();
+    };
+
+    try {
+      const res = await this._sbFetch('GET', 'app_settings?key=eq.passcode&select=value');
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const rows = await res.json();
+
+      // Got a valid response from Supabase
+      if(rows && rows.length > 0){
+        const correct = rows[0].value;
+        localStorage.setItem('ss_passcode', correct); // cache it locally
+        if(val === correct){ unlock(); }
+        else { errEl.textContent='Incorrect passcode'; document.getElementById('passcode-input').value=''; document.getElementById('passcode-input').focus(); }
+      } else {
+        // Table empty or row missing — fall back to local cached code
+        if(val === LOCAL_CODE){ unlock(); }
+        else { errEl.textContent='Incorrect passcode'; document.getElementById('passcode-input').value=''; document.getElementById('passcode-input').focus(); }
+      }
+    } catch(e){
+      // Offline or Supabase unreachable — use locally cached passcode
+      if(val === LOCAL_CODE){
+        this._unlocked = true;
+        sessionStorage.setItem('ss_unlocked','1');
+        document.getElementById('passcode-modal').classList.remove('open');
+        errEl.textContent='';
+        this._showSyncStatus('Offline — using cached data');
+      } else {
+        errEl.textContent='Incorrect passcode';
+        document.getElementById('passcode-input').value='';
+        document.getElementById('passcode-input').focus();
+      }
+    }
+  },
+
+  // ── SUPABASE HELPERS ─────────────────────────────────────────
+  _sbFetch(method, path, body){
+    const opts = {
+      method,
+      headers: {
+        'apikey': this.SB_KEY,
+        'Authorization': 'Bearer ' + this.SB_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': method==='POST' ? 'resolution=merge-duplicates' : ''
+      }
+    };
+    if(body) opts.body = JSON.stringify(body);
+    return fetch(this.SB_URL + '/rest/v1/' + path, opts);
+  },
+
+  // ── CLOUD SYNC ───────────────────────────────────────────────
+  async _syncFromCloud(){
+    this._showSyncStatus('Syncing...');
+    try {
+      // Fetch recipes
+      const rRes = await this._sbFetch('GET', 'recipes?select=id,data,updated_at&order=updated_at.desc');
+      const rRows = await rRes.json();
+      if(rRows && rRows.length){
+        this.recipes = rRows.map(r => r.data);
+        this._localSaveR();
+        this._buildRecipeChips();
+        this.renderRecipes();
+        this.populateCalcRecipes();
+      } else {
+        // Cloud empty — push local data up
+        await this._pushRecipes();
+      }
+      // Fetch inventory
+      const iRes = await this._sbFetch('GET', 'inventory?select=id,data,updated_at&order=updated_at.desc');
+      const iRows = await iRes.json();
+      if(iRows && iRows.length){
+        this.inventory = iRows.map(i => i.data);
+        this._localSaveI();
+        this.renderInventory();
+        this.renderOrders();
+      } else {
+        await this._pushInventory();
+      }
+      this._showSyncStatus('Synced ✓');
+    } catch(e){
+      this._showSyncStatus('Sync failed — offline mode');
+    }
+  },
+
+  async _pushRecipes(){
+    try {
+      const rows = this.recipes.map(r => ({ id: r.id, data: r, updated_at: new Date().toISOString() }));
+      // Upsert all at once
+      await this._sbFetch('POST', 'recipes', rows);
+      // Delete removed recipes
+      const ids = this.recipes.map(r => r.id);
+      if(ids.length) await this._sbFetch('DELETE', 'recipes?id=not.in.(' + ids.map(function(id){ return '"'+id+'"'; }).join(',') + ')');
+      this._showSyncStatus('Saved ✓');
+    } catch(e){ this._showSyncStatus('Save failed — offline'); }
+  },
+
+  async _pushInventory(){
+    try {
+      const rows = this.inventory.map(i => ({ id: i.id, data: i, updated_at: new Date().toISOString() }));
+      await this._sbFetch('POST', 'inventory', rows);
+      const ids = this.inventory.map(i => i.id);
+      if(ids.length) await this._sbFetch('DELETE', 'inventory?id=not.in.(' + ids.map(function(id){ return '"'+id+'"'; }).join(',') + ')');
+      this._showSyncStatus('Saved ✓');
+    } catch(e){ this._showSyncStatus('Save failed — offline'); }
+  },
+
+  _showSyncStatus(msg){
+    const el = document.getElementById('sync-status');
+    if(!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(this._syncT);
+    this._syncT = setTimeout(()=>el.classList.remove('show'), 2800);
+  },
+  uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,5); },
+  h(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); },
+
+  // TAB NAV
+  setTab(t){
+    this.tab=t; this.subview=null;
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('nav-'+t).classList.add('active');
+    const vmap={recipes:'view-recipes',inventory:'view-inventory',calc:'view-calc',orders:'view-orders'};
+    document.getElementById(vmap[t]).classList.add('active');
+    if(t==='orders') this.renderOrders();
+    this._hdr();
+  },
+  goBack(){
+    this.subview=null;
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    const vmap={recipes:'view-recipes',inventory:'view-inventory'};
+    document.getElementById(vmap[this.tab]).classList.add('active');
+    this._hdr();
+  },
+  handleAdd(){
+    if(this.tab==='recipes') this.openRecipeModal(null);
+    else if(this.tab==='inventory') this.openInvModal(null);
+  },
+  _hdr(){
+    const back=document.getElementById('header-back');
+    const title=document.getElementById('header-title');
+    const sub=document.getElementById('header-sub');
+    const add=document.getElementById('header-add');
+    const sync=document.getElementById('header-sync');
+    const TITLES={recipes:'Recipes',inventory:'Inventory',calc:'Calculator',orders:'Order Report'};
+    if(this.subview==='recipe-detail'){
+      const r=this.recipes.find(x=>x.id===this.selRId);
+      back.style.display='flex'; add.style.display='none'; sync.style.display='none';
+      title.textContent=r?r.name:'Recipe'; sub.textContent=r?r.category:'';
+    } else if(this.subview==='inv-detail'){
+      const i=this.inventory.find(x=>x.id===this.selIId);
+      back.style.display='flex'; add.style.display='none'; sync.style.display='none';
+      title.textContent=i?i.name:'Item'; sub.textContent=i?i.category:'';
+    } else {
+      back.style.display='none';
+      add.style.display=(this.tab==='calc'||this.tab==='orders')?'none':'flex';
+      sync.style.display='flex';
+      title.textContent=TITLES[this.tab]; sub.textContent='Sudsy Sisters';
+    }
+  },
+
+  // SEARCH
+  clrSearch(inp,btn,fn){ document.getElementById(inp).value=''; document.getElementById(btn).style.display='none'; fn(); },
+
+  // CHIPS
+  _buildChips(wrapperId, cats, filterProp, fnName){
+    const el=document.getElementById(wrapperId);
+    el.innerHTML=['All',...cats].map(c=>`<button class="chip${c==='All'?' on':''}" data-v="${c}" onclick="App._setChip('${wrapperId}','${filterProp}','${c}','${fnName}')">${c}</button>`).join('');
+  },
+  _setChip(wrapperId, filterProp, val, fnName){
+    this[filterProp]=val==='All'?'':val;
+    document.querySelectorAll('#'+wrapperId+' .chip').forEach(c=>c.classList.toggle('on',c.dataset.v===val));
+    this[fnName]();
+  },
+
+  // Custom recipe filter chips — combines Lotion+Butter, adds Hair
+  _buildRecipeChips(){
+    const chips=[
+      {label:'All',val:''},
+      {label:'Bar Soap',val:'Bar Soap'},
+      {label:'Lotion & Butter',val:'lotion_butter'},
+      {label:'Body Oil',val:'Body Oil'},
+      {label:'Hair',val:'hair'},
+      {label:'Scrub',val:'Scrub'},
+      {label:'Other',val:'Other'},
+    ];
+    const el=document.getElementById('r-chips');
+    el.innerHTML=chips.map(c=>`<button class="chip${c.val===''?' on':''}" data-v="${c.val}" onclick="App._setRecipeChip('${c.val}')">${c.label}</button>`).join('');
+  },
+  _setRecipeChip(val){
+    this._rCat=val;
+    document.querySelectorAll('#r-chips .chip').forEach(c=>c.classList.toggle('on',c.dataset.v===val));
+    this.renderRecipes();
+  },
+  _matchRecipeCat(r){
+    if(!this._rCat) return true;
+    if(this._rCat==='lotion_butter') return r.category==='Lotion'||r.category==='Body Butter';
+    if(this._rCat==='hair'){
+      const nm=(r.name||'').toLowerCase();
+      const tags=(r.tags||[]).join(' ').toLowerCase();
+      const desc=(r.description||'').toLowerCase();
+      return nm.includes('hair')||nm.includes('shampoo')||tags.includes('hair')||tags.includes('shampoo')||desc.includes('hair oil')||desc.includes('shampoo');
+    }
+    return r.category===this._rCat;
+  },
+
+  // ── RECIPES ──────────────────────────────────────────────────
+  renderRecipes(){
+    const q=document.getElementById('r-search').value.toLowerCase();
+    document.getElementById('r-clear').style.display=q?'flex':'none';
+    let list=this.recipes.filter(r=>{
+      const mq=!q||r.name.toLowerCase().includes(q)||(r.tags||[]).some(t=>t.toLowerCase().includes(q))||(r.scent||'').toLowerCase().includes(q)||(r.description||'').toLowerCase().includes(q);
+      return mq&&this._matchRecipeCat(r);
+    });
+    const wrap=document.getElementById('r-list');
+    if(!list.length){wrap.innerHTML=`<div class="empty"><div class="empty-icon">🧼</div><h3>No recipes found</h3><p>${q||this._rCat?'Try a different filter.':'Tap + to add your first recipe!'}</p></div>`;return;}
+    wrap.innerHTML=`<div class="r-grid">${list.map(r=>this._rCard(r)).join('')}</div>`;
+  },
+  _rCard(r){
+    const clr=CAT_CLR[r.category]||'#8B7355';
+    const tags=(r.tags||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join('');
+    return `<div class="r-card" onclick="App.openRecipeDetail('${r.id}')">
+      <div class="r-card-stripe" style="background:${clr}"></div>
+      <div class="r-card-body">
+        <div class="r-card-name">${this.h(r.name)}</div>
+        <div class="r-card-cat">${r.category}${r.difficulty?' · '+r.difficulty:''}</div>
+        <div class="r-card-tags">${tags}</div>
+      </div></div>`;
+  },
+  openRecipeDetail(id){
+    this.selRId=id; this.subview='recipe-detail';
+    const r=this.recipes.find(x=>x.id===id);
+    const clr=CAT_CLR[r.category]||'#8B7355';
+    const ings=(r.ingredients||[]).map(i=>`<div class="ing-row"><span class="ing-name">${this.h(i.name)}</span><span class="ing-amt">${i.amount} ${i.unit}</span></div>`).join('');
+    const tags=(r.tags||[]).map(t=>`<span class="tag">${this.h(t)}</span>`).join('');
+    const metas=[
+      r.batchSize?`<div class="meta-pill">Batch <span>${r.batchSize} ${r.batchUnit||'oz'}</span></div>`:'',
+      r.cureTime?`<div class="meta-pill">Cure <span>${this.h(r.cureTime)}</span></div>`:'',
+      r.superfat?`<div class="meta-pill">Superfat <span>${this.h(r.superfat)}</span></div>`:'',
+      r.lye&&r.lye!=='None'?`<div class="meta-pill">Lye <span>${r.lye}</span></div>`:'',
+      r.scent?`<div class="meta-pill">Scent <span>${this.h(r.scent)}</span></div>`:''
+    ].filter(Boolean).join('');
+    // Cost calculation
+    const cost = this._calcRecipeCost(r);
+    const batchSizeOz = parseFloat(r.batchSize)||0;
+    const barWt = 3.5;
+    const numBars = batchSizeOz > 0 ? Math.round(batchSizeOz / barWt * 10)/10 : 0;
+    const costPerBar = (numBars > 0 && cost.total > 0) ? (cost.total / numBars) : 0;
+    const costRows = cost.breakdown.map(b =>
+      `<div class="ing-row">
+        <span class="ing-name" style="color:${b.found?'var(--text)':'var(--muted)'}">${this.h(b.name)}</span>
+        <span class="ing-amt" style="color:${b.found?'var(--brown)':'var(--muted)'}">
+          ${b.found ? '$'+b.lineCost.toFixed(3) : 'no cost set'}
+        </span>
+      </div>`
+    ).join('');
+    const costSection = cost.breakdown.length ? `
+      <div class="section">
+        <div class="section-title">💰 Cost Estimate</div>
+        ${costRows}
+        <div style="display:flex;justify-content:space-between;padding:10px 0 4px;border-top:1.5px solid var(--border);margin-top:6px">
+          <span style="font-size:.9rem;font-weight:700;color:var(--brown-d)">Total Batch Cost</span>
+          <span style="font-size:.95rem;font-weight:700;color:var(--brown)">$${cost.total.toFixed(2)}</span>
+        </div>
+        ${costPerBar?`<div style="display:flex;justify-content:space-between;padding:4px 0">
+          <span style="font-size:.85rem;color:var(--muted)">Est. per bar (${barWt} oz)</span>
+          <span style="font-size:.88rem;font-weight:700;color:var(--brown-d)">$${costPerBar.toFixed(2)}</span>
+        </div>`:''}
+        ${cost.missing>0?`<div style="font-size:.73rem;color:var(--muted);margin-top:6px;font-style:italic">⚠️ ${cost.missing} ingredient${cost.missing>1?'s':''} missing cost in inventory — set prices there for full accuracy.</div>`:''}
+      </div>` : '';
+    document.getElementById('view-recipe-detail').innerHTML=`
+      <div class="detail">
+        <div class="detail-header">
+          <div class="detail-badge" style="background:${clr}">${this.h(r.category)}</div>
+          <div class="detail-name">${this.h(r.name)}</div>
+          ${r.description?`<div class="detail-desc">${this.h(r.description)}</div>`:''}
+          <div class="meta-row">${metas}</div>
+          ${tags?`<div class="meta-row" style="margin-top:8px">${tags}</div>`:''}
+        </div>
+        ${ings?`<div class="section"><div class="section-title">Ingredients</div>${ings}</div>`:''}
+        ${costSection}
+        ${r.instructions?`<div class="section"><div class="section-title">Instructions</div><div class="prose">${this.h(r.instructions)}</div></div>`:''}
+        ${r.notes?`<div class="section"><div class="section-title">Notes</div><div class="prose-muted">${this.h(r.notes)}</div></div>`:''}
+        <div style="padding:0 14px 10px">
+          <button class="btn btn-primary btn-full" onclick="App.makeBatch('${r.id}')">🧼 Make This Batch</button>
+        </div>
+        <div class="detail-actions">
+          <button class="btn btn-outline" onclick="App.openRecipeModal('${r.id}')">✏️ Edit</button>
+          <button class="btn btn-danger" onclick="App.delRecipe('${r.id}')">🗑 Delete</button>
+        </div>
+      </div>`;
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-recipe-detail').classList.add('active');
+    this._hdr();
+  },
+  delRecipe(id){
+    this._confirm('Delete Recipe','This recipe will be permanently removed.',()=>{
+      this.recipes=this.recipes.filter(x=>x.id!==id);
+      this._saveR(); this.renderRecipes(); this.populateCalcRecipes(); this.goBack(); this._toast('Recipe deleted');
+    });
+  },
+
+  resetToSeedRecipes(){
+    this._confirm(
+      'Reset Recipes',
+      'This will replace ALL current recipes with the latest Sudsy Sisters recipes. Any custom recipes you added will be removed.',
+      ()=>{
+        this.recipes=JSON.parse(JSON.stringify(SEED_RECIPES));
+        this._saveR();
+        this._rCat='';
+        this._buildRecipeChips();
+        this.renderRecipes();
+        this.populateCalcRecipes();
+        this._toast('Recipes updated — ' + this.recipes.length + ' recipes loaded');
+      }
+    );
+  },
+
+  async updateFromGitHub(){
+    const GITHUB_URL = 'https://raw.githubusercontent.com/jbergeron37/sudsy-sisters/main/data.json';
+    const btn = document.getElementById('header-sync');
+    btn.classList.add('spinning');
+    this._toast('Checking GitHub for updates...');
+    try {
+      const res = await fetch(GITHUB_URL + '?t=' + Date.now());
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      btn.classList.remove('spinning');
+      const rCount = (data.recipes||[]).length;
+      const iCount = (data.inventory||[]).length;
+      const ver = data.version ? ' (v' + data.version + ')' : '';
+      this._confirm(
+        'Update from GitHub' + ver,
+        'Found ' + rCount + ' recipes and ' + iCount + ' inventory items on GitHub. This will replace your current data. Tap Confirm to update.',
+        ()=>{
+          if(data.recipes && data.recipes.length){
+            this.recipes = data.recipes;
+            this._saveR();
+            this._rCat = '';
+            this._buildRecipeChips();
+            this.renderRecipes();
+            this.populateCalcRecipes();
+          }
+          if(data.inventory && data.inventory.length){
+            this.inventory = data.inventory;
+            this._saveI();
+            this._buildSortRow();
+            this.renderInventory();
+            this.renderOrders();
+          }
+          this._toast('Updated! ' + rCount + ' recipes · ' + iCount + ' items');
+        }
+      );
+      // Change confirm button label to "Confirm" instead of "Delete"
+      const okBtn = document.getElementById('confirm-ok');
+      if(okBtn){ okBtn.textContent = 'Confirm'; okBtn.style.background = 'var(--brown)'; }
+    } catch(e){
+      btn.classList.remove('spinning');
+      this._toast('Update failed — check connection or GitHub URL');
+      console.error('GitHub update error:', e);
+    }
+  },
+
+  _calcRecipeCost(recipe){
+    let total=0, missing=0;
+    const breakdown=(recipe.ingredients||[]).map(ing=>{
+      const nm=ing.name.toLowerCase();
+      const inv=this.inventory.find(i=>
+        i.name.toLowerCase()===nm||
+        i.name.toLowerCase().includes(nm)||
+        nm.includes(i.name.toLowerCase())
+      );
+      const amt=parseFloat(ing.amount)||0;
+      const costPer=inv?(parseFloat(inv.cost)||0):0;
+      if(!inv||!costPer) missing++;
+      const lineCost=Math.round(amt*costPer*10000)/10000;
+      total+=lineCost;
+      return {name:ing.name,amount:ing.amount,unit:ing.unit,costPer,lineCost,found:!!(inv&&costPer)};
+    });
+    return {total:Math.round(total*1000)/1000, breakdown, missing};
+  },
+
+  // RECIPE MODAL
+  openRecipeModal(id){
+    const r=id?this.recipes.find(x=>x.id===id):null;
+    this.editR=r?JSON.parse(JSON.stringify(r)):{id:this.uid(),name:'',category:'Bar Soap',difficulty:'Beginner',cureTime:'',batchSize:'',batchUnit:'oz',superfat:'',lye:'NaOH',scent:'',tags:[],description:'',ingredients:[{name:'',amount:'',unit:'oz'}],instructions:'',notes:'',created:new Date().toISOString().slice(0,10)};
+    document.getElementById('modal-recipe-title').textContent=r?'Edit Recipe':'New Recipe';
+    document.getElementById('modal-recipe-body').innerHTML=this._rForm(this.editR);
+    this._initTags('rtags',this.editR.tags);
+    document.getElementById('modal-recipe').classList.add('open');
+  },
+  _rForm(r){
+    const so=(a,v)=>a.map(o=>`<option${o===v?' selected':''}>${o}</option>`).join('');
+    const uOpts=['oz','lb','g','ml','L'].map(u=>`<option${u===r.batchUnit?' selected':''}>${u}</option>`).join('');
+    const ings=(r.ingredients||[]).map((g,i)=>this._iRow(i,g)).join('');
+    return `
+      <div class="form-group"><label>Recipe Name *</label><input id="fn" value="${this.h(r.name)}" placeholder="e.g. Classic Goat Milk Bar"/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Category</label><select id="fc">${so(R_CATS,r.category)}</select></div>
+        <div class="form-group"><label>Difficulty</label><select id="fd">${so(DIFF,r.difficulty)}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Batch Size</label><input id="fbs" type="number" step="any" value="${this.h(r.batchSize)}" placeholder="32"/></div>
+        <div class="form-group"><label>Unit</label><select id="fbu">${uOpts}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cure Time</label><input id="fct" value="${this.h(r.cureTime)}" placeholder="4–6 weeks"/></div>
+        <div class="form-group"><label>Superfat</label><input id="fsf" value="${this.h(r.superfat)}" placeholder="5%"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Lye Type</label><select id="fly">${so(LYE_T,r.lye)}</select></div>
+        <div class="form-group"><label>Scent</label><input id="fsc" value="${this.h(r.scent)}" placeholder="Lavender"/></div>
+      </div>
+      <div class="form-group"><label>Description</label><textarea id="fde" placeholder="Brief description…">${this.h(r.description)}</textarea></div>
+      <div class="form-group"><label>Tags (Enter or comma to add)</label>
+        <div class="tag-wrap" id="rtags-wrap"><input class="tag-input" id="rtags-inp" placeholder="Add tag…"/></div>
+        <input type="hidden" id="rtags"/>
+      </div>
+      <div class="form-group"><label>Ingredients</label>
+        <div id="ing-rows">${ings}</div>
+        <button class="add-row-btn" onclick="App.addIngRow()">+ Add Ingredient</button>
+      </div>
+      <div class="form-group"><label>Instructions</label><textarea id="fin" rows="5" placeholder="Step-by-step…">${this.h(r.instructions)}</textarea></div>
+      <div class="form-group"><label>Notes</label><textarea id="fno" placeholder="Tips, warnings…">${this.h(r.notes)}</textarea></div>`;
+  },
+  _iRow(i,g){
+    const uOpts=UNITS.map(u=>`<option${u===(g.unit||'oz')?' selected':''}>${u}</option>`).join('');
+    return `<div class="ing-form-row" id="ir${i}">
+      <input placeholder="Ingredient" value="${this.h(g.name)}" oninput="App._syncIng(${i},'name',this.value)"/>
+      <input class="sm" type="number" step="any" placeholder="Amt" value="${this.h(g.amount)}" oninput="App._syncIng(${i},'amount',this.value)"/>
+      <select onchange="App._syncIng(${i},'unit',this.value)">${uOpts}</select>
+      <button class="ing-del" onclick="App.delIngRow(${i})">−</button>
+    </div>`;
+  },
+  addIngRow(){
+    if(!this.editR.ingredients) this.editR.ingredients=[];
+    const i=this.editR.ingredients.length;
+    this.editR.ingredients.push({name:'',amount:'',unit:'oz'});
+    document.getElementById('ing-rows').insertAdjacentHTML('beforeend',this._iRow(i,{name:'',amount:'',unit:'oz'}));
+  },
+  delIngRow(i){ this.editR.ingredients.splice(i,1); document.getElementById('ing-rows').innerHTML=this.editR.ingredients.map((g,x)=>this._iRow(x,g)).join(''); },
+  _syncIng(i,f,v){ if(this.editR.ingredients[i]) this.editR.ingredients[i][f]=v; },
+  saveRecipe(){
+    const name=document.getElementById('fn').value.trim();
+    if(!name){this._toast('Please enter a recipe name');return;}
+    const r=this.editR;
+    r.name=name; r.category=document.getElementById('fc').value; r.difficulty=document.getElementById('fd').value;
+    r.batchSize=document.getElementById('fbs').value; r.batchUnit=document.getElementById('fbu').value;
+    r.cureTime=document.getElementById('fct').value; r.superfat=document.getElementById('fsf').value;
+    r.lye=document.getElementById('fly').value; r.scent=document.getElementById('fsc').value;
+    r.description=document.getElementById('fde').value; r.instructions=document.getElementById('fin').value; r.notes=document.getElementById('fno').value;
+    const tv=document.getElementById('rtags').value; r.tags=tv?JSON.parse(tv):[];
+    r.ingredients=[];
+    document.querySelectorAll('#ing-rows .ing-form-row').forEach(row=>{
+      const ins=row.querySelectorAll('input'); const sel=row.querySelector('select');
+      const n=ins[0].value.trim(); if(n) r.ingredients.push({name:n,amount:ins[1].value,unit:sel?sel.value:'oz'});
+    });
+    const idx=this.recipes.findIndex(x=>x.id===r.id);
+    if(idx>=0) this.recipes[idx]=r; else this.recipes.unshift(r);
+    this._saveR(); this.renderRecipes(); this.populateCalcRecipes(); this.closeModal('modal-recipe');
+    this._toast(idx>=0?'Recipe updated!':'Recipe saved!');
+    if(this.subview==='recipe-detail') this.openRecipeDetail(r.id);
+  },
+
+  // TAG INPUT
+  _initTags(fid,init){
+    const wrap=document.getElementById(fid+'-wrap');
+    const hidden=document.getElementById(fid);
+    const input=document.getElementById(fid+'-inp');
+    let tags=[...(init||[])];
+    const render=()=>{
+      wrap.querySelectorAll('.tag-pill').forEach(p=>p.remove());
+      tags.forEach((t,i)=>{
+        const p=document.createElement('div'); p.className='tag-pill';
+        p.innerHTML=`${this.h(t)}<button onclick="_rmTag(${i})">×</button>`;
+        wrap.insertBefore(p,input);
+      });
+      hidden.value=JSON.stringify(tags);
+    };
+    window._rmTag=(i)=>{tags.splice(i,1);render();};
+    input.addEventListener('keydown',e=>{
+      if((e.key==='Enter'||e.key===',')&&input.value.trim()){
+        e.preventDefault(); const v=input.value.replace(',','').trim();
+        if(v&&!tags.includes(v)){tags.push(v);render();} input.value='';
+      } else if(e.key==='Backspace'&&!input.value&&tags.length){tags.pop();render();}
+    });
+    wrap.addEventListener('click',()=>input.focus());
+    render();
+  },
+
+  // ── INVENTORY ────────────────────────────────────────────────
+  _iStat(i){ if(i.quantity<=0) return 'out'; if(i.quantity<=i.reorderAt) return 'low'; return 'ok'; },
+  _buildSortRow(){
+    const sorts=[
+      {label:'Name A–Z',val:'name'},
+      {label:'Qty: Low–High',val:'qty-asc'},
+      {label:'Qty: High–Low',val:'qty-desc'},
+      {label:'Status',val:'status'},
+      {label:'Category',val:'category'},
+    ];
+    const el=document.getElementById('i-sort-row');
+    if(!el) return;
+    el.innerHTML='<span class="sort-lbl">Sort:</span>'+sorts.map(s=>`<button class="sort-chip${s.val===this._iSort?' on':''}" data-s="${s.val}" onclick="App._setSort('${s.val}')">${s.label}</button>`).join('');
+  },
+  _setSort(val){
+    this._iSort=val;
+    document.querySelectorAll('.sort-chip').forEach(c=>c.classList.toggle('on',c.dataset.s===val));
+    this.renderInventory();
+  },
+
+  renderInventory(){
+    const q=document.getElementById('i-search').value.toLowerCase();
+    document.getElementById('i-clear').style.display=q?'flex':'none';
+    let list=this.inventory.filter(i=>{
+      const mq=!q||i.name.toLowerCase().includes(q)||(i.notes||'').toLowerCase().includes(q)||(i.supplier||'').toLowerCase().includes(q);
+      return mq&&(!this._iCat||i.category===this._iCat);
+    });
+    const statO={out:0,low:1,ok:2};
+    list.sort((a,b)=>{
+      if(this._iSort==='qty-asc')  return a.quantity-b.quantity||a.name.localeCompare(b.name);
+      if(this._iSort==='qty-desc') return b.quantity-a.quantity||a.name.localeCompare(b.name);
+      if(this._iSort==='status')   return (statO[this._iStat(a)]||0)-(statO[this._iStat(b)]||0)||a.name.localeCompare(b.name);
+      if(this._iSort==='category') return a.category.localeCompare(b.category)||a.name.localeCompare(b.name);
+      return a.name.localeCompare(b.name); // default: name
+    });
+    const wrap=document.getElementById('i-list');
+    if(!list.length){wrap.innerHTML=`<div class="empty"><div class="empty-icon">📦</div><h3>No items found</h3><p>${q||this._iCat?'Try a different filter.':'Tap + to add ingredients.'}</p></div>`;return;}
+    wrap.innerHTML=`<div class="inv-list">${list.map(i=>this._iCard(i)).join('')}</div>`;
+  },
+  _iCard(i){
+    const st=this._iStat(i);
+    const pct=i.reorderAt>0?Math.min(100,(i.quantity/(i.reorderAt*3))*100):Math.min(100,(i.quantity/100)*100);
+    const sl={ok:'In Stock',low:'Low Stock',out:'Out of Stock'};
+    return `<div class="inv-card" onclick="App.openInvDetail('${i.id}')">
+      <div class="inv-top"><div class="inv-name">${this.h(i.name)}</div><div class="inv-cat-tag">${this.h(i.category)}</div></div>
+      <div class="inv-qty-row">
+        <div class="inv-qty">${i.quantity}<span class="unit">${i.unit}</span></div>
+        <div class="inv-status s-${st}">${sl[st]}</div>
+      </div>
+      <div class="inv-prog"><div class="inv-prog-bar p-${st}" style="width:${pct.toFixed(1)}%"></div></div>
+    </div>`;
+  },
+  openInvDetail(id){
+    this.selIId=id; this.subview='inv-detail';
+    const i=this.inventory.find(x=>x.id===id);
+    const st=this._iStat(i);
+    const stClr={ok:'#2E7D32',low:'#E65100',out:'#C0392B'};
+    const stLbl={ok:'✅ In Stock',low:'⚠️ Low Stock',out:'🚨 Out of Stock'};
+    const costPerUnit = parseFloat(i.cost)||0;
+    const totalValue = Math.round(i.quantity * costPerUnit * 100)/100;
+    document.getElementById('view-inv-detail').innerHTML=`
+      <div class="detail">
+        <div class="detail-header">
+          <div class="detail-badge" style="background:var(--brown)">${this.h(i.category)}</div>
+          <div class="detail-name">${this.h(i.name)}</div>
+          <div class="meta-row">
+            <div class="meta-pill">Qty <span>${i.quantity} ${i.unit}</span></div>
+            <div class="meta-pill">Reorder at <span>${i.reorderAt} ${i.unit}</span></div>
+            ${i.pkgSize?`<div class="meta-pill">Package <span>${this.h(i.pkgSize)}</span></div>`:''}
+          </div>
+          <div style="margin-top:10px;font-size:.85rem;font-weight:700;color:${stClr[st]}">${stLbl[st]}</div>
+        </div>
+        ${(i.supplier||i.vendorUrl||i.cost)?`<div class="section">
+          <div class="section-title">Vendor & Pricing</div>
+          ${i.supplier?`<div class="ing-row"><span class="ing-name">Vendor</span><span class="ing-amt">${this.h(i.supplier)}</span></div>`:''}
+          ${i.vendorUrl?`<div class="ing-row"><span class="ing-name">Website</span><span class="ing-amt" style="font-size:.78rem"><a href="${this.h(i.vendorUrl)}" target="_blank" style="color:var(--brown)">Open ↗</a></span></div>`:''}
+          ${costPerUnit?`<div class="ing-row"><span class="ing-name">Price / ${i.unit}</span><span class="ing-amt">$${costPerUnit.toFixed(2)}</span></div>`:''}
+          ${costPerUnit&&i.quantity?`<div class="ing-row"><span class="ing-name">Stock value</span><span class="ing-amt">$${totalValue.toFixed(2)}</span></div>`:''}
+        </div>`:''}
+        ${i.notes?`<div class="section"><div class="section-title">Notes</div><div class="prose-muted">${this.h(i.notes)}</div></div>`:''}
+        <div class="section">
+          <div class="section-title">Adjust Quantity</div>
+          <div class="adj-row">
+            <input type="number" id="adj-amt" step="any" placeholder="Amount"/>
+            <select id="adj-unit">${UNITS.map(u=>`<option${u===i.unit?' selected':''}>${u}</option>`).join('')}</select>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="App.adjQty('${i.id}',1)">+ Add Stock</button>
+            <button class="btn btn-outline" onclick="App.adjQty('${i.id}',-1)">− Use Stock</button>
+          </div>
+        </div>
+        <div class="detail-actions">
+          <button class="btn btn-outline" onclick="App.openInvModal('${i.id}')">✏️ Edit</button>
+          <button class="btn btn-danger" onclick="App.delInvItem('${i.id}')">🗑 Delete</button>
+        </div>
+      </div>`;
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-inv-detail').classList.add('active');
+    this._hdr();
+  },
+  adjQty(id,dir){
+    const amt=parseFloat(document.getElementById('adj-amt').value);
+    if(!amt||isNaN(amt)){this._toast('Enter an amount');return;}
+    const item=this.inventory.find(x=>x.id===id);
+    item.quantity=Math.round(Math.max(0,item.quantity+(dir*amt))*1000)/1000;
+    this._saveI(); this.renderInventory(); this.renderOrders(); this.openInvDetail(id);
+    this._toast(`Updated: ${item.quantity} ${item.unit}`);
+  },
+  delInvItem(id){
+    this._confirm('Delete Item','This item will be permanently removed.',()=>{
+      this.inventory=this.inventory.filter(x=>x.id!==id);
+      this._saveI(); this.renderInventory(); this.renderOrders(); this.goBack(); this._toast('Item deleted');
+    });
+  },
+  openInvModal(id){
+    const item=id?this.inventory.find(x=>x.id===id):null;
+    this.editI=item?JSON.parse(JSON.stringify(item)):{id:this.uid(),name:'',category:'Oils',quantity:0,unit:'oz',reorderAt:8,supplier:'',vendorUrl:'',cost:'',pkgSize:'',notes:''};
+    document.getElementById('modal-inv-title').textContent=item?'Edit Item':'New Inventory Item';
+    document.getElementById('modal-inv-body').innerHTML=this._iForm(this.editI);
+    document.getElementById('modal-inv').classList.add('open');
+  },
+  _iForm(i){
+    const so=(a,v)=>a.map(o=>`<option${o===v?' selected':''}>${o}</option>`).join('');
+    const vendors=[...new Set(this.inventory.map(x=>x.supplier).filter(Boolean))].sort();
+    const vOpts=vendors.map(v=>`<option value="${this.h(v)}">`).join('');
+    return `
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button type="button" class="btn btn-outline" style="flex:1;font-size:.8rem" onclick="App.openScanner()">📷 Scan Barcode</button>
+        <button type="button" class="btn btn-outline" style="flex:1;font-size:.8rem" onclick="App.openLabelPhoto()">📸 Photo Label</button>
+      </div>
+      <div class="form-group"><label>Item Name *</label><input id="iin" value="${this.h(i.name)}" placeholder="e.g. Coconut Oil"/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Category</label><select id="iic">${so(I_CATS,i.category)}</select></div>
+        <div class="form-group"><label>Unit</label><select id="iiu">${so(UNITS,i.unit)}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Current Qty</label><input id="iiq" type="number" step="any" value="${i.quantity}"/></div>
+        <div class="form-group"><label>Reorder At</label><input id="iir" type="number" step="any" value="${i.reorderAt}" placeholder="8"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Purchase Price ($)</label><input id="iico" type="number" step="0.01" value="${this.h(i.cost)}" placeholder="0.00"/></div>
+        <div class="form-group"><label>Package Size</label><input id="iipkg" value="${this.h(i.pkgSize||'')}" placeholder="e.g. 32 oz jug"/></div>
+      </div>
+      <div class="form-group"><label>Vendor / Supplier</label>
+        <input id="iis" list="vendor-datalist" value="${this.h(i.supplier)}" placeholder="e.g. Brambleberry" autocomplete="off"/>
+        <datalist id="vendor-datalist">${vOpts}</datalist>
+      </div>
+      <div class="form-group"><label>Vendor Website (optional)</label><input id="iiurl" type="url" value="${this.h(i.vendorUrl||'')}" placeholder="https://brambleberry.com"/></div>
+      <div class="form-group"><label>Notes</label><textarea id="iino" placeholder="Grade, brand…">${this.h(i.notes)}</textarea></div>`;
+  },
+  saveInv(){
+    const name=document.getElementById('iin').value.trim();
+    if(!name){this._toast('Please enter an item name');return;}
+    const i=this.editI;
+    i.name=name; i.category=document.getElementById('iic').value; i.unit=document.getElementById('iiu').value;
+    i.quantity=parseFloat(document.getElementById('iiq').value)||0;
+    i.reorderAt=parseFloat(document.getElementById('iir').value)||0;
+    i.cost=document.getElementById('iico').value;
+    i.pkgSize=document.getElementById('iipkg').value;
+    i.supplier=document.getElementById('iis').value;
+    i.vendorUrl=document.getElementById('iiurl').value;
+    i.notes=document.getElementById('iino').value;
+    const idx=this.inventory.findIndex(x=>x.id===i.id);
+    if(idx>=0) this.inventory[idx]=i; else this.inventory.unshift(i);
+    this._saveI(); this.renderInventory(); this.renderOrders(); this.closeModal('modal-inv');
+    this._toast(idx>=0?'Item updated!':'Item added!');
+    if(this.subview==='inv-detail') this.openInvDetail(i.id);
+  },
+
+  // ── CALCULATOR ───────────────────────────────────────────────
+  calcMode(m){
+    this._calcMode=m;
+    document.getElementById('mode-oz').classList.toggle('active',m==='oz');
+    document.getElementById('mode-bars').classList.toggle('active',m==='bars');
+    document.getElementById('grp-oz').style.display=m==='oz'?'block':'none';
+    document.getElementById('grp-bars').style.display=m==='bars'?'block':'none';
+    document.getElementById('grp-barwt').style.display=m==='bars'?'block':'none';
+    this.calcUpdate();
+  },
+  populateCalcRecipes(){
+    const sel=document.getElementById('calc-recipe');
+    const cur=sel.value;
+    sel.innerHTML='<option value="">— Choose a recipe —</option>'+
+      this.recipes.filter(r=>r.batchSize).map(r=>`<option value="${r.id}"${r.id===cur?' selected':''}>${this.h(r.name)} (${r.batchSize} ${r.batchUnit||'oz'})</option>`).join('');
+  },
+  calcUpdate(){
+    const rid=document.getElementById('calc-recipe').value;
+    const wrap=document.getElementById('calc-result');
+    if(!rid){wrap.innerHTML='';return;}
+    const r=this.recipes.find(x=>x.id===rid);
+    if(!r||!r.batchSize){wrap.innerHTML='';return;}
+    let targetOz;
+    if(this._calcMode==='oz'){
+      targetOz=parseFloat(document.getElementById('calc-oz').value);
+    } else {
+      const bars=parseFloat(document.getElementById('calc-bars').value)||0;
+      const bw=parseFloat(document.getElementById('calc-barwt').value)||3.5;
+      targetOz=bars*bw;
+    }
+    if(!targetOz||targetOz<=0){
+      wrap.innerHTML=`<div class="calc-result"><div style="text-align:center;color:var(--muted);font-size:.84rem;padding:12px">Enter a target amount above to see scaled ingredients</div></div>`;
+      return;
+    }
+    const orig=parseFloat(r.batchSize)||1;
+    const scale=targetOz/orig;
+    const rows=(r.ingredients||[]).map(i=>{
+      const sv=(parseFloat(i.amount)||0)*scale;
+      const d=sv<0.1?sv.toFixed(3):sv<10?sv.toFixed(2):sv.toFixed(1);
+      return `<div class="calc-row"><span class="calc-row-name">${this.h(i.name)}</span><span class="calc-row-amt">${d} ${i.unit}</span></div>`;
+    }).join('');
+    const est=this._calcMode==='oz'?`~${Math.round(targetOz/3.5)} bars @ 3.5 oz ea`:`${document.getElementById('calc-bars').value} bars @ ${document.getElementById('calc-barwt').value} oz`;
+    wrap.innerHTML=`
+      <div class="calc-result">
+        <div class="calc-result-title">📋 Scaled to ${targetOz.toFixed(1)} oz</div>
+        ${rows}
+        <div class="calc-note">Scale factor: ${scale.toFixed(3)}× · ${est}</div>
+      </div>`;
+  },
+
+  // ── ORDER REPORT ─────────────────────────────────────────────
+  renderOrders(){
+    const wrap=document.getElementById('report-body'); if(!wrap) return;
+    const low=this.inventory.filter(i=>this._iStat(i)!=='ok');
+    if(!low.length){
+      wrap.innerHTML=`<div class="report-top"><h2>📋 Order Report</h2></div><div class="all-good"><div style="font-size:2.5rem">✅</div><p>All ingredients are well-stocked!</p></div>`;
+      return;
+    }
+    const out=low.filter(i=>this._iStat(i)==='out');
+    const lows=low.filter(i=>this._iStat(i)==='low');
+    const mkItems=arr=>arr.map(i=>{
+      const need=Math.max(0,i.reorderAt*2-i.quantity);
+      return `<div class="report-item">
+        <div><div class="ri-name">${this.h(i.name)}</div><div class="ri-detail">${this.h(i.category)}${i.supplier?' · '+this.h(i.supplier):''}</div></div>
+        <div><div class="ri-need">Need ${need.toFixed(1)} ${i.unit}</div><div class="ri-have">Have ${i.quantity} ${i.unit}</div></div>
+      </div>`;
+    }).join('');
+    wrap.innerHTML=`
+      <div class="report-top">
+        <h2>📋 Order Report</h2>
+        <div style="display:flex;gap:8px">
+          <button class="copy-btn" onclick="App.copyReport()">Copy List</button>
+          <button class="print-btn" onclick="window.print()">🖨 Print</button>
+        </div>
+      </div>
+      ${out.length?`<div class="report-section"><div class="report-sec-title">🚨 Out of Stock — ${out.length} item${out.length>1?'s':''}</div>${mkItems(out)}</div>`:''}
+      ${lows.length?`<div class="report-section"><div class="report-sec-title">⚠️ Low Stock — ${lows.length} item${lows.length>1?'s':''}</div>${mkItems(lows)}</div>`:''}`;
+  },
+  copyReport(){
+    const low=this.inventory.filter(i=>this._iStat(i)!=='ok');
+    if(!low.length) return;
+    const lines=['SUDSY SISTERS — ORDER LIST',new Date().toLocaleDateString('en-US'),''];
+    const out=low.filter(i=>this._iStat(i)==='out');
+    const lows=low.filter(i=>this._iStat(i)==='low');
+    if(out.length){lines.push('OUT OF STOCK:');out.forEach(i=>{const n=Math.max(0,i.reorderAt*2-i.quantity);lines.push(`  • ${i.name}: need ${n.toFixed(1)} ${i.unit}${i.supplier?' ('+i.supplier+')':''}`);});lines.push('');}
+    if(lows.length){lines.push('LOW STOCK:');lows.forEach(i=>{const n=Math.max(0,i.reorderAt*2-i.quantity);lines.push(`  • ${i.name}: need ${n.toFixed(1)} ${i.unit} (have ${i.quantity})${i.supplier?' ('+i.supplier+')':''}`);});}
+    navigator.clipboard.writeText(lines.join('\n')).then(()=>this._toast('Copied to clipboard!')).catch(()=>this._toast('Copy failed'));
+  },
+
+  // ── MAKE BATCH ───────────────────────────────────────────────
+  makeBatch(id){
+    const r=this.recipes.find(x=>x.id===id);
+    if(!r||!r.ingredients||!r.ingredients.length){this._toast('No ingredients listed');return;}
+    // Match each ingredient to inventory by name (case-insensitive partial match)
+    const matches=r.ingredients.map(ing=>{
+      const nm=ing.name.toLowerCase();
+      const inv=this.inventory.find(i=>
+        i.name.toLowerCase()===nm||
+        i.name.toLowerCase().includes(nm)||
+        nm.includes(i.name.toLowerCase())
+      );
+      return {ing, inv};
+    });
+    const found=matches.filter(m=>m.inv);
+    const notFound=matches.filter(m=>!m.inv);
+    // Build ingredient list HTML
+    const rows=matches.map(m=>{
+      if(m.inv){
+        const after=Math.max(0,m.inv.quantity-(parseFloat(m.ing.amount)||0));
+        const willBelow=after<=m.inv.reorderAt;
+        return `<div class="batch-ing-row">
+          <div class="batch-ing-left">${this.h(m.ing.name)}</div>
+          <div class="batch-ing-right">
+            <div class="batch-found">− ${m.ing.amount} ${m.ing.unit}</div>
+            <div class="batch-inv-note">${m.inv.quantity} → ${Math.round(after*1000)/1000} ${m.inv.unit}${willBelow?' ⚠️':''}</div>
+          </div>
+        </div>`;
+      } else {
+        return `<div class="batch-ing-row">
+          <div class="batch-ing-left">${this.h(m.ing.name)}</div>
+          <div class="batch-ing-right batch-notfound">Not in inventory</div>
+        </div>`;
+      }
+    }).join('');
+    document.getElementById('batch-title').textContent=`Make: ${r.name}`;
+    document.getElementById('batch-ing-list').innerHTML=rows;
+    // Warning if some items not in inventory
+    const warn=document.getElementById('batch-warn');
+    if(notFound.length){
+      warn.style.display='block';
+      warn.textContent=`⚠️ ${notFound.length} ingredient${notFound.length>1?'s':''} not found in inventory and will be skipped.`;
+    } else {
+      warn.style.display='none';
+    }
+    document.getElementById('batch-ok').onclick=()=>{
+      this.closeModal('modal-batch');
+      this._applyBatch(matches);
+    };
+    document.getElementById('modal-batch').classList.add('open');
+  },
+  _applyBatch(matches){
+    let changed=0;
+    matches.forEach(m=>{
+      if(!m.inv) return;
+      const amt=parseFloat(m.ing.amount)||0;
+      m.inv.quantity=Math.round(Math.max(0,m.inv.quantity-amt)*1000)/1000;
+      changed++;
+    });
+    this._saveI();
+    this.renderInventory();
+    this.renderOrders();
+    this._toast(`Batch logged — ${changed} inventory item${changed!==1?'s':''} updated`);
+  },
+
+  // ── MODALS & UTILS ───────────────────────────────────────────
+  closeModal(id){ document.getElementById(id).classList.remove('open'); },
+
+  // ── BARCODE SCANNER ──────────────────────────────────────────
+  _scanResult: null,
+  _scanDone: false,
+  _scanFrame: null,
+
+  openScanner(){
+    this._scanResult = null;
+    this._scanDone = false;
+    document.getElementById('scan-status').innerHTML = '';
+    document.getElementById('scan-use-btn').style.display = 'none';
+    document.getElementById('scan-use-btn').textContent = 'Use This Product ✓';
+    document.getElementById('scan-overlay').classList.add('open');
+    setTimeout(() => this._startCamera(), 350);
+  },
+
+  async _startCamera(){
+    const video = document.getElementById('scanner-video');
+    const statusEl = document.getElementById('scan-status');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+      });
+      video.srcObject = stream;
+      await new Promise(r => { video.onloadedmetadata = r; });
+      video.play();
+      if('BarcodeDetector' in window){
+        const detector = new BarcodeDetector({
+          formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','code_93','itf','qr_code']
+        });
+        const self = this;
+        const scan = async function(){
+          if(self._scanDone) return;
+          try {
+            const codes = await detector.detect(video);
+            if(codes.length > 0 && !self._scanDone){
+              self._scanDone = true;
+              self._onScanSuccess(codes[0].rawValue);
+              return;
+            }
+          } catch(e){}
+          self._scanFrame = requestAnimationFrame(scan);
+        };
+        this._scanFrame = requestAnimationFrame(scan);
+      } else {
+        statusEl.innerHTML = '<span style="color:#ffd97d">⚠️ Live scanning needs iOS 17.4+ or Chrome. Use 📸 Photo Label instead, or update iOS.</span>';
+      }
+    } catch(e){
+      const msg = (e.name === 'NotAllowedError')
+        ? 'Camera permission denied — allow in Settings > Safari > Camera.'
+        : 'Camera error: ' + (e.message || e.name);
+      statusEl.innerHTML = '<span style="color:#ff6b6b">' + msg + '</span>';
+    }
+  },
+
+  closeScanner(){
+    this._scanDone = true;
+    if(this._scanFrame){ cancelAnimationFrame(this._scanFrame); this._scanFrame = null; }
+    const video = document.getElementById('scanner-video');
+    if(video && video.srcObject){
+      video.srcObject.getTracks().forEach(t => t.stop());
+      video.srcObject = null;
+    }
+    document.getElementById('scan-overlay').classList.remove('open');
+  },
+
+  _onScanSuccess(code){
+    if(this._scanFrame){ cancelAnimationFrame(this._scanFrame); this._scanFrame = null; }
+    const video = document.getElementById('scanner-video');
+    if(video && video.srcObject){
+      video.srcObject.getTracks().forEach(t => t.stop());
+      video.srcObject = null;
+    }
+    this._scanResult = { barcode: code, product: null };
+    document.getElementById('scan-status').innerHTML =
+      '<div class="scan-lookup"><div class="scan-spinner"></div> Looking up ' + code + '...</div>';
+    this._lookupBarcode(code);
+  },
+
+  async _lookupBarcode(code){
+    const statusEl = document.getElementById('scan-status');
+    statusEl.innerHTML = `<div class="scan-lookup"><div class="scan-spinner"></div> Searching databases for ${code}…</div>`;
+
+    // Helper: parse Open*Facts response (food / beauty / products all share same format)
+    const parseOFF = (data, code) => {
+      if(data.status !== 1 || !data.product) return null;
+      const p = data.product;
+      const name  = (p.product_name || p.product_name_en || '').trim();
+      const brand = (p.brands || '').split(',')[0].trim();
+      const full  = (brand && name && !name.toLowerCase().includes(brand.toLowerCase()))
+        ? `${brand} ${name}` : (name || brand);
+      return full ? { name: full, barcode: code } : null;
+    };
+
+    // All 5 databases queried simultaneously
+    const apis = [
+      // 1. Open Food Facts — food, beverages, ingredients
+      fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`)
+        .then(r=>r.json()).then(d=>parseOFF(d,code)).catch(()=>null),
+      // 2. Open Beauty Facts — cosmetics, soaps, lotions, personal care
+      fetch(`https://world.openbeautyfacts.org/api/v2/product/${code}.json`)
+        .then(r=>r.json()).then(d=>parseOFF(d,code)).catch(()=>null),
+      // 3. Open Products Facts — household, cleaning, pharmacy, general goods
+      fetch(`https://world.openproductsfacts.org/api/v2/product/${code}.json`)
+        .then(r=>r.json()).then(d=>parseOFF(d,code)).catch(()=>null),
+      // 4. UPC Item DB — broad US retail products
+      fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`)
+        .then(r=>r.json())
+        .then(d=>(d.items&&d.items.length&&d.items[0].title)?{name:d.items[0].title,barcode:code}:null)
+        .catch(()=>null),
+      // 5. Barcode Monster — large general product database, free & no key
+      fetch(`https://barcode.monster/api/${code}`)
+        .then(r=>r.json())
+        .then(d=>(d&&d.name)?{name:d.name,barcode:code}:null)
+        .catch(()=>null),
+    ];
+
+    // Take the first non-null result (fastest wins among those that succeed)
+    let product = null;
+    try {
+      product = await Promise.any(
+        apis.map(p => p.then(r => { if(!r||!r.name) throw new Error('empty'); return r; }))
+      );
+    } catch(e){ product = null; }
+
+    if(product && product.name){
+      this._scanResult = { barcode: code, product };
+      statusEl.innerHTML = `<span style="color:#a8e6b8;font-weight:700">✅ ${this.h(product.name)}</span>`;
+      document.getElementById('scan-use-btn').style.display = 'block';
+    } else {
+      this._scanResult = { barcode: code, product: { name: '', barcode: code } };
+      statusEl.innerHTML = `
+        <span style="color:#ffd97d;display:block;margin-bottom:8px">⚠️ Barcode <b>${code}</b> not found in any database.</span>
+        <button onclick="window.open('https://www.google.com/search?q=${encodeURIComponent(code)}+product+barcode','_blank')"
+          style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:6px 14px;font-family:Lato,sans-serif;font-size:.8rem;font-weight:700;cursor:pointer">
+          🔍 Search Google for this barcode
+        </button>`;
+      document.getElementById('scan-use-btn').textContent = 'Add Manually ✓';
+      document.getElementById('scan-use-btn').style.display = 'block';
+    }
+  },
+
+  useScanResult(){
+    if(!this._scanResult) return;
+    this.closeScanner();
+    const nameField = document.getElementById('iin');
+    if(nameField){
+      if(this._scanResult.product && this._scanResult.product.name){
+        nameField.value = this._scanResult.product.name;
+        this._toast(`Auto-filled: ${this._scanResult.product.name}`);
+      } else {
+        this._toast('Enter item name — barcode saved to notes');
+      }
+      const notesField = document.getElementById('iino');
+      if(notesField && !notesField.value)
+        notesField.value = `Barcode: ${this._scanResult.barcode}`;
+      nameField.focus();
+    }
+  },
+  // ── PHOTO LABEL OCR ──────────────────────────────────────────
+  _rawOCRText: '',
+
+  openLabelPhoto(){
+    document.getElementById('photo-initial').style.display = 'block';
+    document.getElementById('photo-processing').style.display = 'none';
+    document.getElementById('photo-result').style.display = 'none';
+    document.getElementById('photo-preview-wrap').style.display = 'none';
+    document.getElementById('photo-btn-row').style.display = 'none';
+    document.getElementById('photo-raw-text').style.display = 'none';
+    document.getElementById('photo-raw-toggle').textContent = '\u25bc Show all OCR text';
+    const c = document.getElementById('photo-capture');
+    const l = document.getElementById('photo-library');
+    if(c) c.value = '';
+    if(l) l.value = '';
+    document.getElementById('photo-overlay').classList.add('open');
+  },
+
+  closePhotoScan(){
+    document.getElementById('photo-overlay').classList.remove('open');
+  },
+
+  _toggleRawOCR(){
+    const raw = document.getElementById('photo-raw-text');
+    const toggle = document.getElementById('photo-raw-toggle');
+    const showing = raw.style.display !== 'none';
+    raw.style.display = showing ? 'none' : 'block';
+    toggle.textContent = showing ? '\u25bc Show all OCR text' : '\u25b2 Hide OCR text';
+  },
+
+  async _processLabelImage(input){
+    if(!input.files || !input.files[0]) return;
+    const file = input.files[0];
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('photo-preview').src = e.target.result;
+      document.getElementById('photo-preview-wrap').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+
+    document.getElementById('photo-initial').style.display = 'none';
+    document.getElementById('photo-processing').style.display = 'block';
+    document.getElementById('photo-result').style.display = 'none';
+    document.getElementById('photo-btn-row').style.display = 'none';
+    document.getElementById('photo-status').textContent = 'Loading OCR engine...';
+
+    try {
+      await this._loadTesseract();
+      document.getElementById('photo-status').textContent = 'Reading label... 0%';
+
+      const result = await Tesseract.recognize(file, 'eng', {
+        logger: m => {
+          if(m.status === 'recognizing text'){
+            const pct = Math.round((m.progress || 0) * 100);
+            document.getElementById('photo-status').textContent = 'Reading label... ' + pct + '%';
+          }
+        }
+      });
+
+      const rawText = (result.data && result.data.text) ? result.data.text : '';
+      this._rawOCRText = rawText;
+      const name = this._parseOCRText(rawText);
+
+      document.getElementById('photo-processing').style.display = 'none';
+      document.getElementById('photo-result').style.display = 'block';
+      document.getElementById('photo-name-edit').value = name;
+      document.getElementById('photo-raw-text').textContent = rawText.trim();
+      document.getElementById('photo-btn-row').style.display = 'flex';
+
+    } catch(e){
+      document.getElementById('photo-status').textContent =
+        'Could not read label. Try better lighting or a clearer angle.';
+      setTimeout(() => {
+        document.getElementById('photo-processing').style.display = 'none';
+        document.getElementById('photo-initial').style.display = 'block';
+      }, 2500);
+    }
+  },
+
+  _parseOCRText(rawText){
+    const noise = [
+      'ingredients','directions','warning','caution','net wt','fl oz','fl. oz','keep out',
+      'for external','do not','contains','distributed by','manufactured','made in','www.',
+      'http','drug facts','active ingredient','inactive ingredient','shake well',
+      'expiration','exp ','lot #','lot:','barcode','upc','see label','read all',
+      'store in','keep refrigerated','tamper','safety cap','child resistant',
+      'poison control','first aid','if swallowed','in eyes','on skin','call','toll free'
+    ];
+
+    const lines = rawText.split('\n')
+      .map(function(l){ return l.trim(); })
+      .filter(function(l){ return l.length >= 3 && l.length <= 60; })
+      .filter(function(l){ return !/^[\d\s\.\-\%\/]+$/.test(l); })
+      .filter(function(l){ return !noise.some(function(n){ return l.toLowerCase().indexOf(n) >= 0; }); });
+
+    if(!lines.length) return '';
+
+    const scored = lines.map(function(l, idx){
+      let score = 0;
+      const words = l.split(/\s+/).filter(Boolean);
+      if(words.length >= 1 && words.length <= 6) score += 4;
+      if(/[A-Z]/.test(l)) score += 2;
+      if(words.some(function(w){ return w.length > 2 && w === w.toUpperCase(); })) score += 3;
+      if(/\d+\s*%/.test(l)) score += 3;
+      if(words.length > 0 && words[0].length > 0 && words[0][0] === words[0][0].toUpperCase()) score += 2;
+      score += Math.max(0, 10 - idx);
+      return { text: l, score: score };
+    });
+
+    scored.sort(function(a, b){ return b.score - a.score; });
+    return scored.length ? scored[0].text : (lines[0] || '');
+  },
+
+  _loadTesseract(){
+    return new Promise(function(resolve, reject){
+      if(window.Tesseract){ resolve(); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = function(){ resolve(); };
+      s.onerror = function(){ reject(new Error('OCR library failed to load')); };
+      document.head.appendChild(s);
+    });
+  },
+
+  _retakePhoto(){
+    document.getElementById('photo-initial').style.display = 'block';
+    document.getElementById('photo-processing').style.display = 'none';
+    document.getElementById('photo-result').style.display = 'none';
+    document.getElementById('photo-btn-row').style.display = 'none';
+    document.getElementById('photo-preview-wrap').style.display = 'none';
+    const c = document.getElementById('photo-capture');
+    const l = document.getElementById('photo-library');
+    if(c) c.value = '';
+    if(l) l.value = '';
+  },
+
+  _usePhotoResult(){
+    const name = (document.getElementById('photo-name-edit').value || '').trim();
+    this.closePhotoScan();
+    const nameField = document.getElementById('iin');
+    if(nameField){
+      if(name){
+        nameField.value = name;
+        this._toast('Filled: ' + name);
+      } else {
+        this._toast('Enter item name manually');
+      }
+      const notesField = document.getElementById('iino');
+      if(notesField && !notesField.value && this._rawOCRText)
+        notesField.value = 'Label text: ' + this._rawOCRText.trim().slice(0, 120);
+      nameField.focus();
+    }
+  },
+
+    _confirm(title,msg,cb){
+    document.getElementById('confirm-title').textContent=title;
+    document.getElementById('confirm-msg').textContent=msg;
+    document.getElementById('confirm-ok').onclick=()=>{this.closeModal('modal-confirm');cb();};
+    document.getElementById('modal-confirm').classList.add('open');
+  },
+  _toast(msg){
+    const t=document.getElementById('toast');
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(this._tt);
+    this._tt=setTimeout(()=>t.classList.remove('show'),2600);
+  }
+};
+
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+App.init();
+</script>
+</body>
+</html>
