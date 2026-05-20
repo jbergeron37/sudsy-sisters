@@ -76,7 +76,7 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
     page-break-after:avoid!important
   }
 
-  /* Each item = one compact row, never split across pages */
+  /* Each item = one compact row in print, overrides on-screen flex */
   .report-item{
     display:grid!important;
     grid-template-columns:1.8fr 0.9fr 0.7fr 0.7fr 0.8fr 0.8fr 1fr!important;
@@ -90,10 +90,12 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
     break-inside:avoid!important;page-break-inside:avoid!important
   }
   .report-item:nth-child(even){background:#fafafa!important}
-
-  /* Column content */
-  .ri-name{font-size:.82rem!important;font-weight:700!important;color:#111!important;white-space:nowrap!important}
-  .ri-detail{font-size:.72rem!important;color:#555!important;margin-top:0!important;white-space:nowrap!important}
+  /* Hide the on-screen two-column divs, show print columns */
+  .report-item > div:not(.print-col){display:none!important}
+  .print-col{display:block!important}
+  /* All columns left-justified */
+  .ri-name{font-size:.82rem!important;font-weight:700!important;color:#111!important;white-space:nowrap!important;text-align:left!important}
+  .ri-detail{font-size:.72rem!important;color:#555!important;margin-top:0!important;white-space:nowrap!important;text-align:left!important}
   .ri-need{font-size:.82rem!important;font-weight:700!important;color:#c0392b!important;text-align:left!important}
   .ri-have{font-size:.72rem!important;color:#666!important;text-align:left!important;margin-top:0!important}
 
@@ -352,11 +354,13 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .copy-btn:active{background:var(--brown-d)}
 .report-section{margin-bottom:16px}
 .report-sec-title{font-size:.68rem;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.8px;padding-bottom:6px;border-bottom:1px solid #ddd;margin-bottom:8px}
+/* On-screen order report — original card style */
 .report-item{background:#fff;border-radius:12px;padding:11px 13px;margin-bottom:7px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid #e0e0e0;display:flex;justify-content:space-between;align-items:flex-start}
 .ri-name{font-size:.88rem;font-weight:700;color:#111}
 .ri-detail{font-size:.74rem;color:#555;margin-top:2px}
 .ri-need{font-size:.88rem;font-weight:700;color:#111;text-align:right}
 .ri-have{font-size:.7rem;color:#666;text-align:right;margin-top:2px}
+.print-col{display:none}
 .all-good{text-align:center;padding:40px 20px;color:var(--sage)}
 .all-good p{font-size:.88rem;color:var(--muted);margin-top:6px}
 .modal-overlay{position:fixed;inset:0;background:rgba(44,32,24,.48);z-index:500;display:none;align-items:flex-end}
@@ -2167,28 +2171,36 @@ const App = {
       return;
     }
 
-    // Sort: by category then alphabetically within each category
-    const sorted = [...low].sort((a,b)=>{
-      const catCmp = (a.category||'').localeCompare(b.category||'');
-      return catCmp !== 0 ? catCmp : a.name.localeCompare(b.name);
-    });
+    // Sort: items alphabetically within each category
+    const sorted = [...low].sort((a,b) => a.name.localeCompare(b.name));
 
     const mkItem = i => {
       const need = Math.max(0,i.reorderAt*2-i.quantity);
       const costPerUnit = parseFloat(i.cost)||0;
       const pkgSize = i.pkgSize||'';
-      const priceLabel = costPerUnit ? '$'+costPerUnit.toFixed(4)+'/'+i.unit : '—';
+      const priceLabel = costPerUnit ? '$'+costPerUnit.toFixed(4)+'/'+i.unit : '';
       const statusDot = this._iStat(i)==='out'
         ? '<span style="color:#c0392b;font-weight:700;margin-right:4px">●</span>'
         : '<span style="color:#e65100;font-weight:700;margin-right:4px">●</span>';
+      // On-screen: original card layout (flex, name+detail left, need/have right)
+      // Print: grid layout handled entirely by @media print CSS
       return `<div class="report-item">
-        <div class="ri-name">${statusDot}${this.h(i.name)}</div>
-        <div class="ri-detail">${this.h(i.category)}</div>
-        <div class="ri-have">${i.quantity} ${i.unit}</div>
-        <div class="ri-need">Need ${need.toFixed(1)} ${i.unit}</div>
-        <div class="ri-detail">${priceLabel}</div>
-        <div class="ri-detail">${this.h(pkgSize)}</div>
-        <div class="ri-detail">${i.supplier?this.h(i.supplier):''}</div>
+        <div>
+          <div class="ri-name">${statusDot}${this.h(i.name)}</div>
+          <div class="ri-detail">${this.h(i.category)}${i.supplier?' · '+this.h(i.supplier):''}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="ri-need">Need ${need.toFixed(1)} ${i.unit}</div>
+          <div class="ri-have">Have ${i.quantity} ${i.unit}${priceLabel?' · '+priceLabel:''}</div>
+        </div>
+        <!-- print-only columns (hidden on screen via flex, visible in print grid) -->
+        <div class="ri-name print-col">${statusDot}${this.h(i.name)}</div>
+        <div class="ri-detail print-col">${this.h(i.category)}</div>
+        <div class="ri-have print-col">${i.quantity} ${i.unit}</div>
+        <div class="ri-need print-col">Need ${need.toFixed(1)} ${i.unit}</div>
+        <div class="ri-detail print-col">${priceLabel||'—'}</div>
+        <div class="ri-detail print-col">${this.h(pkgSize)}</div>
+        <div class="ri-detail print-col">${i.supplier?this.h(i.supplier):''}</div>
       </div>`;
     };
 
@@ -2200,7 +2212,9 @@ const App = {
       byCategory[cat].push(i);
     });
 
-    const catSections = Object.keys(byCategory).sort().map(cat => {
+    const catSections = Object.keys(byCategory)
+      .sort((a,b) => byCategory[b].length - byCategory[a].length)
+      .map(cat => {
       const items = byCategory[cat];
       const outCount = items.filter(i=>this._iStat(i)==='out').length;
       const lowCount = items.filter(i=>this._iStat(i)==='low').length;
