@@ -1367,7 +1367,26 @@ const App = {
     this.renderInventory();
     this.populateCalcRecipes();
     this.renderOrders();
-    if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        // Check for a new service worker version every time the app loads
+        reg.update();
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          newSW.addEventListener('statechange', () => {
+            if(newSW.state === 'installed' && navigator.serviceWorker.controller){
+              // New version ready — reload silently to apply it
+              navigator.serviceWorker.controller.postMessage({type:'SKIP_WAITING'});
+              window.location.reload();
+            }
+          });
+        });
+      });
+      // When the SW takes control, reload once to get fresh content
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    }
     // Check passcode lock
     this._applyDarkMode();
     const saved = sessionStorage.getItem('ss_unlocked');
