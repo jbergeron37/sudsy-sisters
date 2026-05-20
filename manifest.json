@@ -1,0 +1,14 @@
+{
+  "name": "Sudsy Sisters Recipe Book",
+  "short_name": "Sudsy Sisters",
+  "description": "Goat milk soap recipe database for Sudsy Sisters LLC",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#7A5C3A",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
