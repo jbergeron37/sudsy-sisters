@@ -2374,7 +2374,7 @@ const App = {
       // Partial match — show suggestion list
       if(!res.ok && data.suggestions && data.suggestions.length > 0){
         const btns = data.suggestions.map(s =>
-          '<button onclick="App.lookupMWFC(\''+this.h(s.title)+'\')" style="display:block;width:100%;text-align:left;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:5px;font-family:Lato,sans-serif;font-size:.83rem;color:var(--text);cursor:pointer">'+
+          '<button onclick="App._pickMWFCSuggestion(\''+this.h(s.handle)+'\',\''+this.h(s.title)+'\')" style="display:block;width:100%;text-align:left;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:5px;font-family:Lato,sans-serif;font-size:.83rem;color:var(--text);cursor:pointer">'+
           this.h(s.title)+'</button>'
         ).join('');
         if(statusEl) statusEl.innerHTML =
@@ -2420,6 +2420,13 @@ const App = {
     } catch(e){
       if(statusEl) statusEl.innerHTML = '<span style="color:var(--amber)">⚠️ ' + (e.message || 'Search failed — check connection') + '</span>';
     }
+  },
+
+  // Called when user taps a suggestion — uses the exact handle slug
+  async _pickMWFCSuggestion(handle, title){
+    const inp = document.getElementById('mwfc-name-inp');
+    if(inp) inp.value = title;
+    await this.lookupMWFC(handle);
   },
 
   _setNoteFieldVal(fieldId, val){
@@ -2503,7 +2510,7 @@ const App = {
       '<button type="button" class="btn btn-outline" style="flex:1;font-size:.8rem" onclick="App.closeModal(\'modal-frag\');App.openLabelPhoto()">📸 Photo Label</button>'+
       '</div>'+
       '<div class="mwfc-lookup">'+
-      '<input id="mwfc-name-inp" placeholder="Search MWFC by name\u2026" value="'+hv(f.name)+'"/>'+
+      '<input id="mwfc-name-inp" placeholder="Search MWFC by name\u2026" value="'+hv(f.name)+'" onkeydown="if(event.key===\'Enter\')App.lookupMWFC(this.value)"/>'+
       '<button onclick="App.lookupMWFC(document.getElementById(\'mwfc-name-inp\').value)">\uD83D\uDD0D Lookup</button>'+
       '</div><div id="mwfc-status" style="font-size:.76rem;color:var(--muted);margin:-8px 0 12px;min-height:16px"></div>'+
       '<div class="form-group"><label>Name *</label><input id="ff-name" value="'+hv(f.name)+'" placeholder="e.g. Lavender Dreams"/></div>'+
