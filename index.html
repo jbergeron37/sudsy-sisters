@@ -4090,12 +4090,17 @@ const App = {
     if(!pf){
       pf = document.createElement('iframe');
       pf.id = '__print-frame';
-      pf.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none';
+      pf.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:800px;height:1100px;border:none;visibility:hidden';
       document.body.appendChild(pf);
     }
+    pf.onload = null; // clear any previous handler
     pf.srcdoc = html;
     pf.onload = function(){
-      try { pf.contentWindow.focus(); pf.contentWindow.print(); } catch(e){ window.print(); }
+      // Give fonts time to load before printing
+      setTimeout(function(){
+        try { pf.contentWindow.focus(); pf.contentWindow.print(); }
+        catch(e){ console.error('Print failed:', e); }
+      }, 800);
     };
   },
 
@@ -4166,12 +4171,16 @@ const App = {
     if(!pf){
       pf = document.createElement('iframe');
       pf.id = '__print-frame-split';
-      pf.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none';
+      pf.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:800px;height:1100px;border:none;visibility:hidden';
       document.body.appendChild(pf);
     }
+    pf.onload = null;
     pf.srcdoc = html;
     pf.onload = function(){
-      try { pf.contentWindow.focus(); pf.contentWindow.print(); } catch(e){ window.print(); }
+      setTimeout(function(){
+        try { pf.contentWindow.focus(); pf.contentWindow.print(); }
+        catch(e){ console.error('Split print failed:', e); }
+      }, 800);
     };
   },
 
