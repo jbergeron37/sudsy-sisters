@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Sudsy Sisters"/>
@@ -232,10 +232,10 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
 [data-theme="dark"] .chip.on{ background:var(--accent)!important; border-color:var(--accent)!important; color:#fff!important; }
 [data-theme="dark"] .tag{ background:#2A1A3E!important; color:#D4789A!important; }
 [data-theme="dark"] .sync-status{ background:#2D1A2E!important; color:#B09AB0!important; }
-/* SETTINGS PANEL */
-.settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;display:none;align-items:flex-end}
+/* SETTINGS PANEL — slides down from top */
+.settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;display:none;align-items:flex-start;justify-content:center}
 .settings-overlay.open{display:flex}
-.settings-sheet{background:var(--white);border-radius:20px 20px 0 0;width:100%;padding:0 0 calc(var(--safe-b) + 16px);animation:slideUp .24s ease-out}
+.settings-sheet{background:var(--white);border-radius:0 0 20px 20px;width:100%;max-width:480px;padding:0 0 16px;animation:slideDown .24s ease-out;max-height:80vh;overflow-y:auto}
 .settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
 .settings-label{font-size:.9rem;font-weight:700;color:var(--text)}
 .settings-sub{font-size:.75rem;color:var(--muted);margin-top:2px}
@@ -432,6 +432,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .modal-overlay.open{display:flex}
 .modal-sheet{background:var(--cream);border-radius:20px 20px 0 0;width:100%;max-height:93vh;display:flex;flex-direction:column;padding-bottom:var(--safe-b);animation:slideUp .24s ease-out}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 .modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 2px;flex-shrink:0}
 .modal-hdr{display:flex;align-items:center;padding:10px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
 .modal-title{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;color:var(--brown-d);flex:1}
@@ -820,10 +821,9 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
   </div>
 </div>
 <!-- TOOLS MODAL -->
-<div class="modal-overlay" id="modal-tools">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-hdr"><div class="modal-title">Tools</div><button class="modal-close" onclick="App.closeModal('modal-tools')">x</button></div>
+<div class="modal-overlay" id="modal-tools" style="align-items:flex-start">
+  <div class="modal-sheet" style="border-radius:0 0 20px 20px;animation:slideDown .24s ease-out;max-height:60vh">
+    <div class="modal-hdr"><div class="modal-title">🔧 Tools</div><button class="modal-close" onclick="App.closeModal('modal-tools')">×</button></div>
     <div class="modal-body" style="padding:0">
       <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openOrderReport()"><div><div class="settings-label">Low Inventory Report</div><div class="settings-sub">View and print items needing restock</div></div><span style="color:var(--muted)">›</span></div>
       <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openCalcModal()"><div><div class="settings-label">Batch Calculator</div><div class="settings-sub">Scale any recipe by oz or bars</div></div><span style="color:var(--muted)">›</span></div>
@@ -860,6 +860,32 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     <div class="modal-handle"></div>
     <div class="modal-hdr"><div class="modal-title">Manage Users</div><button class="modal-close" onclick="App.closeModal('modal-manage-users')">x</button></div>
     <div class="modal-body" style="padding:0" id="manage-users-body"></div>
+  </div>
+</div>
+<!-- RECIPE VARIANTS MODAL -->
+<div class="modal-overlay" id="modal-variants">
+  <div class="modal-sheet" style="max-height:93vh;display:flex;flex-direction:column">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr">
+      <div class="modal-title">🎨 Recipe Variants</div>
+      <button class="modal-close" onclick="App.closeModal('modal-variants')">×</button>
+    </div>
+    <div class="modal-body" id="variants-body" style="flex:1;overflow-y:auto"></div>
+  </div>
+</div>
+<!-- VARIANT FORM MODAL -->
+<div class="modal-overlay" id="modal-variant-form">
+  <div class="modal-sheet" style="max-height:93vh;display:flex;flex-direction:column">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr">
+      <div id="variant-form-title" class="modal-title">New Variant</div>
+      <button class="modal-close" onclick="App.closeModal('modal-variant-form')">×</button>
+    </div>
+    <div class="modal-body" id="variant-form-body" style="flex:1;overflow-y:auto"></div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1" onclick="App.closeModal('modal-variant-form')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="App.saveVariant()">Save Variant</button>
+    </div>
   </div>
 </div>
 <!-- BATCH LOG MODAL -->
@@ -2004,6 +2030,7 @@ const App = {
           <button class="btn btn-outline" onclick="App.openRecipeModal('${r.id}')">✏️ Edit</button>
           <button class="btn btn-outline" onclick="App.showVersionHistory('${r.id}')">🕐 History</button>
           <button class="btn btn-outline" onclick="App.openSplitCalc('${r.id}')">📐 % Split</button>
+          <button class="btn btn-outline" onclick="App.openVariantsModal('${r.id}')">🎨 Variants</button>
           <button class="btn btn-danger" onclick="App.delRecipe('${r.id}')">🗑 Delete</button>
         </div>
       </div>`;
@@ -2146,27 +2173,38 @@ const App = {
         <div class="tag-wrap" id="rtags-wrap"><input class="tag-input" id="rtags-inp" placeholder="Add tag…"/></div>
         <input type="hidden" id="rtags"/>
       </div>
-      <div class="form-group"><label>Ingredients</label>
+      <div class="form-group"><label>Ingredients <span style="font-size:.72rem;color:var(--muted);font-weight:400">— grouped by phase</span></label>
         <div style="display:flex;gap:6px;padding:0 0 4px;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">
+          <div style="width:60px">Phase</div>
           <div style="flex:2">Ingredient</div>
           <div style="flex:1;text-align:center">oz</div>
           <div style="flex:1;text-align:center">g</div>
           <div style="width:24px"></div>
         </div>
         <div id="ing-rows">${ings}</div>
-        <button class="add-row-btn" onclick="App.addIngRow()">+ Add Ingredient</button>
+        <div style="display:flex;gap:8px">
+          <button class="add-row-btn" onclick="App.addIngRow()" style="flex:2">+ Add Ingredient</button>
+          <button class="add-row-btn" onclick="App.autoAssignPhases()" style="flex:1;background:var(--accent-l,#EDE0FF);color:var(--accent)">✨ Auto-phase</button>
+        </div>
       </div>
       <div class="form-group"><label>Instructions</label><textarea id="fin" rows="5" placeholder="Step-by-step…">${this.h(r.instructions)}</textarea></div>
       <div class="form-group"><label>Notes</label><textarea id="fno" placeholder="Tips, warnings…">${this.h(r.notes)}</textarea></div>`;
   },
+  // Phase labels for ingredient grouping
+  PHASE_LABELS: {'1':'Phase 1 — Milk/Lye','2':'Phase 2 — Oils/Butters','3':'Phase 3 — Fragrance/Color','4':'Phase 4'},
+
   _iRow(i,g){
-    const uOpts=UNITS.map(u=>`<option${u===(g.unit||'oz')?' selected':''}>${u}</option>`).join('');
     const dlId='ing-dl-'+i;
     const dlOpts=[...new Set([...this.inventory.map(x=>x.name),...(this.fragrances||[]).map(x=>x.name)])].sort().map(n=>'<option value="'+this.h(n)+'">').join('');
     const gval = g.unit==='g' ? this.h(g.amount) : (g.amount ? Math.round(parseFloat(g.amount)*28.3495*100)/100 : '');
     const ozval = g.unit!=='g' ? this.h(g.amount) : (g.amount ? Math.round(parseFloat(g.amount)/28.3495*100)/100 : '');
+    const phase = g.phase || '';
+    const phaseClr = {'1':'#5C35C2','2':'#A8527A','3':'#2E7D32','':'var(--muted)'}[String(phase)];
+    const phaseSel = '<select onchange="App._syncIng('+i+',\'phase\',this.value)" style="width:60px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:6px 4px;font-family:Lato,sans-serif;font-size:.78rem;color:'+phaseClr+';font-weight:700;outline:none">'+
+      ['','1','2','3'].map(p=>'<option value="'+p+'"'+(p===String(phase)?' selected':'')+'>'+(p?'P'+p:'-')+'</option>').join('')+'</select>';
     return `<div class="ing-form-row" id="ir${i}">
       <datalist id="${dlId}">${dlOpts}</datalist>
+      ${phaseSel}
       <input list="${dlId}" placeholder="Ingredient" value="${this.h(g.name)}" oninput="App._syncIng(${i},'name',this.value)" onblur="App._checkIngredientSimilarity(this,${i})" style="flex:2"/>
       <input class="sm" type="number" step="any" placeholder="0" value="${ozval}" id="ing-oz-${i}" oninput="App._ingOzChange(${i})"/>
       <input class="sm" type="number" step="any" placeholder="0" value="${gval}" id="ing-g-${i}" oninput="App._ingGChange(${i})"/>
@@ -2188,8 +2226,23 @@ const App = {
   addIngRow(){
     if(!this.editR.ingredients) this.editR.ingredients=[];
     const i=this.editR.ingredients.length;
-    this.editR.ingredients.push({name:'',amount:'',unit:'oz'});
-    document.getElementById('ing-rows').insertAdjacentHTML('beforeend',this._iRow(i,{name:'',amount:'',unit:'oz'}));
+    this.editR.ingredients.push({name:'',amount:'',unit:'oz',phase:''});
+    document.getElementById('ing-rows').insertAdjacentHTML('beforeend',this._iRow(i,{name:'',amount:'',unit:'oz',phase:''}));
+  },
+
+  // Auto-assign phases based on ingredient name (bar soap defaults)
+  autoAssignPhases(){
+    const LYE_RE = /lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
+    const FRAG_RE = /fragrance|scent|eo|essential oil|colorant|pigment|mica|oxide|dye/i;
+    (this.editR.ingredients||[]).forEach((ing,i) => {
+      if(!ing.phase || ing.phase === ''){
+        if(LYE_RE.test(ing.name)) ing.phase = '1';
+        else if(FRAG_RE.test(ing.name)) ing.phase = '3';
+        else ing.phase = '2';
+      }
+    });
+    document.getElementById('ing-rows').innerHTML = this.editR.ingredients.map((g,x)=>this._iRow(x,g)).join('');
+    this._toast('Phases auto-assigned! Adjust as needed.');
   },
   delIngRow(i){ this.editR.ingredients.splice(i,1); document.getElementById('ing-rows').innerHTML=this.editR.ingredients.map((g,x)=>this._iRow(x,g)).join(''); },
   _syncIng(i,f,v){ if(this.editR.ingredients[i]) this.editR.ingredients[i][f]=v; },
@@ -3373,7 +3426,8 @@ const App = {
     document.getElementById('modal-tools').classList.add('open');
   },
 
-  openSettings(){
+
+    openSettings(){
     this._applyDarkMode();
     const toggle = document.getElementById('dark-mode-toggle');
     if(toggle) toggle.checked = this._darkMode;
@@ -3548,12 +3602,14 @@ const App = {
       (f.scent_family||'').toLowerCase().includes(ql)
     ).slice(0,5);
 
-    // Batches
+    // Batches — search name, version, notes, made_by, status
     results.batches = (this.batches||[]).filter(b =>
       (b.recipe_name||'').toLowerCase().includes(ql) ||
+      (b.recipe_version||'').toLowerCase().includes(ql) ||
       (b.notes||'').toLowerCase().includes(ql) ||
-      (b.made_by||'').toLowerCase().includes(ql)
-    ).slice(0,3);
+      (b.made_by||'').toLowerCase().includes(ql) ||
+      (b.status||'').toLowerCase().includes(ql)
+    ).slice(0,5);
 
     const total = results.recipes.length + results.inventory.length +
       results.fragrances.length + results.batches.length;
@@ -3588,8 +3644,12 @@ const App = {
     }
     if(results.batches.length){
       html += '<div class="gsearch-section"><div class="gsearch-section-title">📋 Batches</div>'+
-        results.batches.map(b=>mkItem('📋',b.recipe_name,b.status+' · '+new Date(b.made_at).toLocaleDateString(),
-          'App.closeGlobalSearch();App.setTab(\'batches\');App.openBatchDetail(\''+b.id+'\')')).join('')+'</div>';
+        results.batches.map(b=>{
+          const ver = b.recipe_version ? ' · '+b.recipe_version : '';
+          const noteSnip = b.notes ? ' · '+b.notes.slice(0,40)+(b.notes.length>40?'…':'') : '';
+          return mkItem('📋', b.recipe_name+(ver), (b.status||'')+' · '+new Date(b.made_at).toLocaleDateString()+noteSnip,
+            'App.closeGlobalSearch();App.setTab(\'batches\');App.openBatchDetail(\''+b.id+'\')');
+        }).join('')+'</div>';
     }
     wrap.innerHTML = html;
   },
@@ -3760,9 +3820,9 @@ const App = {
 
     const rows6 = [0,1,2,3,4,5].map(i=>
       '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">'+
-        '<input placeholder="Color / Layer '+(i+1)+'" id="split-label-'+i+'" style="flex:2;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:Lato,sans-serif;font-size:.85rem;color:var(--text);outline:none"/>'+
+        '<input placeholder="Color / Layer '+(i+1)+'" id="split-label-'+i+'" style="flex:2;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:Lato,sans-serif;font-size:16px;color:var(--text);outline:none"/>'+
         '<div style="display:flex;align-items:center;gap:4px;flex:1">'+
-          '<input type="number" min="0" max="100" step="0.1" placeholder="0" id="split-pct-'+i+'" oninput="App._updateSplitCalc('+totalWt.toFixed(4)+','+oilTotal.toFixed(4)+','+lyeTotal.toFixed(4)+')" style="width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px;font-family:Lato,sans-serif;font-size:.85rem;color:var(--text);outline:none;text-align:right"/>'+
+          '<input type="number" min="0" max="100" step="0.1" placeholder="0" id="split-pct-'+i+'" oninput="App._updateSplitCalc('+totalWt.toFixed(4)+','+oilTotal.toFixed(4)+','+lyeTotal.toFixed(4)+')" style="width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px;font-family:Lato,sans-serif;font-size:16px;color:var(--text);outline:none;text-align:right"/>'+
           '<span style="font-size:.82rem;color:var(--muted);flex-shrink:0">%</span>'+
         '</div>'+
       '</div>'
@@ -3823,20 +3883,20 @@ const App = {
         '<div style="font-weight:700;font-size:.9rem;color:var(--text);margin-bottom:6px">'+this.h(r.lbl)+
           ' <span style="font-weight:400;color:var(--muted)">— '+r.pct+'%</span></div>'+
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;text-align:center">'+
-          '<div style="background:var(--cream);border-radius:7px;padding:6px 4px">'+
-            '<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Total</div>'+
-            '<div style="font-weight:700;font-size:.88rem;color:var(--text)">'+totalOz+' oz</div>'+
-            '<div style="font-size:.72rem;color:var(--muted)">'+oz2g(totalOz)+' g</div>'+
+          '<div style="background:var(--cream);border-radius:7px;padding:6px 4px;border-left:3px solid #5C35C2">'+
+            '<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Milk & Lye</div>'+
+            '<div style="font-weight:700;font-size:.88rem;color:#5C35C2">'+lyeOz+' oz</div>'+
+            '<div style="font-size:.72rem;color:var(--muted)">'+oz2g(lyeOz)+' g</div>'+
           '</div>'+
-          '<div style="background:var(--cream);border-radius:7px;padding:6px 4px">'+
+          '<div style="background:var(--cream);border-radius:7px;padding:6px 4px;border-left:3px solid var(--brown-d)">'+
             '<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Oils</div>'+
             '<div style="font-weight:700;font-size:.88rem;color:var(--brown-d)">'+oilOz+' oz</div>'+
             '<div style="font-size:.72rem;color:var(--muted)">'+oz2g(oilOz)+' g</div>'+
           '</div>'+
-          '<div style="background:var(--cream);border-radius:7px;padding:6px 4px">'+
-            '<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Milk/Lye</div>'+
-            '<div style="font-weight:700;font-size:.88rem;color:var(--accent)">'+lyeOz+' oz</div>'+
-            '<div style="font-size:.72rem;color:var(--muted)">'+oz2g(lyeOz)+' g</div>'+
+          '<div style="background:var(--cream);border-radius:7px;padding:6px 4px;border-left:3px solid var(--accent)">'+
+            '<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Total</div>'+
+            '<div style="font-weight:700;font-size:.88rem;color:var(--text)">'+totalOz+' oz</div>'+
+            '<div style="font-size:.72rem;color:var(--muted)">'+oz2g(totalOz)+' g</div>'+
           '</div>'+
         '</div>'+
       '</div>';
@@ -3869,188 +3929,47 @@ const App = {
       </tr>`;
     }).join('');
     const win = window.open('','_blank');
-    win.document.write(`<!DOCTYPE html><html><head><title>${recipeName} — Split Calculator</title>
-<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>
-<style>
-@page{margin:1in;size:letter portrait}
-body{font-family:Lato,sans-serif;margin:0;color:#111;font-size:14px}
-.hdr{display:flex;align-items:center;gap:16px;border-bottom:3px solid #FCBFCE;padding-bottom:12px;margin-bottom:20px}
-.logo{width:72px;height:72px;border-radius:12px;object-fit:cover}
-.brand{font-family:"Great Vibes",cursive;font-size:2.2rem;color:#D4789A;line-height:1}
-.brand-sub{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.5px}
-h2{font-family:"Playfair Display",serif;font-size:1.3rem;color:#111;margin:0 0 4px}
-.sub{font-size:13px;color:#555;margin-bottom:20px}
-.totals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
-.total-box{background:#FEF2F6;border-radius:10px;padding:10px 14px;text-align:center}
-.total-box .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888}
-.total-box .val{font-size:1.1rem;font-weight:700;margin-top:4px}
-.total-box .gval{font-size:12px;color:#888}
-table{width:100%;border-collapse:collapse}
-thead tr{background:#FCBFCE}
-th{padding:8px 10px;text-align:center;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:#333}
-th:first-child{text-align:left}
-.footer{margin-top:24px;padding-top:8px;border-top:1px solid #ddd;font-size:11px;color:#888;text-align:center}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-</style></head><body>
-<div class="hdr">
-  ${logoSrc?'<img class="logo" src="'+logoSrc+'" alt=""/>':''}
-  <div><div class="brand">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div>
-</div>
-<h2>${recipeName} — Color/Layer Split</h2>
-<div class="sub">Printed ${new Date().toLocaleDateString()}</div>
-<div class="totals">
-  <div class="total-box"><div class="label">Total Batch</div><div class="val">${totalWt.toFixed(2)} ${batchUnit}</div><div class="gval">${oz2g(totalWt)} g</div></div>
-  <div class="total-box"><div class="label">Oils & Butters</div><div class="val" style="color:#A8527A">${oilTotal.toFixed(2)} oz</div><div class="gval">${oz2g(oilTotal)} g</div></div>
-  <div class="total-box"><div class="label">Goat Milk & Lye</div><div class="val" style="color:#5C35C2">${lyeTotal.toFixed(2)} oz</div><div class="gval">${oz2g(lyeTotal)} g</div></div>
-</div>
-<table>
-  <thead><tr><th style="text-align:left">Color / Layer</th><th>%</th><th>Total</th><th>Oils</th><th>Milk & Lye</th></tr></thead>
-  <tbody>${rowHtml}</tbody>
-</table>
-<div class="footer">Sudsy Sisters LLC · Goat Milk Soapery · ${recipeName}</div>
-</body></html>`);
-    win.document.close();
-    setTimeout(()=>win.print(), 500);
-  },
-
-  saveSplitToNotes(){
-    if(!this._lastSplitData) return;
-    const {recipeName, totalWt, oilTotal, lyeTotal, batchUnit, rows} = this._lastSplitData;
-    const oz2g = v => Math.round(v*28.3495*10)/10;
-    const lines = [
-      '=== COLOR / LAYER SPLIT ===',
-      `Recipe: ${recipeName}`,
-      `Total: ${totalWt.toFixed(2)} ${batchUnit} (${oz2g(totalWt)} g)`,
-      `Oils & Butters: ${oilTotal.toFixed(2)} oz (${oz2g(oilTotal)} g)`,
-      `Goat Milk & Lye: ${lyeTotal.toFixed(2)} oz (${oz2g(lyeTotal)} g)`,
-      ''
-    ];
-    rows.forEach(r=>{
-      const totalOz = Math.round(totalWt*(r.pct/100)*100)/100;
-      const oilOz   = Math.round(oilTotal*(r.pct/100)*100)/100;
-      const lyeOz   = Math.round(lyeTotal*(r.pct/100)*100)/100;
-      lines.push(`${r.lbl} (${r.pct}%): Total ${totalOz} oz / Oils ${oilOz} oz / Lye+Milk ${lyeOz} oz`);
-    });
-    const splitText = lines.join('\n');
-    // Copy to clipboard for easy pasting
-    navigator.clipboard.writeText(splitText).then(()=>{
-      this._toast('Split copied to clipboard — paste into batch notes!');
-    }).catch(()=>{
-      // Fallback: show in an alert
-      this._toast('Split: ' + lines.slice(0,3).join(' | '));
-    });
-    // Also pre-populate batch log notes if a batch log is open
-    const notesEl = document.getElementById('bl-notes');
-    if(notesEl){
-      notesEl.value = (notesEl.value ? notesEl.value + '\n\n' : '') + splitText;
-      this._toast('Split added to batch notes!');
-    }
-  },
-
-  // ── TASK 5: RECIPE PDF PRINT ─────────────────────────────────
-  printRecipePDF(id){
-    const r = this.recipes.find(x=>x.id===id); if(!r) return;
-    const cost = this._calcRecipeCost(r);
-    const logoEl = document.getElementById('header-logo');
-    const logoSrc = logoEl ? logoEl.src : '';
-
-    // Separate ingredients into two groups
-    const LYE_LIQUID = /lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
-    const lyeGroup = (r.ingredients||[]).filter(i => LYE_LIQUID.test(i.name));
-    const oilGroup = (r.ingredients||[]).filter(i => !LYE_LIQUID.test(i.name));
-
-    const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
-    const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
-
-    const ingRow = (i, shade) => {
-      const isG   = i.unit === 'g';
-      const ozAmt = isG ? g2oz(i.amount) : (parseFloat(i.amount)||0);
-      const gAmt  = isG ? (parseFloat(i.amount)||0) : oz2g(i.amount);
-      return '<tr style="background:'+(shade?'#fdf6f9':'#fff')+'">'+
-        '<td style="padding:4px 10px;border-bottom:1px solid #f0e0ea;font-size:11px;color:#111">'+i.name+'</td>'+
-        '<td style="padding:4px 10px;border-bottom:1px solid #f0e0ea;text-align:right;font-weight:700;font-size:11px;color:#111;white-space:nowrap">'+ozAmt.toFixed(2)+' oz</td>'+
-        '<td style="padding:4px 10px;border-bottom:1px solid #f0e0ea;text-align:right;font-size:10px;color:#555;white-space:nowrap">'+gAmt.toFixed(1)+' g</td>'+
-        '</tr>';
-    };
-
-    const groupTotal = arr => {
-      const totalOz = arr.reduce((s,i)=>{
-        const isG = i.unit==='g';
-        return s + (isG ? g2oz(i.amount) : (parseFloat(i.amount)||0));
-      },0);
-      return {oz: totalOz.toFixed(2), g: oz2g(totalOz).toFixed(1)};
-    };
-
-    const totalRow = (label, oz, g) =>
-      '<tr style="background:#FEF2F6"><td style="padding:4px 10px;font-weight:700;font-size:11px;color:#A8527A;border-top:1.5px solid #FCBFCE">'+label+'</td>'+
-      '<td style="padding:4px 10px;text-align:right;font-weight:700;font-size:11px;color:#A8527A;border-top:1.5px solid #FCBFCE">'+oz+' oz</td>'+
-      '<td style="padding:4px 10px;text-align:right;font-size:10px;color:#888;border-top:1.5px solid #FCBFCE">'+g+' g</td></tr>';
-
-    const lyeRows  = lyeGroup.map((i,n)=>ingRow(i,n%2===1)).join('');
-    const oilRows  = oilGroup.map((i,n)=>ingRow(i,n%2===1)).join('');
-    const lyeTot   = groupTotal(lyeGroup);
-    const oilTot   = groupTotal(oilGroup);
-
-    const tbl = (title, rows, tot) => rows ? (
-      '<table style="width:100%;border-collapse:collapse;margin-bottom:14px">'+
-      '<thead><tr><th style="background:#FCBFCE;padding:4px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#333">'+title+'</th>'+
-      '<th style="background:#FCBFCE;padding:4px 10px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#333">oz</th>'+
-      '<th style="background:#FCBFCE;padding:4px 10px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#333">Grams</th></tr></thead>'+
-      '<tbody>'+rows+totalRow('Total',tot.oz,tot.g)+'</tbody></table>'
-    ) : '';
-
-    const win = window.open('','_blank');
-    win.document.write(`<!DOCTYPE html><html><head><title>${r.name}</title>
-<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>
-<style>
-@page{margin:1in;size:letter portrait}
-*{box-sizing:border-box}
-body{font-family:Lato,sans-serif;margin:0;padding:0;color:#111;font-size:11px;line-height:1.45}
-.hdr{display:flex;align-items:center;gap:18px;border-bottom:3px solid #FCBFCE;padding-bottom:12px;margin-bottom:16px}
-.logo{width:80px;height:80px;border-radius:12px;object-fit:cover;flex-shrink:0}
-.brand-name{font-family:"Great Vibes",cursive;font-size:2.4rem;color:#D4789A;line-height:1}
-.brand-sub{font-size:10px;color:#555;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
-h1{font-family:"Playfair Display",serif;font-size:1.4rem;color:#111;margin:0 0 10px}
-.meta{display:flex;flex-wrap:wrap;gap:14px;background:#FEF2F6;padding:8px 12px;border-radius:8px;margin-bottom:14px}
-.meta-item strong{display:block;font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.5px}
-.meta-item span{font-size:11px;font-weight:700;color:#111}
-h3{font-family:"Playfair Display",serif;font-size:11px;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:3px;margin:10px 0 5px;text-transform:uppercase;letter-spacing:.5px}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
-.notes{font-size:10px;line-height:1.5;color:#111;white-space:pre-wrap}
-.footer{margin-top:12px;padding-top:6px;border-top:1px solid #ddd;font-size:9px;color:#777;text-align:center}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-</style></head><body>
-<div class="hdr">
-  ${logoSrc?'<img class="logo" src="'+logoSrc+'" alt="Sudsy Sisters"/>':''}
-  <div>
-    <div class="brand-name">Sudsy Sisters</div>
-    <div class="brand-sub">Goat Milk Soapery</div>
-  </div>
-</div>
-<h1>${r.name}</h1>
-<div class="meta">
-  <div class="meta-item"><strong>Category</strong><span>${r.category||'—'}</span></div>
-  <div class="meta-item"><strong>Version</strong><span>${r.version||'v1'}</span></div>
-  ${r.batchSize?'<div class="meta-item"><strong>Batch Size</strong><span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>':''}
-  ${r.unitsPerBatch?'<div class="meta-item"><strong>Units</strong><span>'+r.unitsPerBatch+(r.unitSize?' @ '+r.unitSize+' ea':'')+'</span></div>':''}
-  ${r.cureTime?'<div class="meta-item"><strong>Cure Time</strong><span>'+r.cureTime+'</span></div>':''}
-  ${cost.total?'<div class="meta-item"><strong>Est. Cost</strong><span>$'+cost.total.toFixed(2)+'</span></div>':''}
-</div>
-${lyeGroup.length && oilGroup.length ?
-  '<div class="cols">'+tbl('Goat Milk & Lye',lyeRows,lyeTot)+tbl('Oils & Butters',oilRows,oilTot)+'</div>' :
-  tbl('Ingredients', (r.ingredients||[]).map((i,n)=>ingRow(i,n%2===1)).join(''), groupTotal(r.ingredients||[]))
-}
-${r.description?'<h3>Description</h3><div class="notes">'+r.description+'</div>':''}
-${r.instructions?'<h3>Instructions</h3><div class="notes">'+r.instructions+'</div>':''}
-${r.notes?'<h3>Notes</h3><div class="notes">'+r.notes+'</div>':''}
-${r.scent?'<h3>Fragrance</h3><div class="notes">'+r.scent+'</div>':''}
-<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; Printed ${new Date().toLocaleDateString()}</div>
-</body></html>`);
+    const _logo = logoSrc ? '<img class="logo" src="'+logoSrc+'" alt="Sudsy Sisters"/>' : '';
+    const _bsRow = r.batchSize ? '<div class="meta-item"><strong>Batch Size</strong><span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>' : '';
+    const _upbRow = r.unitsPerBatch ? '<div class="meta-item"><strong>Units</strong><span>'+r.unitsPerBatch+(r.unitSize?' @ '+r.unitSize+' oz ea':'')+'</span></div>' : '';
+    const _ctRow = r.cureTime ? '<div class="meta-item"><strong>Cure Time</strong><span>'+this.h(r.cureTime)+'</span></div>' : '';
+    const _costRow = cost.total ? '<div class="meta-item"><strong>Est. Cost</strong><span>$'+cost.total.toFixed(2)+'</span></div>' : '';
+    const _dSec = r.description ? '<h3>Description</h3><div class="notes">'+this.h(r.description)+'</div>' : '';
+    const _iSec = r.instructions ? '<h3>Instructions</h3><div class="notes">'+this.h(r.instructions)+'</div>' : '';
+    const _nSec = r.notes ? '<h3>Notes</h3><div class="notes">'+this.h(r.notes)+'</div>' : '';
+    const _sSec = r.scent ? '<h3>Fragrance</h3><div class="notes">'+this.h(r.scent)+'</div>' : '';
+    win.document.write(
+      '<!DOCTYPE html><html><head><title>'+this.h(r.name)+'</title>'+
+      '<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>'+
+      '<style>@page{margin:1in;size:letter portrait}*{box-sizing:border-box}'+
+      'body{font-family:Lato,sans-serif;margin:0;padding:0;color:#111;font-size:11px;line-height:1.45}'+
+      '.hdr{display:flex;align-items:center;gap:16px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}'+
+      '.logo{width:68px;height:68px;border-radius:10px;object-fit:cover;flex-shrink:0}'+
+      '.brand-name{font-family:"Great Vibes",cursive;font-size:2rem;color:#D4789A;line-height:1}'+
+      '.brand-sub{font-size:9px;color:#555;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}'+
+      'h1{font-family:"Playfair Display",serif;font-size:1.25rem;color:#111;margin:0 0 8px}'+
+      '.meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}'+
+      '.meta-item strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.5px}'+
+      '.meta-item span{font-size:10px;font-weight:700;color:#111}'+
+      '.two-col{display:grid;grid-template-columns:52% 46%;gap:2%;margin-bottom:8px}'+
+      '.rc h3{font-family:"Playfair Display",serif;font-size:9.5px;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 3px;text-transform:uppercase;letter-spacing:.4px}'+
+      '.notes{font-size:9.5px;line-height:1.45;color:#111;white-space:pre-wrap}'+
+      '.footer{margin-top:8px;padding-top:5px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}'+
+      '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>'+
+      '<div class="hdr">'+_logo+'<div><div class="brand-name">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div></div>'+
+      '<h1>'+this.h(r.name)+'</h1>'+
+      '<div class="meta"><div class="meta-item"><strong>Category</strong><span>'+this.h(r.category||'—')+'</span></div>'+
+      '<div class="meta-item"><strong>Version</strong><span>'+this.h(r.version||'v1')+'</span></div>'+
+      _bsRow+_upbRow+_ctRow+_costRow+'</div>'+
+      '<div class="two-col"><div>'+apt+'</div><div class="rc">'+_dSec+_iSec+_nSec+_sSec+'</div></div>'+
+      '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; Printed '+new Date().toLocaleDateString()+'</div>'+
+      '</body></html>'
+    );
     win.document.close();
     setTimeout(()=>win.print(), 600);
   },
 
-  // ── TASK 6: INGREDIENT SIMILARITY ───────────────────────────
+    // ── TASK 6: INGREDIENT SIMILARITY ───────────────────────────
   _ingAliases: {'coconut oil':['coconut oil 76','co76','76 deg coconut'],'shea butter':['shae butter','shea'],'sodium hydroxide':['naoh','lye','caustic soda'],'castor oil':['castor'],'stearic acid':['stearic'],'beeswax':['bees wax']},
 
   _findSimilarIngredient(name){
@@ -4415,6 +4334,187 @@ ${r.scent?'<h3>Fragrance</h3><div class="notes">'+r.scent+'</div>':''}
     }
   },
 
+  // ── RECIPE VARIANTS ──────────────────────────────────────────
+  _editVariant: null,
+  _variantRecipeId: null,
+
+  async openVariantsModal(recipeId){
+    this._variantRecipeId = recipeId;
+    const r = this.recipes.find(x=>x.id===recipeId);
+    const body = document.getElementById('variants-body');
+    document.querySelector('#modal-variants .modal-title').textContent = '🎨 Variants — '+(r?r.name:'');
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Loading…</div>';
+    document.getElementById('modal-variants').classList.add('open');
+    await this._renderVariantsList(recipeId);
+  },
+
+  async _renderVariantsList(recipeId){
+    const body = document.getElementById('variants-body');
+    const r = this.recipes.find(x=>x.id===recipeId);
+    try {
+      const res = await this._sbFetch('GET','recipe_variants?base_recipe_id=eq.'+recipeId+'&order=created_at.desc');
+      const variants = await res.json();
+      if(!variants || !variants.length){
+        const rid = recipeId;
+        body.innerHTML = '<div style="text-align:center;padding:32px">'+
+          '<div style="font-size:2rem;margin-bottom:8px">🎨</div>'+
+          '<div style="font-weight:700;color:var(--text);margin-bottom:6px">No variants yet</div>'+
+          '<div style="font-size:.83rem;color:var(--muted);margin-bottom:16px">Create themed versions of this recipe with different additives, fragrances, or mold sizes.</div>'+
+          '<button class="btn btn-primary" onclick="App.openVariantForm(null,\''+rid+'\')">+ Create First Variant</button>'+
+          '</div>';
+        return;
+      }
+      const rid = recipeId;
+      const MOLD_CLR = {loaf:'#5C35C2', slab:'#A8527A', custom:'#2E7D32'};
+      body.innerHTML = '<div style="padding:12px 14px 0;display:flex;justify-content:space-between;align-items:center">'+
+        '<div style="font-size:.83rem;color:var(--muted)">'+variants.length+' variant'+(variants.length>1?'s':'')+'</div>'+
+        '<button class="btn btn-primary" style="font-size:.78rem;padding:6px 12px" onclick="App.openVariantForm(null,\''+rid+'\')">+ New Variant</button>'+
+        '</div>'+
+      variants.map(v=>{
+        const mold = v.mold_type||'loaf';
+        const clr = MOLD_CLR[mold]||'#888';
+        const ing = (v.added_ingredients||[]).length;
+        return '<div style="padding:12px 14px;border-bottom:1px solid var(--border)">'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+            '<div style="flex:1">'+
+              '<div style="font-weight:700;font-size:.92rem;color:var(--text)">'+this.h(v.name)+'</div>'+
+              '<div style="font-size:.75rem;margin-top:3px">'+
+                '<span style="background:'+clr+'22;color:'+clr+';border-radius:6px;padding:2px 7px;font-weight:700;font-size:.7rem;text-transform:uppercase">'+mold+'</span>'+
+                (v.batch_size?'<span style="margin-left:6px;color:var(--muted)">'+v.batch_size+' '+(v.batch_unit||'oz')+'</span>':'')+
+                (ing?'<span style="margin-left:6px;color:var(--muted)">+'+ing+' additive'+(ing>1?'s':'')+'</span>':'')+
+              '</div>'+
+              (v.notes?'<div style="font-size:.75rem;color:var(--muted);margin-top:4px">'+this.h(v.notes.slice(0,80))+'</div>':'')+
+            '</div>'+
+            '<div style="display:flex;gap:6px;margin-left:8px">'+
+              '<button onclick="App.openVariantForm(\''+v.id+'\',\''+rid+'\')" style="background:none;border:1px solid var(--accent);border-radius:8px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;color:var(--accent);cursor:pointer">Edit</button>'+
+              '<button onclick="App.makeBatchFromVariant(\''+v.id+'\')" style="background:var(--accent);border:none;border-radius:8px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;color:#fff;cursor:pointer;font-weight:700">Make Batch</button>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+    } catch(e){ body.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">Failed to load variants.</div>'; }
+  },
+
+  async openVariantForm(variantId, recipeId){
+    const r = this.recipes.find(x=>x.id===(recipeId||this._variantRecipeId));
+    let v = {id:'', base_recipe_id:recipeId||this._variantRecipeId, name:'', description:'', mold_type:'loaf',
+      batch_size: r?r.batchSize:'', batch_unit: r?r.batchUnit:'oz',
+      added_ingredients:[], notes:'', fragrance_id:'', fragrance_amount:'', colorant:''};
+    if(variantId){
+      try {
+        const res = await this._sbFetch('GET','recipe_variants?id=eq.'+variantId);
+        const rows = await res.json();
+        if(rows && rows[0]) v = rows[0];
+      } catch(e){}
+    }
+    this._editVariant = JSON.parse(JSON.stringify(v));
+    document.getElementById('variant-form-title').textContent = variantId ? 'Edit Variant' : 'New Variant';
+    const fragOpts = (this.fragrances||[]).map(f=>'<option value="'+f.id+'"'+(f.id===v.fragrance_id?' selected':'')+'>'+this.h(f.name)+'</option>').join('');
+    const addedIngsHtml = (v.added_ingredients||[]).map((ing,i)=>this._variantIngRow(i,ing)).join('');
+    const moldLoaf = v.mold_type==='loaf' ? ' selected' : '';
+    const moldSlab = v.mold_type==='slab' ? ' selected' : '';
+    const moldCustom = v.mold_type==='custom' ? ' selected' : '';
+    const baseName = r ? r.name : '';
+    const baseSize = r ? r.batchSize+' '+(r.batchUnit||'oz') : '';
+    const batchPlaceholder = r ? r.batchSize : 'auto';
+    document.getElementById('variant-form-body').innerHTML =
+      '<div style="padding:14px 16px">'+
+      '<div class="form-group"><label>Variant Name *</label><input id="vf-name" value="'+this.h(v.name)+'" placeholder="e.g. Lavender Honey, Peppermint Swirl" style="font-size:16px"/></div>'+
+      '<div class="form-group"><label>Notes / Theme</label><textarea id="vf-notes" rows="2" style="font-size:16px">'+this.h(v.notes||'')+'</textarea></div>'+
+      '<div class="form-row">'+
+        '<div class="form-group"><label>Mold Type</label>'+
+          '<select id="vf-mold" style="font-size:16px">'+
+            '<option value="loaf"'+moldLoaf+'>🍞 Loaf</option>'+
+            '<option value="slab"'+moldSlab+'>🟦 Slab</option>'+
+            '<option value="custom"'+moldCustom+'>✏️ Custom</option>'+
+          '</select>'+
+        '</div>'+
+        '<div class="form-group"><label>Batch Size (oz)</label>'+
+          '<input id="vf-batch" type="number" step="any" value="'+this.h(v.batch_size||'')+'" placeholder="'+batchPlaceholder+'" style="font-size:16px"/>'+
+        '</div>'+
+      '</div>'+
+      '<div style="background:var(--cream);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:var(--muted)">'+
+        '💡 <strong>Base recipe:</strong> '+this.h(baseName)+' ('+this.h(baseSize)+'). Variant inherits all base ingredients — add extras below.'+
+      '</div>'+
+      '<div class="form-group"><label>Extra Additives <span style="font-weight:400;color:var(--muted)">(unique to this variant)</span></label>'+
+        '<div style="display:flex;gap:6px;padding:0 0 4px;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase">'+
+          '<div style="flex:2">Ingredient</div><div style="flex:1;text-align:center">oz</div><div style="flex:1;text-align:center">g</div><div style="width:24px"></div>'+
+        '</div>'+
+        '<div id="vf-added-ings">'+addedIngsHtml+'</div>'+
+        '<button class="add-row-btn" onclick="App._addVariantIngRow()">+ Add Additive</button>'+
+      '</div>'+
+      '<div class="form-row">'+
+        '<div class="form-group"><label>Fragrance</label>'+
+          '<select id="vf-frag" style="font-size:16px"><option value="">— Base recipe FO —</option>'+fragOpts+'</select>'+
+        '</div>'+
+        '<div class="form-group"><label>Amount (oz)</label>'+
+          '<input id="vf-frag-amt" type="number" step="any" value="'+this.h(v.fragrance_amount||'')+'" placeholder="oz" style="font-size:16px"/>'+
+        '</div>'+
+      '</div>'+
+      '<div class="form-group"><label>Colorant</label>'+
+        '<input id="vf-colorant" value="'+this.h(v.colorant||'')+'" placeholder="e.g. Rose clay, ultramarine blue mica…" style="font-size:16px"/>'+
+      '</div>'+
+      '</div>';
+    document.getElementById('modal-variant-form').classList.add('open');
+  },
+
+  _variantIngRow(i, ing){
+    const gval = ing.unit==='g' ? ing.amount : (ing.amount ? Math.round(parseFloat(ing.amount)*28.3495*100)/100 : '');
+    const ozval = ing.unit!=='g' ? ing.amount : (ing.amount ? Math.round(parseFloat(ing.amount)/28.3495*100)/100 : '');
+    return '<div class="ing-form-row" id="vir'+i+'">'+
+      '<input placeholder="Additive name" value="'+this.h(ing.name)+'" oninput="App._syncVariantIng('+i+',\'name\',this.value)" style="flex:2;font-size:16px"/>'+
+      '<input class="sm" type="number" step="any" placeholder="0" value="'+ozval+'" id="ving-oz-'+i+'" oninput="App._variantIngOzChange('+i+')" style="font-size:16px"/>'+
+      '<input class="sm" type="number" step="any" placeholder="0" value="'+gval+'" id="ving-g-'+i+'" oninput="App._variantIngGChange('+i+')" style="font-size:16px"/>'+
+      '<button class="ing-del" onclick="App._delVariantIngRow('+i+')">−</button></div>';
+  },
+  _addVariantIngRow(){ const i=(this._editVariant.added_ingredients||[]).length; if(!this._editVariant.added_ingredients)this._editVariant.added_ingredients=[]; this._editVariant.added_ingredients.push({name:'',amount:'',unit:'oz'}); document.getElementById('vf-added-ings').insertAdjacentHTML('beforeend',this._variantIngRow(i,{name:'',amount:'',unit:'oz'})); },
+  _delVariantIngRow(i){ this._editVariant.added_ingredients.splice(i,1); document.getElementById('vf-added-ings').innerHTML=this._editVariant.added_ingredients.map((g,x)=>this._variantIngRow(x,g)).join(''); },
+  _syncVariantIng(i,f,v){ if(this._editVariant.added_ingredients[i]) this._editVariant.added_ingredients[i][f]=v; },
+  _variantIngOzChange(i){ const oz=parseFloat(document.getElementById('ving-oz-'+i)?.value)||0; const gEl=document.getElementById('ving-g-'+i); if(gEl)gEl.value=oz>0?Math.round(oz*28.3495*100)/100:''; this._syncVariantIng(i,'amount',String(oz)); this._syncVariantIng(i,'unit','oz'); },
+  _variantIngGChange(i){ const g=parseFloat(document.getElementById('ving-g-'+i)?.value)||0; const ozEl=document.getElementById('ving-oz-'+i); if(ozEl)ozEl.value=g>0?Math.round(g/28.3495*100)/100:''; this._syncVariantIng(i,'amount',String(g)); this._syncVariantIng(i,'unit','g'); },
+
+  async saveVariant(){
+    const name=(document.getElementById('vf-name')||{}).value?.trim();
+    if(!name){ this._toast('Variant name required'); return; }
+    const v = Object.assign({}, this._editVariant, {
+      name, notes:(document.getElementById('vf-notes')||{}).value||'',
+      mold_type:(document.getElementById('vf-mold')||{}).value||'loaf',
+      batch_size:parseFloat((document.getElementById('vf-batch')||{}).value)||null,
+      fragrance_id:(document.getElementById('vf-frag')||{}).value||null,
+      fragrance_amount:parseFloat((document.getElementById('vf-frag-amt')||{}).value)||null,
+      colorant:(document.getElementById('vf-colorant')||{}).value||'',
+      updated_at:new Date().toISOString()
+    });
+    if(!v.id) v.id=this.uid();
+    try {
+      await this._sbFetch('POST','recipe_variants',[v]);
+      this.closeModal('modal-variant-form');
+      await this._renderVariantsList(v.base_recipe_id);
+      this._toast('Variant saved!');
+    } catch(e){ this._toast('Failed to save variant'); }
+  },
+
+  async makeBatchFromVariant(variantId){
+    try {
+      const res = await this._sbFetch('GET','recipe_variants?id=eq.'+variantId);
+      const rows = await res.json();
+      if(!rows||!rows[0]) return;
+      const v = rows[0];
+      const baseR = this.recipes.find(x=>x.id===v.base_recipe_id);
+      if(!baseR) return;
+      const merged = Object.assign({}, baseR, {
+        name: baseR.name+' — '+v.name,
+        batchSize: v.batch_size || baseR.batchSize,
+        ingredients: [...(baseR.ingredients||[]),(v.added_ingredients||[])].flat(),
+        notes:(baseR.notes||'')+(v.notes?'\n\nVariant: '+v.notes:'')
+      });
+      this.closeModal('modal-variants');
+      this.selRId = baseR.id;
+      this.makeBatch(baseR.id, merged);
+    } catch(e){ this._toast('Failed to load variant'); }
+  },
+
+  // ── RECIPE VERSIONS ──────────────────────────────────────────
   async showVersionHistory(recipeId){
     const body = document.getElementById('version-history-body');
     body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Loading history…</div>';
@@ -4434,20 +4534,19 @@ ${r.scent?'<h3>Fragrance</h3><div class="notes">'+r.scent+'</div>':''}
         const d = new Date(v.saved_at);
         const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
         const timeStr = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-        return `<div style="padding:12px 16px;border-bottom:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <div style="font-weight:700;font-size:.9rem;color:var(--text)">${this.h(v.version_label)} — ${dateStr} ${timeStr}</div>
-              <div style="font-size:.75rem;color:var(--muted);margin-top:2px">
-                ${v.saved_by?'By '+this.h(v.saved_by):''}${v.notes?' · '+this.h(v.notes):''}
-              </div>
-            </div>
-            <button onclick="App.restoreVersion('${v.id}')" 
-              style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;flex-shrink:0;margin-left:8px">
-              Restore
-            </button>
-          </div>
-        </div>`;
+        const byLine = (v.saved_by ? 'By '+this.h(v.saved_by) : '') + (v.notes ? ' \u00b7 '+this.h(v.notes) : '');
+        return '<div style="padding:12px 16px;border-bottom:1px solid var(--border)">'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+            '<div>'+
+              '<div style="font-weight:700;font-size:.9rem;color:var(--text)">'+this.h(v.version_label)+' \u2014 '+dateStr+' '+timeStr+'</div>'+
+              '<div style="font-size:.75rem;color:var(--muted);margin-top:2px">'+byLine+'</div>'+
+            '</div>'+
+            '<button onclick="App.restoreVersion(\''+v.id+'\')" '+
+              'style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;flex-shrink:0;margin-left:8px">'+
+              'Restore'+
+            '</button>'+
+          '</div>'+
+        '</div>';
       }).join('');
 
     } catch(e){
@@ -4551,42 +4650,44 @@ ${r.scent?'<h3>Fragrance</h3><div class="notes">'+r.scent+'</div>':''}
     const d = new Date(b.made_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     const ings = (r.ingredients||[]).map(i=>'<tr><td style="padding:4px 8px;border-bottom:1px solid #eee">'+i.name+'</td><td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:700">'+i.amount+' '+i.unit+'</td></tr>').join('');
     const win = window.open('','_blank');
-    win.document.write(`<!DOCTYPE html><html><head><title>${b.recipe_name} - Batch Log</title>
-<style>
-  body{font-family:'Georgia',serif;margin:0;padding:20px;color:#111;max-width:720px;margin:0 auto}
-  h1{font-size:1.6rem;margin:0 0 2px;color:#D4789A}
-  .sub{font-size:.8rem;color:#888;text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px}
-  .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #FCBFCE;padding-bottom:12px;margin-bottom:16px}
-  .brand{font-size:.75rem;color:#888;text-align:right}
-  .brand strong{display:block;font-size:1rem;color:#D4789A}
-  .meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;background:#FEF2F6;padding:10px 12px;border-radius:8px}
-  .meta-item{font-size:.82rem}.meta-item strong{display:block;font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.5px}
-  table{width:100%;border-collapse:collapse;margin-bottom:16px}
-  th{background:#FCBFCE;padding:6px 8px;text-align:left;font-size:.78rem;text-transform:uppercase;letter-spacing:.5px}
-  .section{margin-bottom:14px}
-  .section h3{font-size:.85rem;text-transform:uppercase;letter-spacing:.6px;color:#D4789A;border-bottom:1px solid #FCBFCE;padding-bottom:4px;margin-bottom:8px}
-  .notes{font-size:.85rem;line-height:1.6;white-space:pre-wrap;color:#444}
-  .footer{margin-top:24px;padding-top:10px;border-top:1px solid #eee;font-size:.72rem;color:#aaa;text-align:center}
-  .status{display:inline-block;padding:3px 10px;border-radius:6px;font-size:.75rem;font-weight:700;background:#FFF3E0;color:#E65100}
-  @media print{body{padding:10px}}
-</style></head><body>
-<div class="header">
-  <div><h1>${b.recipe_name}</h1><div class="sub">Batch Log &nbsp;·&nbsp; ${b.recipe_version}</div></div>
-  <div class="brand"><strong>Sudsy Sisters</strong>Goat Milk Soapery</div>
-</div>
-<div class="meta">
-  <div class="meta-item"><strong>Date Made</strong>${d}</div>
-  ${b.made_by?'<div class="meta-item"><strong>Made By</strong>'+b.made_by+'</div>':''}
-  ${b.batch_size?'<div class="meta-item"><strong>Batch Size</strong>'+b.batch_size+' '+b.batch_unit+'</div>':''}
-  ${b.cost_estimate?'<div class="meta-item"><strong>Est. Cost</strong>$'+Number(b.cost_estimate).toFixed(2)+'</div>':''}
-  <div class="meta-item"><strong>Status</strong><span class="status">${b.status}</span></div>
-</div>
-${ings?'<div class="section"><h3>Ingredients</h3><table><thead><tr><th>Ingredient</th><th style="text-align:right">Amount</th></tr></thead><tbody>'+ings+'</tbody></table></div>':''}
-${r.instructions?'<div class="section"><h3>Instructions</h3><div class="notes">'+r.instructions+'</div></div>':''}
-${b.notes?'<div class="section"><h3>Batch Notes</h3><div class="notes">'+b.notes+'</div></div>':''}
-${r.notes?'<div class="section"><h3>Recipe Notes</h3><div class="notes">'+r.notes+'</div></div>':''}
-<div class="footer">Sudsy Sisters LLC · Goat Milk Soapery · Printed ${new Date().toLocaleDateString()}</div>
-</body></html>`);
+    const madeByRow = b.made_by ? '<div class="meta-item"><strong>Made By</strong>'+this.h(b.made_by)+'</div>' : '';
+    const batchSzRow = b.batch_size ? '<div class="meta-item"><strong>Batch Size</strong>'+b.batch_size+' '+b.batch_unit+'</div>' : '';
+    const costRow = b.cost_estimate ? '<div class="meta-item"><strong>Est. Cost</strong>$'+Number(b.cost_estimate).toFixed(2)+'</div>' : '';
+    const ingsSection = ings ? '<div class="section"><h3>Ingredients</h3><table><thead><tr><th>Ingredient</th><th style="text-align:right">Amount</th></tr></thead><tbody>'+ings+'</tbody></table></div>' : '';
+    const instrSection = r.instructions ? '<div class="section"><h3>Instructions</h3><div class="notes">'+this.h(r.instructions)+'</div></div>' : '';
+    const bNotesSection = b.notes ? '<div class="section"><h3>Batch Notes</h3><div class="notes">'+this.h(b.notes)+'</div></div>' : '';
+    const rNotesSection = r.notes ? '<div class="section"><h3>Recipe Notes</h3><div class="notes">'+this.h(r.notes)+'</div></div>' : '';
+    win.document.write('<!DOCTYPE html><html><head><title>'+this.h(b.recipe_name)+' - Batch Log</title>'+
+'<style>'+
+'  body{font-family:Georgia,serif;margin:0 auto;padding:20px;color:#111;max-width:720px}'+
+'  h1{font-size:1.6rem;margin:0 0 2px;color:#D4789A}'+
+'  .sub{font-size:.8rem;color:#888;text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px}'+
+'  .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #FCBFCE;padding-bottom:12px;margin-bottom:16px}'+
+'  .brand{font-size:.75rem;color:#888;text-align:right}'+
+'  .brand strong{display:block;font-size:1rem;color:#D4789A}'+
+'  .meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;background:#FEF2F6;padding:10px 12px;border-radius:8px}'+
+'  .meta-item{font-size:.82rem}.meta-item strong{display:block;font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.5px}'+
+'  table{width:100%;border-collapse:collapse;margin-bottom:16px}'+
+'  th{background:#FCBFCE;padding:6px 8px;text-align:left;font-size:.78rem;text-transform:uppercase;letter-spacing:.5px}'+
+'  .section{margin-bottom:14px}'+
+'  .section h3{font-size:.85rem;text-transform:uppercase;letter-spacing:.6px;color:#D4789A;border-bottom:1px solid #FCBFCE;padding-bottom:4px;margin-bottom:8px}'+
+'  .notes{font-size:.85rem;line-height:1.6;white-space:pre-wrap;color:#444}'+
+'  .footer{margin-top:24px;padding-top:10px;border-top:1px solid #eee;font-size:.72rem;color:#aaa;text-align:center}'+
+'  .status{display:inline-block;padding:3px 10px;border-radius:6px;font-size:.75rem;font-weight:700;background:#FFF3E0;color:#E65100}'+
+'  @media print{body{padding:10px}}'+
+'</style></head><body>'+
+'<div class="header">'+
+  '<div><h1>'+this.h(b.recipe_name)+'</h1><div class="sub">Batch Log &nbsp;\u00b7&nbsp; '+this.h(b.recipe_version||'')+'</div></div>'+
+  '<div class="brand"><strong>Sudsy Sisters</strong>Goat Milk Soapery</div>'+
+'</div>'+
+'<div class="meta">'+
+  '<div class="meta-item"><strong>Date Made</strong>'+d+'</div>'+
+  madeByRow+batchSzRow+costRow+
+  '<div class="meta-item"><strong>Status</strong><span class="status">'+this.h(b.status||'')+'</span></div>'+
+'</div>'+
+ingsSection+instrSection+bNotesSection+rNotesSection+
+'<div class="footer">Sudsy Sisters LLC \u00b7 Goat Milk Soapery \u00b7 Printed '+new Date().toLocaleDateString()+'</div>'+
+'</body></html>');
     win.document.close();
     setTimeout(()=>win.print(), 500);
   },
@@ -4679,7 +4780,7 @@ ${r.notes?'<div class="section"><h3>Recipe Notes</h3><div class="notes">'+r.note
 
   async _lookupBarcode(code){
     const statusEl = document.getElementById('scan-status');
-    statusEl.innerHTML = `<div class="scan-lookup"><div class="scan-spinner"></div> Searching databases for ${code}…</div>`;
+    statusEl.innerHTML = '<div class="scan-lookup"><div class="scan-spinner"></div> Searching databases for '+this.h(code)+'\u2026</div>';
 
     // Helper: parse Open*Facts response (food / beauty / products all share same format)
     const parseOFF = (data, code) => {
