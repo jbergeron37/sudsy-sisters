@@ -3986,6 +3986,120 @@ const App = {
     }
   },
 
+  // ── RECIPE PDF PRINT ─────────────────────────────────────────
+  printRecipePDF(id){
+    const r = this.recipes.find(x=>x.id===id); if(!r) return;
+    const cost = this._calcRecipeCost(r);
+    const logoEl = document.getElementById('header-logo');
+    const logoSrc = logoEl ? logoEl.src : '';
+
+    const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
+    const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
+
+    // Ingredient row for table
+    const ingRow = (i, shade) => {
+      const isG = i.unit==='g';
+      const ozAmt = isG ? g2oz(i.amount) : (parseFloat(i.amount)||0);
+      const gAmt  = isG ? (parseFloat(i.amount)||0) : oz2g(i.amount);
+      return '<tr style="background:'+(shade?'#fdf6f9':'#fff')+'">'+
+        '<td style="padding:3px 8px;border-bottom:1px solid #f0e0ea;font-size:11px;color:#111">'+this.h(i.name)+'</td>'+
+        '<td style="padding:3px 8px;border-bottom:1px solid #f0e0ea;text-align:right;font-weight:700;font-size:11px;color:#111;white-space:nowrap">'+ozAmt.toFixed(2)+'</td>'+
+        '<td style="padding:3px 8px;border-bottom:1px solid #f0e0ea;text-align:right;font-size:10px;color:#555;white-space:nowrap">'+gAmt.toFixed(1)+'</td>'+
+        '</tr>';
+    };
+    const groupTotal = arr => {
+      const totalOz = arr.reduce((s,i)=>s+(i.unit==='g'?g2oz(i.amount):(parseFloat(i.amount)||0)),0);
+      return {oz:totalOz.toFixed(2), g:oz2g(totalOz).toFixed(1)};
+    };
+    const totalRow = (label, oz, g) =>
+      '<tr style="background:#FEF2F6"><td style="padding:4px 8px;font-weight:700;font-size:11px;color:#A8527A;border-top:1.5px solid #FCBFCE">'+label+'</td>'+
+      '<td style="padding:4px 8px;text-align:right;font-weight:700;font-size:11px;color:#A8527A;border-top:1.5px solid #FCBFCE">'+oz+'</td>'+
+      '<td style="padding:4px 8px;text-align:right;font-size:10px;color:#888;border-top:1.5px solid #FCBFCE">'+g+'</td></tr>';
+
+    // Group by phase
+    const LYE_RE = /lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
+    const FRAG_RE = /fragrance|scent|eo |essential oil|colorant|pigment|mica|oxide|dye/i;
+    const phaseLabels = {'1':'Phase 1 — Goat Milk & Lye','2':'Phase 2 — Oils & Butters','3':'Phase 3 — Fragrance & Color','':`Ingredients`};
+    const phaseColors = {'1':'#5C35C2','2':'#A8527A','3':'#2E7D32','':'#666'};
+    const byPhase = {};
+    (r.ingredients||[]).forEach(i=>{
+      const p = i.phase || (LYE_RE.test(i.name)?'1':FRAG_RE.test(i.name)?'3':'2');
+      if(!byPhase[p]) byPhase[p]=[];
+      byPhase[p].push(i);
+    });
+    const hasPhases = Object.keys(byPhase).length > 1 || !byPhase[''];
+
+    const tbl = (label, ings, color) => {
+      const tot = groupTotal(ings);
+      const rows = ings.map((i,n)=>ingRow(i,n%2===1)).join('');
+      return '<table style="width:100%;border-collapse:collapse;margin-bottom:10px">'+
+        '<thead><tr>'+
+          '<th style="background:'+color+'22;padding:4px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:'+color+';border-left:3px solid '+color+'">'+label+'</th>'+
+          '<th style="background:'+color+'22;padding:4px 8px;text-align:right;font-size:10px;text-transform:uppercase;color:'+color+'">oz</th>'+
+          '<th style="background:'+color+'22;padding:4px 8px;text-align:right;font-size:10px;text-transform:uppercase;color:'+color+'">Grams</th>'+
+        '</tr></thead>'+
+        '<tbody>'+rows+totalRow('Total',tot.oz,tot.g)+'</tbody></table>';
+    };
+
+    let ingTablesHtml = '';
+    ['1','2','3',''].forEach(p=>{
+      if(byPhase[p]&&byPhase[p].length)
+        ingTablesHtml += tbl(phaseLabels[p], byPhase[p], phaseColors[p]);
+    });
+
+    const _logo = logoSrc ? '<img style="width:72px;height:72px;border-radius:12px;object-fit:cover;flex-shrink:0" src="'+logoSrc+'" alt=""/>' : '';
+    const _bsRow = r.batchSize ? '<div class="meta-item"><strong>Batch Size</strong><span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>' : '';
+    const _upbRow = r.unitsPerBatch ? '<div class="meta-item"><strong>Units</strong><span>'+r.unitsPerBatch+(r.unitSize?' @ '+r.unitSize+' oz ea':'')+'</span></div>' : '';
+    const _ctRow = r.cureTime ? '<div class="meta-item"><strong>Cure Time</strong><span>'+this.h(r.cureTime)+'</span></div>' : '';
+    const _costRow = cost.total ? '<div class="meta-item"><strong>Est. Cost</strong><span>$'+cost.total.toFixed(2)+'</span></div>' : '';
+    const _dSec = r.description ? '<h3>Description</h3><div class="notes">'+this.h(r.description)+'</div>' : '';
+    const _iSec = r.instructions ? '<h3>Instructions</h3><div class="notes">'+this.h(r.instructions)+'</div>' : '';
+    const _nSec = r.notes ? '<h3>Notes</h3><div class="notes">'+this.h(r.notes)+'</div>' : '';
+    const _sSec = r.scent ? '<h3>Fragrance Notes</h3><div class="notes">'+this.h(r.scent)+'</div>' : '';
+
+    const html =
+      '<!DOCTYPE html><html><head><title>'+this.h(r.name)+'</title>'+
+      '<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>'+
+      '<style>@page{margin:1in;size:letter portrait}*{box-sizing:border-box}'+
+      'body{font-family:Lato,sans-serif;margin:0;padding:0;color:#111;font-size:11px;line-height:1.45}'+
+      '.hdr{display:flex;align-items:center;gap:16px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}'+
+      '.brand-name{font-family:"Great Vibes",cursive;font-size:2.2rem;color:#D4789A;line-height:1}'+
+      '.brand-sub{font-size:9px;color:#555;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}'+
+      'h1{font-family:"Playfair Display",serif;font-size:1.25rem;color:#111;margin:0 0 8px}'+
+      '.meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}'+
+      '.meta-item{font-size:10px}.meta-item strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.5px;font-weight:700}'+
+      '.meta-item span{font-weight:700;color:#111}'+
+      '.two-col{display:grid;grid-template-columns:52% 46%;gap:2%;align-items:start}'+
+      'h3{font-family:"Playfair Display",serif;font-size:10px;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}'+
+      '.notes{font-size:10px;line-height:1.5;color:#111;white-space:pre-wrap}'+
+      '.footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}'+
+      '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>'+
+      '<div class="hdr">'+_logo+'<div><div class="brand-name">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div></div>'+
+      '<h1>'+this.h(r.name)+'</h1>'+
+      '<div class="meta"><div class="meta-item"><strong>Category</strong><span>'+this.h(r.category||'—')+'</span></div>'+
+        '<div class="meta-item"><strong>Version</strong><span>'+this.h(r.version||'v1')+'</span></div>'+
+        _bsRow+_upbRow+_ctRow+_costRow+'</div>'+
+      '<div class="two-col">'+
+        '<div>'+ingTablesHtml+'</div>'+
+        '<div>'+_dSec+_iSec+_nSec+_sSec+'</div>'+
+      '</div>'+
+      '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; '+this.h(r.name)+' &middot; Printed '+new Date().toLocaleDateString()+'</div>'+
+      '</body></html>';
+
+    let pf = document.getElementById('__print-frame');
+    if(!pf){
+      pf = document.createElement('iframe');
+      pf.id = '__print-frame';
+      pf.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none';
+      document.body.appendChild(pf);
+    }
+    pf.srcdoc = html;
+    pf.onload = function(){
+      try { pf.contentWindow.focus(); pf.contentWindow.print(); } catch(e){ window.print(); }
+    };
+  },
+
+  // ── SPLIT CALC PDF PRINT ─────────────────────────────────────
   printSplitCalc(){
     if(!this._lastSplitData) return;
     const {recipeName, totalWt, oilTotal, lyeTotal, batchUnit, rows} = this._lastSplitData;
