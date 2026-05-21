@@ -80,13 +80,15 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
     padding:0 0 8px 0!important;margin-bottom:12px!important;
     display:flex!important;align-items:center!important;gap:10px!important
   }
-  #header-logo{display:block!important;width:40px!important;height:40px!important;border-radius:8px!important}
+  #header-logo{display:block!important;width:72px!important;height:72px!important;border-radius:10px!important}
   #header-title{color:#111!important;font-size:1.15rem!important}
   #header-sub{color:#888!important;opacity:1!important}
 
   /* Report wrapper */
   .report-wrap{padding:0!important}
-  .report-top h2{font-size:1rem!important;color:#111!important}
+  .report-top h2{display:none!important}
+  /* Print-only report title replaces h2 */
+  .print-report-title{display:block!important;font-family:"Playfair Display",serif;font-size:1.4rem!important;font-weight:700!important;color:#111!important;margin-bottom:4px!important}
 
   /* Section titles */
   .report-sec-title{
@@ -139,8 +141,30 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
     color:#888!important;text-align:left!important
   }
 
-  /* Report section groups */
-  .report-section{margin-bottom:10px!important;page-break-inside:auto!important}
+  /* Report section */
+  .report-section{margin-bottom:8px!important;page-break-inside:auto!important}
+
+  /* Category replenishment row in print */
+  .cat-replenish-row{
+    display:flex!important;justify-content:space-between!important;
+    padding:4px 0!important;background:none!important;border-radius:0!important;
+    font-size:.72rem!important;font-weight:700!important;color:#333!important;
+    border-top:1px solid #ddd!important;border-bottom:none!important;
+    margin-top:2px!important
+  }
+  /* Large separator between categories in print */
+  .cat-separator{
+    height:0!important;border:none!important;
+    border-bottom:2.5px solid #FCBFCE!important;
+    margin:6px 0 10px!important;display:block!important
+  }
+  /* Show print report title */
+  .print-report-title{
+    display:block!important;font-family:"Playfair Display",serif!important;
+    font-size:1.3rem!important;font-weight:700!important;color:#111!important;
+    margin-bottom:14px!important;border-bottom:2px solid #FCBFCE!important;
+    padding-bottom:6px!important
+  }
 }
 #header-title{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#111}
 #header-sub{font-size:.68rem;font-weight:700;opacity:.6;text-transform:uppercase;letter-spacing:.9px;margin-top:1px;color:#111}
@@ -167,6 +191,8 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
 [data-theme="dark"] #header-add svg{ stroke:#F0E6F0!important; }
 [data-theme="dark"] #header-sync{ background:rgba(255,255,255,.1)!important; }
 [data-theme="dark"] #header-sync svg{ stroke:#F0E6F0!important; }
+[data-theme="dark"] #header-tools{ background:rgba(255,255,255,.1)!important; }
+[data-theme="dark"] #header-tools svg{ stroke:#F0E6F0!important; }
 [data-theme="dark"] #header-gsearch{ background:rgba(255,255,255,.1)!important; }
 [data-theme="dark"] #header-gsearch svg{ stroke:#F0E6F0!important; }
 [data-theme="dark"] #header-settings{ background:rgba(255,255,255,.1)!important; }
@@ -385,6 +411,9 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .copy-btn{background:var(--brown);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;letter-spacing:.4px}
 .copy-btn:active{background:var(--brown-d)}
 .report-section{margin-bottom:16px}
+.cat-replenish-row{display:flex;justify-content:space-between;align-items:center;padding:8px 13px;background:var(--cream);border-radius:0 0 8px 8px;font-size:.76rem;font-weight:700;color:var(--accent);border-top:1px dashed var(--border)}
+.cat-separator{height:2px;background:var(--border);margin:6px 0 18px}
+.print-report-title{display:none}
 .report-sec-title{font-size:.68rem;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.8px;padding-bottom:6px;border-bottom:1px solid #ddd;margin-bottom:8px}
 /* On-screen order report — original card style */
 .report-item{background:#fff;border-radius:12px;padding:11px 13px;margin-bottom:7px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid #e0e0e0;display:flex;justify-content:space-between;align-items:flex-start}
@@ -489,6 +518,9 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     </div>
     <button id="header-gsearch" onclick="App.openGlobalSearch()" title="Search everything" style="background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+    <button id="header-tools" onclick="App.openToolsModal()" title="Tools" style="background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
     </button>
     <button id="header-settings" onclick="App.openSettings()" title="Settings" style="background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -621,10 +653,6 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5c0 3-5 11-5 11S7 10 7 7a5 5 0 0 1 5-5z"/><circle cx="12" cy="7" r="2"/></svg>
       Scents
     </button>
-    <button class="nav-btn" id="nav-tools" onclick="App.openToolsModal()">
-      <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-      Tools
-    </button>
   </nav>
 </div>
 <!-- RECIPE MODAL -->
@@ -668,11 +696,17 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 </div>
 <!-- BATCH CONFIRM MODAL -->
 <div class="confirm-overlay" id="modal-batch">
-  <div class="confirm-box" style="max-width:340px">
+  <div class="confirm-box" style="max-width:380px">
     <h3 id="batch-title">Make Batch?</h3>
     <p style="font-size:.82rem;color:var(--muted);margin-bottom:12px">These ingredients will be subtracted from your inventory:</p>
-    <div id="batch-ing-list" style="max-height:260px;overflow-y:auto;margin-bottom:14px;text-align:left"></div>
-    <div id="batch-warn" style="display:none;background:#FFF3E0;border-radius:8px;padding:8px 10px;font-size:.76rem;color:#E65100;margin-bottom:12px;text-align:left"></div>
+    <div id="batch-ing-list" style="max-height:180px;overflow-y:auto;margin-bottom:10px;text-align:left"></div>
+    <div id="batch-warn" style="display:none;background:#FFF3E0;border-radius:8px;padding:8px 10px;font-size:.76rem;color:#E65100;margin-bottom:10px;text-align:left"></div>
+    <!-- Fragrance selection -->
+    <div style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:12px">
+      <div style="font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:8px">🌸 Fragrances Used <span style="font-weight:400;color:var(--muted)">(optional — deducts from scent inventory)</span></div>
+      <div id="batch-frag-rows"></div>
+      <button onclick="App._addBatchFragRow()" style="background:none;border:1px dashed var(--border);border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;width:100%;margin-top:4px">+ Add Fragrance</button>
+    </div>
     <div class="confirm-btns">
       <button class="cbtn-cancel" onclick="App.closeModal('modal-batch')">Cancel</button>
       <button class="cbtn-make" id="batch-ok">Confirm Batch</button>
@@ -1773,7 +1807,19 @@ const App = {
     if(this.subview==='recipe-detail'){
       const r=this.recipes.find(x=>x.id===this.selRId);
       back.style.display='flex'; add.style.display='none'; if(sync) sync.style.display='none';
-      const _gs=document.getElementById('header-gsearch');const _st=document.getElementById('header-settings');if(_gs)_gs.style.display='none';if(_st)_st.style.display='none';
+      const _gs=document.getElementById('header-gsearch');const _st=document.getElementById('header-settings');const _tl=document.getElementById('header-tools');if(_gs)_gs.style.display='none';if(_st)_st.style.display='none';if(_tl)_tl.style.display='none';
+      // Show print button
+      let printBtn=document.getElementById('header-print');
+      if(!printBtn){
+        printBtn=document.createElement('button');
+        printBtn.id='header-print';
+        printBtn.title='Print Recipe';
+        printBtn.style.cssText='background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px';
+        printBtn.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>';
+        document.getElementById('header').appendChild(printBtn);
+      }
+      printBtn.style.display='flex';
+      printBtn.onclick=()=>App.printRecipePDF(this.selRId);
       title.textContent=r?r.name:'Recipe'; sub.textContent=r?r.category:'';
     } else if(this.subview==='inv-detail'){
       const i=this.inventory.find(x=>x.id===this.selIId);
@@ -1785,8 +1831,12 @@ const App = {
       if(sync) sync.style.display='flex';
       const gs=document.getElementById('header-gsearch');
       const st=document.getElementById('header-settings');
+      const tl=document.getElementById('header-tools');
+      const pb=document.getElementById('header-print');
       if(gs) gs.style.display='flex';
       if(st) st.style.display='flex';
+      if(tl) tl.style.display='flex';
+      if(pb) pb.style.display='none';
       title.textContent=TITLES[this.tab]; sub.textContent='Sudsy Sisters';
     }
   },
@@ -2083,6 +2133,12 @@ const App = {
         <input type="hidden" id="rtags"/>
       </div>
       <div class="form-group"><label>Ingredients</label>
+        <div style="display:flex;gap:6px;padding:0 0 4px;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">
+          <div style="flex:2">Ingredient</div>
+          <div style="flex:1;text-align:center">oz</div>
+          <div style="flex:1;text-align:center">g</div>
+          <div style="width:24px"></div>
+        </div>
         <div id="ing-rows">${ings}</div>
         <button class="add-row-btn" onclick="App.addIngRow()">+ Add Ingredient</button>
       </div>
@@ -2098,9 +2154,8 @@ const App = {
     return `<div class="ing-form-row" id="ir${i}">
       <datalist id="${dlId}">${dlOpts}</datalist>
       <input list="${dlId}" placeholder="Ingredient" value="${this.h(g.name)}" oninput="App._syncIng(${i},'name',this.value)" onblur="App._checkIngredientSimilarity(this,${i})" style="flex:2"/>
-      <input class="sm" type="number" step="any" placeholder="oz" value="${ozval}" id="ing-oz-${i}" oninput="App._ingOzChange(${i})"/>
-      <input class="sm" type="number" step="any" placeholder="g" value="${gval}" id="ing-g-${i}" oninput="App._ingGChange(${i})"/>
-      <select onchange="App._syncIng(${i},'unit',this.value)">${uOpts}</select>
+      <input class="sm" type="number" step="any" placeholder="0" value="${ozval}" id="ing-oz-${i}" oninput="App._ingOzChange(${i})"/>
+      <input class="sm" type="number" step="any" placeholder="0" value="${gval}" id="ing-g-${i}" oninput="App._ingGChange(${i})"/>
       <button class="ing-del" onclick="App.delIngRow(${i})">−</button>
     </div>`;
   },
@@ -2598,23 +2653,26 @@ const App = {
         const cost=parseFloat(i.cost)||0;
         return sum + (need*cost);
       },0);
+      const replenishRow = catReplenish > 0 ? `<div class="cat-replenish-row">
+        <span>Estimated Replenishment Cost</span><span>~$${catReplenish.toFixed(2)}</span>
+      </div>` : '';
       return `<div class="report-section">
-        <div class="report-sec-title">${this.h(cat)} <span style="font-weight:400;opacity:.7">(${items.length} item${items.length>1?'s':''})</span> ${badge} ${badge2}${catReplenish>0?' <span style="float:right;font-weight:700;color:var(--accent)">~$'+catReplenish.toFixed(2)+'</span>':''}</div>
+        <div class="report-sec-title">${this.h(cat)} <span style="font-weight:400;opacity:.7">(${items.length} item${items.length>1?'s':''})</span> ${badge} ${badge2}</div>
         ${colHeader}
         ${items.map(mkItem).join('')}
+        ${replenishRow}
+        <div class="cat-separator"></div>
       </div>`;
     }).join('');
 
     wrap.innerHTML=`
+      <div class="print-report-title">Low Inventory Report</div>
       <div class="report-top">
         <h2>📋 Low Inventory Report</h2>
         <div style="display:flex;gap:8px">
           <button class="copy-btn" onclick="App.copyReport()">Copy List</button>
           <button class="print-btn" onclick="window.print()">🖨 Print</button>
         </div>
-      </div>
-      <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">
-        ${low.length} item${low.length>1?'s':''} need ordering · sorted by category
       </div>
       ${catSections}
       <div style="padding:12px 14px;border-top:2px solid var(--border);margin-top:8px;display:flex;justify-content:space-between;align-items:center">
@@ -2683,24 +2741,57 @@ const App = {
     } else {
       warn.style.display='none';
     }
+    // Initialize empty fragrance rows
+    const fragRowsEl = document.getElementById('batch-frag-rows');
+    if(fragRowsEl){ fragRowsEl.innerHTML=''; this._batchConfirmFrags=[]; }
     document.getElementById('batch-ok').onclick=()=>{
       this.closeModal('modal-batch');
       this._applyBatch(matches);
     };
     document.getElementById('modal-batch').classList.add('open');
   },
+
+  _batchConfirmFrags: [],
+
+  _addBatchFragRow(){
+    if(!this._batchConfirmFrags) this._batchConfirmFrags=[];
+    const idx = this._batchConfirmFrags.length;
+    this._batchConfirmFrags.push({id:'',amount:'',unit:'oz'});
+    const fragOpts = (this.fragrances||[]).map(f=>`<option value="${f.id}">${this.h(f.name)}${f.quantity?' (${f.quantity} '+f.unit+')':''}</option>`).join('');
+    const row = document.createElement('div');
+    row.id='bcfr-'+idx;
+    row.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:6px';
+    row.innerHTML=`<select onchange="App._batchConfirmFrags[${idx}].id=this.value" style="flex:2;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;font-family:Lato,sans-serif;font-size:.82rem;color:var(--text);outline:none"><option value="">— Select fragrance —</option>${fragOpts}</select>`+
+      `<input type="number" step="any" placeholder="oz" style="flex:1;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;font-family:Lato,sans-serif;font-size:.82rem;color:var(--text);outline:none" oninput="App._batchConfirmFrags[${idx}].amount=this.value"/>`+
+      `<button onclick="document.getElementById('bcfr-${idx}').remove();App._batchConfirmFrags.splice(${idx},1)" style="background:var(--red-l);border:none;border-radius:8px;padding:7px 10px;color:var(--red);font-size:1rem;cursor:pointer">−</button>`;
+    document.getElementById('batch-frag-rows').appendChild(row);
+  },
+
   _applyBatch(matches){
     let changed=0;
     matches.forEach(m=>{
       if(!m.inv) return;
       const amt=parseFloat(m.ing.amount)||0;
       m.inv.quantity=Math.round(Math.max(0,m.inv.quantity-amt)*1000)/1000;
+      m.inv.updated_at=new Date().toISOString();
       changed++;
     });
+    // Deduct fragrances selected in the confirm dialog
+    (this._batchConfirmFrags||[]).forEach(bf=>{
+      if(!bf.id||!bf.amount) return;
+      const frag = this.fragrances.find(x=>x.id===bf.id);
+      if(!frag) return;
+      const amt = parseFloat(bf.amount)||0;
+      frag.quantity = Math.round(Math.max(0,(frag.quantity||0)-amt)*1000)/1000;
+      frag.updated_at = new Date().toISOString();
+      this._saveFrag(frag);
+      changed++;
+    });
+    this._batchConfirmFrags=[];
     this._saveI();
     this.renderInventory();
     this.renderOrders();
-    this._toast('Batch logged — ' + changed + ' inventory item' + (changed!==1?'s':'') + ' updated');
+    this._toast('Batch logged — ' + changed + ' item' + (changed!==1?'s':'') + ' updated');
     // Open batch log modal to record details
     const r = this.recipes.find(x=>x.id===this.selRId);
     if(r) this.openBatchLogModal(r);
@@ -2884,7 +2975,7 @@ const App = {
       '</select></div>'+
       '<div style="display:flex;gap:8px">'+
       '<button class="btn btn-primary" onclick="App._adjFragQty(\''+f.id+'\',1)">+ Add Stock</button>'+
-      '<button class="btn btn-outline" onclick="App._adjFragQty(\''+f.id+'\',-1)">− Use Stock</button>'+
+      '<button class="btn btn-outline" onclick="App._adjFragQty(\''+f.id+'\',\'use\')">− Amount Used</button>'+
       '</div></div>'+
 
       '<div class="detail-actions">'+
@@ -2905,10 +2996,12 @@ const App = {
     const amt = parseFloat(document.getElementById('fr-adj-amt').value);
     if(!amt||isNaN(amt)){this._toast('Enter an amount');return;}
     const f = this.fragrances.find(x=>x.id===id);
-    f.quantity = Math.round(Math.max(0,f.quantity+(dir*amt))*1000)/1000;
+    const actualDir = dir==='use' ? -1 : (typeof dir==='number' ? dir : 1);
+    f.quantity = Math.round(Math.max(0,(f.quantity||0)+(actualDir*amt))*1000)/1000;
+    f.updated_at = new Date().toISOString();
     this._saveFrag(f);
     this.openFragDetail(id);
-    this._toast('Updated: '+f.quantity+' '+f.unit);
+    this._toast((dir==='use'?'Used ':'Added ')+amt+' '+f.unit+' — '+f.quantity+' '+f.unit+' remaining');
   },
 
   _deleteFragEntry(id){
@@ -3230,6 +3323,10 @@ const App = {
     if(grpBarwt) grpBarwt.style.display = mode==='bars'?'':'none';
     if(btnOz) btnOz.classList.toggle('active', mode==='oz');
     if(btnBars) btnBars.classList.toggle('active', mode==='bars');
+  },
+
+  openToolsModal(){
+    document.getElementById('modal-tools').classList.add('open');
   },
 
   openSettings(){
@@ -3699,7 +3796,8 @@ const App = {
       const res=await this._sbFetch('GET','users?select=id,username,display_name,role,created_at&order=created_at.asc');
       const users=await res.json();
       const dBtn = u => u.id==='u1' ? '' : '<button onclick="App._deleteUser(\''+u.id+'\',\''+u.username+'\');" style="background:var(--red-l);border:1px solid var(--red);border-radius:7px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;font-weight:700;color:var(--red);cursor:pointer">Remove</button>';
-      body.innerHTML=users.map(u=>'<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700;font-size:.88rem">'+this.h(u.display_name||u.username)+'</div><div style="font-size:.75rem;color:var(--muted)">@'+this.h(u.username)+' - '+(u.role||'user')+'</div></div><div style="display:flex;gap:6px">'+dBtn(u)+'</div></div>').join('')+
+      const eBtn = u => '<button onclick="App._editUser(\''+u.id+'\',\''+this.h(u.username)+'\',\''+this.h(u.display_name||u.username)+'\',\''+u.role+'\');" style="background:var(--accent-l,#EDE0FF);border:1px solid var(--accent);border-radius:7px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;font-weight:700;color:var(--accent);cursor:pointer">Edit</button>';
+      body.innerHTML=users.map(u=>'<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700;font-size:.88rem">'+this.h(u.display_name||u.username)+'</div><div style="font-size:.75rem;color:var(--muted)">@'+this.h(u.username)+' · '+(u.role||'user')+'</div></div><div style="display:flex;gap:6px">'+eBtn(u)+dBtn(u)+'</div></div>').join('')+
         '<div style="padding:14px 16px"><div style="font-size:.8rem;font-weight:700;color:var(--brown-d);margin-bottom:10px">Add New User</div>'+
         '<div class="form-row"><div class="form-group"><label>Username</label><input id="nu-user" placeholder="username"/></div><div class="form-group"><label>Display Name</label><input id="nu-name" placeholder="Full Name"/></div></div>'+
         '<div class="form-row"><div class="form-group"><label>Password</label><input id="nu-pass" type="password" placeholder="password"/></div><div class="form-group"><label>Role</label><select id="nu-role"><option>user</option><option>admin</option></select></div></div>'+
@@ -3717,6 +3815,36 @@ const App = {
       await this._sbFetch('POST','users',[{id:this.uid(),username,password_hash:pass,display_name:display||username,role,created_at:new Date().toISOString()}]);
       this._toast('User created!'); this.openManageUsers();
     } catch(e){this._toast('Failed to create user');}
+  },
+
+  async _editUser(id, username, displayName, role){
+    // Inline edit - show form pre-filled
+    const body = document.getElementById('manage-users-body');
+    const editSection = document.createElement('div');
+    editSection.id = 'edit-user-section';
+    editSection.style.cssText='background:var(--cream);border:1.5px solid var(--accent);border-radius:12px;padding:14px 16px;margin:10px 16px';
+    editSection.innerHTML='<div style="font-size:.8rem;font-weight:700;color:var(--brown-d);margin-bottom:10px">Edit: @'+this.h(username)+'</div>'+
+      '<div class="form-row"><div class="form-group"><label>Display Name</label><input id="eu-name" value="'+this.h(displayName)+'"/></div>'+
+      '<div class="form-group"><label>Role</label><select id="eu-role"><option'+(role==='user'?' selected':'')+'>user</option><option'+(role==='admin'?' selected':'')+'>admin</option></select></div></div>'+
+      '<div class="form-row"><div class="form-group"><label>New Password <small>(leave blank to keep)</small></label><input id="eu-pass" type="password" placeholder="New password"/></div></div>'+
+      '<div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="App._saveEditUser(\''+id+'\')">Save</button>'+
+      '<button class="btn btn-outline" onclick="document.getElementById(\'edit-user-section\').remove()">Cancel</button></div>';
+    const existing = document.getElementById('edit-user-section');
+    if(existing) existing.remove();
+    body.insertBefore(editSection, body.firstChild);
+  },
+
+  async _saveEditUser(id){
+    const name = document.getElementById('eu-name').value.trim();
+    const role = document.getElementById('eu-role').value;
+    const pass = document.getElementById('eu-pass').value.trim();
+    const patch = {display_name:name, role};
+    if(pass) patch.password_hash=pass;
+    try {
+      await this._sbFetch('PATCH','users?id=eq.'+id, patch);
+      this._toast('User updated!');
+      this.openManageUsers();
+    } catch(e){ this._toast('Failed to update user'); }
   },
 
   async _deleteUser(id,username){
