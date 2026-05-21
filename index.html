@@ -37,6 +37,12 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
 .print-btn:active{background:var(--brown-d)}
 @media print{
   @page { margin: 1in; size: letter portrait; }
+  /* Pagination counter top-right */
+  @page {
+    @top-right { content: "Page " counter(page) " of " counter(pages); font-size: .65rem; color: #888; }
+  }
+  /* Fallback: CSS counter in each section */
+  body { counter-reset: page-num; }
 
   /* Hide everything EXCEPT the order report modal */
   #nav,#header-add,#header-back,#header-sync,#header-gsearch,#header-settings,
@@ -94,7 +100,7 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
   /* Each item = one compact row in print, overrides on-screen flex */
   .report-item{
     display:grid!important;
-    grid-template-columns:1.8fr 0.9fr 0.7fr 0.7fr 0.8fr 0.8fr 1fr!important;
+    grid-template-columns:2.2fr 0.8fr 0.8fr 1fr 1.2fr 1.2fr!important;
     align-items:baseline!important;
     gap:0 8px!important;
     padding:4px 0!important;
@@ -119,9 +125,11 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
   .report-item .print-col:first-child{font-weight:700!important}
   .report-item .print-col:nth-child(4){color:#c0392b!important;font-weight:700!important}
   /* Column header row */
+.report-col-header{display:none}
+
   .report-col-header{
     display:grid!important;
-    grid-template-columns:1.8fr 0.9fr 0.7fr 0.7fr 0.8fr 0.8fr 1fr!important;
+    grid-template-columns:2.2fr 0.8fr 0.8fr 1fr 1.2fr 1.2fr!important;
     gap:0 8px!important;padding:3px 0 4px!important;
     border-bottom:2px solid #FCBFCE!important;margin-bottom:2px!important
   }
@@ -292,7 +300,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .search-inner input{flex:1;border:none;outline:none;background:none;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text)}
 .search-inner input::placeholder{color:var(--muted)}
 .s-clear{background:none;border:none;cursor:pointer;color:var(--muted);padding:0 2px;font-size:1.2rem;line-height:1;display:flex}
-.chips{display:flex;gap:7px;overflow-x:auto;padding:4px 14px 10px;scrollbar-width:none}
+.chips{display:flex;flex-wrap:wrap;gap:7px;padding:4px 14px 8px}
 .chips::-webkit-scrollbar{display:none}
 .chip{background:var(--white);border:1.5px solid var(--border);border-radius:20px;padding:5px 12px;font-size:.73rem;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;letter-spacing:.3px;transition:all .15s;font-family:Lato,sans-serif}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -371,6 +379,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .calc-row-amt{font-size:.85rem;font-weight:700;color:var(--brown)}
 .calc-note{font-size:.76rem;color:var(--muted);text-align:center;margin-top:10px;font-style:italic}
 .report-wrap{padding:14px}
+.report-col-header{display:none}
 .report-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .report-top h2{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--brown-d)}
 .copy-btn{background:var(--brown);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;letter-spacing:.4px}
@@ -484,9 +493,6 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     <button id="header-settings" onclick="App.openSettings()" title="Settings" style="background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <button id="header-sync" onclick="App.manualSync()" title="Sync with Supabase">
-      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-    </button>
     <button id="header-add" onclick="App.handleAdd()">
       <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
@@ -520,7 +526,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <div style="padding:0 14px 4px">
         <button onclick="App.openOrderReport()" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:11px 16px;font-family:Lato,sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-          View Order Report
+          Low Inventory Report
         </button>
       </div>
       <div id="i-list"></div>
@@ -615,6 +621,10 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5c0 3-5 11-5 11S7 10 7 7a5 5 0 0 1 5-5z"/><circle cx="12" cy="7" r="2"/></svg>
       Scents
     </button>
+    <button class="nav-btn" id="nav-tools" onclick="App.openToolsModal()">
+      <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      Tools
+    </button>
   </nav>
 </div>
 <!-- RECIPE MODAL -->
@@ -689,20 +699,8 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <div><div class="settings-label">Change Password</div><div class="settings-sub" id="settings-username"></div></div>
       <span style="color:var(--muted)">›</span>
     </div>
-    <div class="settings-row" style="cursor:pointer" onclick="App.closeSettings();App.setTab('inventory');App.openOrderReport()">
-      <div><div class="settings-label">Order Report</div><div class="settings-sub">View items that need to be restocked</div></div>
-      <span style="color:var(--muted)">›</span>
-    </div>
-    <div class="settings-row" style="cursor:pointer" onclick="App.closeSettings();App.openCalcModal()">
-      <div><div class="settings-label">Batch Calculator</div><div class="settings-sub">Scale any recipe by oz or number of bars</div></div>
-      <span style="color:var(--muted)">›</span>
-    </div>
-    <div class="settings-row" style="cursor:pointer" onclick="App.closeSettings();App.openPricingModal()">
-      <div><div class="settings-label">Pricing Manager</div><div class="settings-sub">Calculate retail prices per product</div></div>
-      <span style="color:var(--muted)">›</span>
-    </div>
-    <div class="settings-row" style="cursor:pointer" onclick="App.closeSettings();App.manualSync()">
-      <div><div class="settings-label">Sync Now</div><div class="settings-sub">Pull latest data from Supabase</div></div>
+    <div class="settings-row" id="settings-manage-users" style="cursor:pointer;display:none" onclick="App.closeSettings();App.openManageUsers()">
+      <div><div class="settings-label">Manage Users</div><div class="settings-sub">Add, remove or edit user accounts</div></div>
       <span style="color:var(--muted)">›</span>
     </div>
     <div class="settings-row" style="cursor:pointer" onclick="App.logout()">
@@ -752,7 +750,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
   <div class="modal-sheet" style="max-height:90vh;display:flex;flex-direction:column">
     <div class="modal-handle"></div>
     <div class="modal-hdr">
-      <div class="modal-title">📋 Order Report</div>
+      <div class="modal-title">📋 Low Inventory Report</div>
       <button class="modal-close" onclick="App.closeModal('modal-order-report')">×</button>
     </div>
     <div class="modal-body" id="report-body" style="flex:1;overflow-y:auto;padding:14px"></div>
@@ -767,6 +765,54 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <button class="modal-close" onclick="App.closeModal('modal-calc')">×</button>
     </div>
     <div class="modal-body" style="flex:1;overflow-y:auto" id="calc-modal-body"></div>
+  </div>
+</div>
+<!-- VERSION HISTORY MODAL -->
+<div class="modal-overlay" id="modal-version-history">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr">
+      <div class="modal-title">🕐 Version History</div>
+      <button class="modal-close" onclick="App.closeModal('modal-version-history')">×</button>
+    </div>
+    <div class="modal-body" id="version-history-body"></div>
+  </div>
+</div>
+<!-- TOOLS MODAL -->
+<div class="modal-overlay" id="modal-tools">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr"><div class="modal-title">Tools</div><button class="modal-close" onclick="App.closeModal('modal-tools')">x</button></div>
+    <div class="modal-body" style="padding:0">
+      <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openOrderReport()"><div><div class="settings-label">Low Inventory Report</div><div class="settings-sub">View and print items needing restock</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openCalcModal()"><div><div class="settings-label">Batch Calculator</div><div class="settings-sub">Scale any recipe by oz or bars</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openPricingModal()"><div><div class="settings-label">Pricing Manager</div><div class="settings-sub">Calculate retail price per product</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="settings-row" style="cursor:pointer" onclick="App.manualSyncWithConfirm()"><div><div class="settings-label">Sync Now</div><div class="settings-sub">Push and pull latest data from cloud</div></div><span style="color:var(--muted)">›</span></div>
+    </div>
+  </div>
+</div>
+<!-- VERSION HISTORY MODAL -->
+<div class="modal-overlay" id="modal-version-history">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr"><div class="modal-title">Version History</div><button class="modal-close" onclick="App.closeModal('modal-version-history')">x</button></div>
+    <div class="modal-body" id="version-history-body"></div>
+  </div>
+</div>
+<!-- SPLIT CALCULATOR MODAL -->
+<div class="modal-overlay" id="modal-split-calc">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr"><div class="modal-title">% Split Calculator</div><button class="modal-close" onclick="App.closeModal('modal-split-calc')">x</button></div>
+    <div class="modal-body" id="split-calc-body"></div>
+  </div>
+</div>
+<!-- MANAGE USERS MODAL -->
+<div class="modal-overlay" id="modal-manage-users">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr"><div class="modal-title">Manage Users</div><button class="modal-close" onclick="App.closeModal('modal-manage-users')">x</button></div>
+    <div class="modal-body" style="padding:0" id="manage-users-body"></div>
   </div>
 </div>
 <!-- BATCH LOG MODAL -->
@@ -1537,30 +1583,118 @@ const App = {
   async _syncFromCloud(){
     this._showSyncStatus('Syncing...');
     try {
-      // Fetch recipes
+      // ── RECIPES: bidirectional merge ──────────────────────────
       const rRes = await this._sbFetch('GET', 'recipes?select=id,data,updated_at&order=updated_at.desc');
-      const rRows = await rRes.json();
-      if(rRows && rRows.length){
-        this.recipes = rRows.map(r => r.data);
+      const rRows = (await rRes.json()) || [];
+
+      if(rRows.length || this.recipes.length){
+        // Build lookup maps
+        const cloudMap = {};
+        rRows.forEach(r => { cloudMap[r.id] = r; });
+
+        const localMap = {};
+        this.recipes.forEach(r => { localMap[r.id] = r; });
+
+        const merged = [];
+        const toPush = []; // local items newer than cloud
+
+        // Check every local recipe against cloud
+        this.recipes.forEach(r => {
+          const cloud = cloudMap[r.id];
+          if(!cloud){
+            // Local only — push it up
+            toPush.push(r);
+            merged.push(r);
+          } else {
+            const localTs = new Date(r.updated_at || r.created || 0).getTime();
+            const cloudTs = new Date(cloud.updated_at || 0).getTime();
+            if(localTs > cloudTs){
+              // Local is newer — push it, keep local
+              toPush.push(r);
+              merged.push(r);
+            } else {
+              // Cloud is newer or same — use cloud
+              merged.push(cloud.data);
+            }
+          }
+        });
+
+        // Add cloud recipes not present locally
+        rRows.forEach(r => {
+          if(!localMap[r.id]) merged.push(r.data);
+        });
+
+        // Push local-newer recipes to cloud
+        if(toPush.length){
+          const rows = toPush.map(r => ({
+            id: r.id,
+            data: r,
+            updated_at: r.updated_at || new Date().toISOString()
+          }));
+          await this._sbFetch('POST', 'recipes', rows);
+        }
+
+        this.recipes = merged;
         this._localSaveR();
         this._buildRecipeChips();
         this.renderRecipes();
         this.populateCalcRecipes();
       } else {
-        // Cloud empty — push local data up
         await this._pushRecipes();
       }
-      // Fetch inventory
+
+      // ── INVENTORY: same bidirectional merge ───────────────────
       const iRes = await this._sbFetch('GET', 'inventory?select=id,data,updated_at&order=updated_at.desc');
-      const iRows = await iRes.json();
-      if(iRows && iRows.length){
-        this.inventory = iRows.map(i => i.data);
+      const iRows = (await iRes.json()) || [];
+
+      if(iRows.length || this.inventory.length){
+        const cloudInvMap = {};
+        iRows.forEach(i => { cloudInvMap[i.id] = i; });
+
+        const localInvMap = {};
+        this.inventory.forEach(i => { localInvMap[i.id] = i; });
+
+        const mergedInv = [];
+        const toPushInv = [];
+
+        this.inventory.forEach(i => {
+          const cloud = cloudInvMap[i.id];
+          if(!cloud){
+            toPushInv.push(i);
+            mergedInv.push(i);
+          } else {
+            const localTs = new Date(i.updated_at || 0).getTime();
+            const cloudTs = new Date(cloud.updated_at || 0).getTime();
+            if(localTs > cloudTs){
+              toPushInv.push(i);
+              mergedInv.push(i);
+            } else {
+              mergedInv.push(cloud.data);
+            }
+          }
+        });
+
+        iRows.forEach(i => {
+          if(!localInvMap[i.id]) mergedInv.push(i.data);
+        });
+
+        if(toPushInv.length){
+          const rows = toPushInv.map(i => ({
+            id: i.id,
+            data: i,
+            updated_at: i.updated_at || new Date().toISOString()
+          }));
+          await this._sbFetch('POST', 'inventory', rows);
+        }
+
+        this.inventory = mergedInv;
         this._localSaveI();
         this.renderInventory();
         this.renderOrders();
       } else {
         await this._pushInventory();
       }
+
       this._showSyncStatus('Synced ✓');
     } catch(e){
       this._showSyncStatus('Sync failed — offline mode');
@@ -1569,10 +1703,12 @@ const App = {
 
   async _pushRecipes(){
     try {
-      const rows = this.recipes.map(r => ({ id: r.id, data: r, updated_at: new Date().toISOString() }));
-      // Upsert all at once
+      const rows = this.recipes.map(r => ({
+        id: r.id,
+        data: r,
+        updated_at: r.updated_at || new Date().toISOString()
+      }));
       await this._sbFetch('POST', 'recipes', rows);
-      // Delete removed recipes
       const ids = this.recipes.map(r => r.id);
       if(ids.length) await this._sbFetch('DELETE', 'recipes?id=not.in.(' + ids.map(function(id){ return '"'+id+'"'; }).join(',') + ')');
       this._showSyncStatus('Saved ✓');
@@ -1632,21 +1768,21 @@ const App = {
     const title=document.getElementById('header-title');
     const sub=document.getElementById('header-sub');
     const add=document.getElementById('header-add');
-    const sync=document.getElementById('header-sync');
-    const TITLES={recipes:'Recipes',inventory:'Inventory',calc:'Calculator',orders:'Order Report'};
+    const sync=document.getElementById('header-sync'); // removed from HTML - kept for compat
+    const TITLES={recipes:'Recipes',inventory:'Inventory',calc:'Calculator',orders:'Low Inventory Report',batches:'Batch History',fragrances:'Scents',pricing:'Pricing Manager',tools:'Tools'};
     if(this.subview==='recipe-detail'){
       const r=this.recipes.find(x=>x.id===this.selRId);
-      back.style.display='flex'; add.style.display='none'; sync.style.display='none';
+      back.style.display='flex'; add.style.display='none'; if(sync) sync.style.display='none';
       const _gs=document.getElementById('header-gsearch');const _st=document.getElementById('header-settings');if(_gs)_gs.style.display='none';if(_st)_st.style.display='none';
       title.textContent=r?r.name:'Recipe'; sub.textContent=r?r.category:'';
     } else if(this.subview==='inv-detail'){
       const i=this.inventory.find(x=>x.id===this.selIId);
-      back.style.display='flex'; add.style.display='none'; sync.style.display='none';
+      back.style.display='flex'; add.style.display='none'; if(sync) sync.style.display='none';
       title.textContent=i?i.name:'Item'; sub.textContent=i?i.category:'';
     } else {
       back.style.display='none';
       add.style.display=(this.tab==='pricing')?'none':'flex';
-      sync.style.display='flex';
+      if(sync) sync.style.display='flex';
       const gs=document.getElementById('header-gsearch');
       const st=document.getElementById('header-settings');
       if(gs) gs.style.display='flex';
@@ -1803,6 +1939,7 @@ const App = {
         </div>
         <div class="detail-actions">
           <button class="btn btn-outline" onclick="App.openRecipeModal('${r.id}')">✏️ Edit</button>
+          <button class="btn btn-outline" onclick="App.showVersionHistory('${r.id}')">🕐 History</button>
           <button class="btn btn-danger" onclick="App.delRecipe('${r.id}')">🗑 Delete</button>
         </div>
       </div>`;
@@ -1899,7 +2036,10 @@ const App = {
       total+=lineCost;
       return {name:ing.name,amount:ing.amount,unit:ing.unit,costPer,lineCost,found:!!(inv&&costPer)};
     });
-    return {total:Math.round(total*1000)/1000, breakdown, missing};
+    // Add goat milk cost for bar soaps ($10/half-gallon = $0.15625/oz)
+    const goatMilkExtra = this._addGoatMilkCost(recipe);
+    if(goatMilkExtra > 0) breakdown.push({name:'Goat Milk',amount:'',unit:'oz',costPer:this.GOAT_MILK_COST_PER_OZ,lineCost:goatMilkExtra,found:true});
+    return {total:Math.round((total+goatMilkExtra)*1000)/1000, breakdown, missing};
   },
 
   // RECIPE MODAL
@@ -1951,12 +2091,30 @@ const App = {
   },
   _iRow(i,g){
     const uOpts=UNITS.map(u=>`<option${u===(g.unit||'oz')?' selected':''}>${u}</option>`).join('');
+    const dlId='ing-dl-'+i;
+    const dlOpts=[...new Set([...this.inventory.map(x=>x.name),...(this.fragrances||[]).map(x=>x.name)])].sort().map(n=>'<option value="'+this.h(n)+'">').join('');
+    const gval = g.unit==='g' ? this.h(g.amount) : (g.amount ? Math.round(parseFloat(g.amount)*28.3495*100)/100 : '');
+    const ozval = g.unit!=='g' ? this.h(g.amount) : (g.amount ? Math.round(parseFloat(g.amount)/28.3495*100)/100 : '');
     return `<div class="ing-form-row" id="ir${i}">
-      <input placeholder="Ingredient" value="${this.h(g.name)}" oninput="App._syncIng(${i},'name',this.value)"/>
-      <input class="sm" type="number" step="any" placeholder="Amt" value="${this.h(g.amount)}" oninput="App._syncIng(${i},'amount',this.value)"/>
+      <datalist id="${dlId}">${dlOpts}</datalist>
+      <input list="${dlId}" placeholder="Ingredient" value="${this.h(g.name)}" oninput="App._syncIng(${i},'name',this.value)" onblur="App._checkIngredientSimilarity(this,${i})" style="flex:2"/>
+      <input class="sm" type="number" step="any" placeholder="oz" value="${ozval}" id="ing-oz-${i}" oninput="App._ingOzChange(${i})"/>
+      <input class="sm" type="number" step="any" placeholder="g" value="${gval}" id="ing-g-${i}" oninput="App._ingGChange(${i})"/>
       <select onchange="App._syncIng(${i},'unit',this.value)">${uOpts}</select>
       <button class="ing-del" onclick="App.delIngRow(${i})">−</button>
     </div>`;
+  },
+  _ingOzChange(i){
+    const oz=parseFloat(document.getElementById('ing-oz-'+i)?.value)||0;
+    const gEl=document.getElementById('ing-g-'+i);
+    if(gEl) gEl.value = oz>0 ? Math.round(oz*28.3495*100)/100 : '';
+    App._syncIng(i,'amount',String(oz)); App._syncIng(i,'unit','oz');
+  },
+  _ingGChange(i){
+    const g=parseFloat(document.getElementById('ing-g-'+i)?.value)||0;
+    const ozEl=document.getElementById('ing-oz-'+i);
+    if(ozEl) ozEl.value = g>0 ? Math.round(g/28.3495*100)/100 : '';
+    App._syncIng(i,'amount',String(g)); App._syncIng(i,'unit','g');
   },
   addIngRow(){
     if(!this.editR.ingredients) this.editR.ingredients=[];
@@ -1966,7 +2124,161 @@ const App = {
   },
   delIngRow(i){ this.editR.ingredients.splice(i,1); document.getElementById('ing-rows').innerHTML=this.editR.ingredients.map((g,x)=>this._iRow(x,g)).join(''); },
   _syncIng(i,f,v){ if(this.editR.ingredients[i]) this.editR.ingredients[i][f]=v; },
-  // TAG INPUT
+  // ── TASK 6: INGREDIENT SIMILARITY CHECKER ───────────────────
+  // Known ingredient aliases (alternate names map to canonical name)
+  INGREDIENT_ALIASES: {
+    'coconut oil 76': 'Coconut Oil (76 deg)',
+    'coconut oil 76 deg': 'Coconut Oil (76 deg)',
+    'cno 76': 'Coconut Oil (76 deg)',
+    'fractionated coconut oil': 'Coconut Oil (76 deg)',
+    'lard': 'Lard',
+    'crisco': 'Lard',
+    'shae butter': 'Shea Butter',
+    'shea': 'Shea Butter',
+    'sodium hydroxide': 'Lye (NaOH)',
+    'naoh': 'Lye (NaOH)',
+    'lye': 'Lye (NaOH)',
+    'potassium hydroxide': 'Potassium Hydroxide (KOH)',
+    'koh': 'Potassium Hydroxide (KOH)',
+    'eo': 'Essential Oil',
+    'fo': 'Fragrance Oil',
+    'castor': 'Castor Oil',
+    'hco': 'Castor Oil',
+    'sweet almond': 'Sweet Almond Oil',
+    'salt': 'Sea Salt',
+    'naoh 50': 'Lye (NaOH) 50% Solution',
+    'slsa powder': 'SLSA',
+    'sodium lauryl sulfoacetate': 'SLSA',
+    'sodium cocoyl isethionate': 'SCI',
+    'ci': 'SCI',
+    'coco betaine': 'Coco Betaine',
+    'cocamidopropyl betaine': 'Coco Betaine',
+    'meadowfoam': 'Meadowfoam Seed Oil',
+    'jojoba': 'Jojoba Oil',
+    'argan': 'Argan Oil',
+    'apricot': 'Apricot Kernel Oil',
+    'apricot kernel': 'Apricot Kernel Oil',
+    'avocado': 'Avocado Oil',
+    'olive': 'Olive Oil',
+    'ooo': 'Olive Oil',
+    'beeswax': 'Beeswax',
+    'bee wax': 'Beeswax',
+  },
+
+  // Levenshtein distance for fuzzy matching
+  _levenshtein(a, b){
+    const m = a.length, n = b.length;
+    const dp = Array.from({length:m+1}, (_,i) => Array.from({length:n+1}, (_,j) => i===0?j:j===0?i:0));
+    for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+      dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1] : 1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+    return dp[m][n];
+  },
+
+  _findSimilarIngredients(name){
+    if(!name || name.length < 3) return [];
+    const nl = name.toLowerCase().trim();
+
+    // 1. Check aliases
+    const canonical = this.INGREDIENT_ALIASES[nl];
+    if(canonical){
+      const existing = this.inventory.find(i=>i.name.toLowerCase()===canonical.toLowerCase());
+      if(existing) return [{name:existing.name,type:'alias',message:'Same as "'+existing.name+'" in your inventory'}];
+    }
+
+    // 2. Check exact match (already exists)
+    const exact = this.inventory.find(i=>i.name.toLowerCase()===nl);
+    if(exact) return [{name:exact.name,type:'exact',message:'"'+exact.name+'" already exists in inventory'}];
+
+    // 3. Fuzzy match — find items where Levenshtein distance ≤ 3 or one contains the other
+    const matches = [];
+    this.inventory.forEach(i=>{
+      const il = i.name.toLowerCase();
+      const dist = this._levenshtein(nl, il);
+      const contains = nl.includes(il) || il.includes(nl);
+      if(dist <= 3 || (contains && Math.abs(nl.length-il.length) <= 8)){
+        matches.push({name:i.name, type:'similar', dist, message:'Similar to "'+i.name+'" — same item?'});
+      }
+    });
+
+    return matches.sort((a,b)=>a.dist-b.dist).slice(0,3);
+  },
+
+  // Called from ingredient name input blur
+  _checkIngredientSimilarity(inputEl, index){
+    const name = inputEl.value.trim();
+    if(!name) return;
+    const matches = this._findSimilarIngredients(name);
+    if(!matches.length) return;
+    // Show inline warning below the input
+    const row = document.getElementById('ir'+index);
+    if(!row) return;
+    let warn = row.querySelector('.ing-similarity-warn');
+    if(!warn){
+      warn = document.createElement('div');
+      warn.className = 'ing-similarity-warn';
+      warn.style.cssText = 'font-size:.7rem;color:var(--amber);padding:3px 4px 0;grid-column:1/-1';
+      row.appendChild(warn);
+    }
+    const top = matches[0];
+    warn.innerHTML = '⚠️ '+top.message+
+      (top.type==='exact' ? '' :
+        ' <button onclick="App._useExistingIngredient('+index+',\''+this.h(top.name)+'\')" '+
+        'style="background:var(--accent);color:#fff;border:none;border-radius:5px;padding:2px 7px;font-size:.68rem;cursor:pointer;margin-left:4px">Use "'+this.h(top.name)+'"</button>');
+  },
+
+  _useExistingIngredient(index, name){
+    const row = document.getElementById('ir'+index);
+    if(!row) return;
+    const inp = row.querySelector('input[list]');
+    if(inp){ inp.value = name; this._syncIng(index,'name',name); }
+    const warn = row.querySelector('.ing-similarity-warn');
+    if(warn) warn.remove();
+  },
+
+  // ── TASK 13: SYNC CONFIRMATION ───────────────────────────────
+  async manualSyncWithConfirm(){
+    this.closeSettings();
+    // Find what's locally newer
+    const pending = [];
+    try {
+      const rRes = await this._sbFetch('GET','recipes?select=id,updated_at');
+      const cloudRecs = await rRes.json();
+      const cloudMap = {};
+      (cloudRecs||[]).forEach(r=>{ cloudMap[r.id]=r.updated_at; });
+      this.recipes.forEach(r=>{
+        const localTs = new Date(r.updated_at||0).getTime();
+        const cloudTs = new Date(cloudMap[r.id]||0).getTime();
+        if(localTs > cloudTs || !cloudMap[r.id]){
+          pending.push('Recipe: '+r.name+((!cloudMap[r.id])?' (new)':' (updated)'));
+        }
+      });
+      const iRes = await this._sbFetch('GET','inventory?select=id,updated_at');
+      const cloudInv = await iRes.json();
+      const cloudInvMap = {};
+      (cloudInv||[]).forEach(i=>{ cloudInvMap[i.id]=i.updated_at; });
+      this.inventory.forEach(i=>{
+        const localTs = new Date(i.updated_at||0).getTime();
+        const cloudTs = new Date(cloudInvMap[i.id]||0).getTime();
+        if(localTs > cloudTs || !cloudInvMap[i.id]){
+          pending.push('Inventory: '+i.name+((!cloudInvMap[i.id])?' (new)':' (updated)'));
+        }
+      });
+    } catch(e){}
+
+    if(!pending.length){
+      this._confirm('Sync Now','Everything is already up to date. Pull latest from cloud?',()=>this._syncFromCloud());
+      return;
+    }
+
+    const itemList = pending.slice(0,8).map(p=>'• '+p).join('\n')+(pending.length>8?'\n• ...and '+(pending.length-8)+' more':'');
+    this._confirm('Upload Changes',
+      pending.length+' local change'+(pending.length>1?'s':'')+' will be uploaded:\n\n'+itemList,
+      ()=>this._syncFromCloud()
+    );
+  },
+
+  // ── TASK 6 continued: Hook into _iRow ────────────────────────
+
   _initTags(fid,init){
     const wrap=document.getElementById(fid+'-wrap');
     const hidden=document.getElementById(fid);
@@ -2146,6 +2458,14 @@ const App = {
     const name=document.getElementById('iin').value.trim();
     if(!name){this._toast('Please enter an item name');return;}
     const i=this.editI;
+    const isNew = this.inventory.findIndex(x=>x.id===i.id) < 0;
+    // Check for similar existing ingredient on new items
+    if(isNew){
+      const similar = this._findSimilarIngredient(name);
+      if(similar){
+        if(!confirm('Similar ingredient found: "'+similar.name+'"\nThis may be the same item. Add anyway?')) return;
+      }
+    }
     i.name=name; i.category=document.getElementById('iic').value; i.unit=document.getElementById('iiu').value;
     i.quantity=parseFloat(document.getElementById('iiq').value)||0;
     i.reorderAt=parseFloat(document.getElementById('iir').value)||0;
@@ -2154,6 +2474,7 @@ const App = {
     i.supplier=document.getElementById('iis').value;
     i.vendorUrl=document.getElementById('iiurl').value;
     i.notes=document.getElementById('iino').value;
+    i.updated_at=new Date().toISOString();
     const idx=this.inventory.findIndex(x=>x.id===i.id);
     if(idx>=0) this.inventory[idx]=i; else this.inventory.unshift(i);
     this._saveI(); this.renderInventory(); this.renderOrders(); this.closeModal('modal-inv');
@@ -2216,7 +2537,7 @@ const App = {
     const wrap=document.getElementById('report-body'); if(!wrap) return;
     const low=this.inventory.filter(i=>this._iStat(i)!=='ok');
     if(!low.length){
-      wrap.innerHTML=`<div class="report-top"><h2>📋 Order Report</h2></div><div class="all-good"><div style="font-size:2.5rem">✅</div><p>All ingredients are well-stocked!</p></div>`;
+      wrap.innerHTML=`<div class="report-top"><h2>📋 Low Inventory Report</h2></div><div class="all-good"><div style="font-size:2.5rem">✅</div><p>All ingredients are well-stocked!</p></div>`;
       return;
     }
 
@@ -2244,10 +2565,9 @@ const App = {
         </div>
         <!-- print-only columns (hidden on screen via flex, visible in print grid) -->
         <div class="ri-name print-col">${statusDot}${this.h(i.name)}</div>
-        <div class="ri-detail print-col">${this.h(i.category)}</div>
         <div class="ri-have print-col">${i.quantity} ${i.unit}</div>
-        <div class="ri-need print-col">Need ${need.toFixed(1)} ${i.unit}</div>
-        <div class="ri-detail print-col">${priceLabel||'—'}</div>
+        <div class="ri-need print-col">${need.toFixed(1)} ${i.unit}</div>
+        <div class="ri-detail print-col">${costPerUnit ? '$'+costPerUnit.toFixed(2)+'/'+i.unit : '—'}</div>
         <div class="ri-detail print-col">${this.h(pkgSize)}</div>
         <div class="ri-detail print-col">${i.supplier?this.h(i.supplier):''}</div>
       </div>`;
@@ -2270,11 +2590,16 @@ const App = {
       const badge = outCount ? `<span style="color:#c0392b;font-size:.7rem;font-weight:700">${outCount} out</span>` : '';
       const badge2 = lowCount ? `<span style="color:#e65100;font-size:.7rem;font-weight:700">${lowCount} low</span>` : '';
       const colHeader = `<div class="report-col-header">
-        <span>Item</span><span>Category</span><span>Have</span>
-        <span>Need</span><span>Price/Unit</span><span>Pkg Size</span><span>Vendor</span>
+        <span>Item</span><span>Remaining</span><span>Order Qty</span>
+        <span>Price/Unit</span><span>Pkg Size</span><span>Vendor</span>
       </div>`;
+      const catReplenish = items.reduce((sum,i)=>{
+        const need=Math.max(0,i.reorderAt*2-i.quantity);
+        const cost=parseFloat(i.cost)||0;
+        return sum + (need*cost);
+      },0);
       return `<div class="report-section">
-        <div class="report-sec-title">${this.h(cat)} <span style="font-weight:400;opacity:.7">(${items.length} item${items.length>1?'s':''})</span> ${badge} ${badge2}</div>
+        <div class="report-sec-title">${this.h(cat)} <span style="font-weight:400;opacity:.7">(${items.length} item${items.length>1?'s':''})</span> ${badge} ${badge2}${catReplenish>0?' <span style="float:right;font-weight:700;color:var(--accent)">~$'+catReplenish.toFixed(2)+'</span>':''}</div>
         ${colHeader}
         ${items.map(mkItem).join('')}
       </div>`;
@@ -2282,7 +2607,7 @@ const App = {
 
     wrap.innerHTML=`
       <div class="report-top">
-        <h2>📋 Order Report</h2>
+        <h2>📋 Low Inventory Report</h2>
         <div style="display:flex;gap:8px">
           <button class="copy-btn" onclick="App.copyReport()">Copy List</button>
           <button class="print-btn" onclick="window.print()">🖨 Print</button>
@@ -2291,16 +2616,25 @@ const App = {
       <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">
         ${low.length} item${low.length>1?'s':''} need ordering · sorted by category
       </div>
-      ${catSections}`;
+      ${catSections}
+      <div style="padding:12px 14px;border-top:2px solid var(--border);margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:700;font-size:.85rem;color:var(--text)">Est. Total Replenishment Cost</div>
+        <div style="font-weight:700;font-size:1rem;color:var(--accent)">~$${low.reduce((s,i)=>{const n=Math.max(0,i.reorderAt*2-i.quantity);return s+(n*(parseFloat(i.cost)||0));},0).toFixed(2)}</div>
+      </div>`;
   },
+
   copyReport(){
-    const low=this.inventory.filter(i=>this._iStat(i)!=='ok');
-    if(!low.length) return;
-    const lines=['SUDSY SISTERS — ORDER LIST',new Date().toLocaleDateString('en-US'),''];
-    const out=low.filter(i=>this._iStat(i)==='out');
-    const lows=low.filter(i=>this._iStat(i)==='low');
-    if(out.length){lines.push('OUT OF STOCK:');out.forEach(i=>{const n=Math.max(0,i.reorderAt*2-i.quantity);lines.push(`  • ${i.name}: need ${n.toFixed(1)} ${i.unit}${i.supplier?' ('+i.supplier+')':''}`);});lines.push('');}
-    if(lows.length){lines.push('LOW STOCK:');lows.forEach(i=>{const n=Math.max(0,i.reorderAt*2-i.quantity);lines.push(`  • ${i.name}: need ${n.toFixed(1)} ${i.unit} (have ${i.quantity})${i.supplier?' ('+i.supplier+')':''}`);});}
+    const low = this.inventory.filter(i=>this._iStat(i)!=='ok');
+    const lines = ['LOW INVENTORY REPORT — '+new Date().toLocaleDateString(),''];
+    const byCategory = {};
+    low.forEach(i=>{ const c=i.category||'Other'; if(!byCategory[c])byCategory[c]=[]; byCategory[c].push(i); });
+    Object.keys(byCategory).sort((a,b)=>byCategory[b].length-byCategory[a].length).forEach(cat=>{
+      lines.push(cat.toUpperCase()+':');
+      byCategory[cat].forEach(i=>{const n=Math.max(0,i.reorderAt*2-i.quantity);lines.push(`  • ${i.name}: need ${n.toFixed(1)} ${i.unit} (have ${i.quantity})${i.supplier?' — '+i.supplier:''}`);});
+      lines.push('');
+    });
+    const total = low.reduce((s,i)=>{const n=Math.max(0,i.reorderAt*2-i.quantity);return s+(n*(parseFloat(i.cost)||0));},0);
+    lines.push('Est. Total Replenishment: ~$'+total.toFixed(2));
     navigator.clipboard.writeText(lines.join('\n')).then(()=>this._toast('Copied to clipboard!')).catch(()=>this._toast('Copy failed'));
   },
 
@@ -2904,6 +3238,8 @@ const App = {
     if(toggle) toggle.checked = this._darkMode;
     const sub = document.getElementById('settings-username');
     if(sub && this._currentUser) sub.textContent = 'Signed in as: ' + this._currentUser.display_name;
+    const mu=document.getElementById('settings-manage-users');
+    if(mu) mu.style.display=(this._currentUser&&this._currentUser.role==='admin')?'flex':'none';
     document.getElementById('settings-panel').classList.add('open');
   },
   closeSettings(){
@@ -3232,6 +3568,174 @@ const App = {
 
 
 
+
+  // ── TASK 3: BATCH FRAGRANCE ROWS ────────────────────────────
+  _batchFrags: [],
+
+  _renderBatchFragRows(){
+    const wrap = document.getElementById('bl-frag-rows');
+    if(!wrap) return;
+    const fragOpts = (this.fragrances||[]).map(f=>'<option value="'+f.id+'">'+this.h(f.name)+'</option>').join('');
+    wrap.innerHTML = this._batchFrags.map((fr,i)=>
+      '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">'+
+      '<select style="flex:2;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;font-family:Lato,sans-serif;font-size:.82rem;color:var(--text)" onchange="App._batchFrags['+i+'].frag_id=this.value;App._batchFrags['+i+'].name=this.options[this.selectedIndex].text"><option value="">Select Fragrance</option>'+fragOpts.replace('value="'+fr.frag_id+'"','value="'+fr.frag_id+'" selected')+'</select>'+
+      '<input type="number" step="any" placeholder="oz" value="'+(fr.amount||'')+'" style="flex:1;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;font-family:Lato,sans-serif;font-size:.82rem;color:var(--text)" onchange="App._batchFrags['+i+'].amount=this.value"/>'+
+      '<select style="background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 6px;font-family:Lato,sans-serif;font-size:.78rem" onchange="App._batchFrags['+i+'].unit=this.value">'+
+      ['oz','g','ml'].map(u=>'<option'+(fr.unit===u?' selected':'')+'>'+u+'</option>').join('')+'</select>'+
+      '<button onclick="App._batchFrags.splice('+i+',1);App._renderBatchFragRows()" style="background:var(--red);color:#fff;border:none;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:.9rem;flex-shrink:0">x</button>'+
+      '</div>'
+    ).join('');
+  },
+
+  _addBatchFragRow(){
+    this._batchFrags.push({frag_id:'',name:'',amount:'',unit:'oz'});
+    this._renderBatchFragRows();
+  },
+
+  _applyBatchFragrances(){
+    (this._batchFrags||[]).forEach(fr => {
+      if(!fr.frag_id || !fr.amount) return;
+      const frag = (this.fragrances||[]).find(f=>f.id===fr.frag_id);
+      if(!frag) return;
+      const amt = parseFloat(fr.amount)||0;
+      frag.quantity = Math.round(Math.max(0,(parseFloat(frag.quantity)||0)-amt)*1000)/1000;
+      this._saveFrag(frag);
+    });
+  },
+
+  // ── TASK 4: % SPLIT CALCULATOR ──────────────────────────────
+  openSplitCalc(recipeId){
+    const r = this.recipes.find(x=>x.id===recipeId);
+    if(!r){ this._toast('Recipe not found'); return; }
+    const lyeIngs = (r.ingredients||[]).filter(i=>/lye|naoh|koh|water|milk|liquid/i.test(i.name));
+    const oilIngs = (r.ingredients||[]).filter(i=>!/lye|naoh|koh|water|milk|liquid/i.test(i.name));
+    const lyeTotal = lyeIngs.reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
+    const oilTotal = oilIngs.reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
+    const totalWt = parseFloat(r.batchSize)||0;
+    const rows6 = [0,1,2,3,4,5].map(i=>'<div class="form-row" style="gap:8px;margin-bottom:6px"><input placeholder="Color/Layer '+(i+1)+'" id="split-label-'+i+'" style="flex:2;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:Lato,sans-serif;font-size:.82rem;color:var(--text)"/><input type="number" min="0" max="100" step="0.1" placeholder="%" id="split-pct-'+i+'" oninput="App._updateSplitCalc('+totalWt+','+oilTotal+','+lyeTotal+')" style="flex:1;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;font-family:Lato,sans-serif;font-size:.82rem;color:var(--text)"/></div>').join('');
+    document.getElementById('split-calc-body').innerHTML =
+      '<div style="margin-bottom:12px;padding:12px;background:var(--cream);border-radius:10px;font-size:.83rem"><div><strong>Total Batch:</strong> '+totalWt+' '+(r.batchUnit||'oz')+'</div><div><strong>Oils/Butters:</strong> '+oilTotal.toFixed(2)+' oz</div><div><strong>Lye/Liquid:</strong> '+lyeTotal.toFixed(2)+' oz</div></div>'+
+      '<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">Enter percentages (must total 100%)</div>'+
+      '<div id="split-rows">'+rows6+'</div><div id="split-result" style="margin-top:12px"></div>';
+    document.getElementById('modal-split-calc').classList.add('open');
+  },
+
+  _updateSplitCalc(total, oilTotal, lyeTotal){
+    let sum=0; const rows=[];
+    for(let i=0;i<6;i++){
+      const pct=parseFloat(document.getElementById('split-pct-'+i)?.value)||0;
+      const lbl=document.getElementById('split-label-'+i)?.value||('Split '+(i+1));
+      if(pct>0){sum+=pct;rows.push({lbl,pct});}
+    }
+    const res=document.getElementById('split-result'); if(!res) return;
+    const diff=Math.round((sum-100)*10)/10;
+    const sc=Math.abs(diff)<0.01?'var(--sage)':'var(--red)';
+    let out='<div style="padding:6px 10px;background:var(--cream);border-radius:8px;margin-bottom:10px;font-size:.8rem">Total: <strong style="color:'+sc+'">'+sum.toFixed(1)+'%</strong>'+(Math.abs(diff)>0.01?' <span style="color:var(--red)">'+(diff>0?'+':'')+diff.toFixed(1)+'% to adjust)</span>':'')+'</div>';
+    out+=rows.map(r=>{
+      const oz=Math.round(total*(r.pct/100)*100)/100;
+      const oils=Math.round(oilTotal*(r.pct/100)*100)/100;
+      const lye=Math.round(lyeTotal*(r.pct/100)*100)/100;
+      return '<div style="padding:9px 12px;background:var(--card);border-radius:10px;margin-bottom:6px;border:1px solid var(--border)"><div style="font-weight:700;font-size:.88rem">'+this.h(r.lbl)+' — '+r.pct+'%</div><div style="font-size:.78rem;color:var(--muted);margin-top:3px">Total: '+oz+' oz | Oils: '+oils+' oz | Lye/Liquid: '+lye+' oz</div></div>';
+    }).join('');
+    res.innerHTML=out;
+  },
+
+  // ── TASK 5: RECIPE PDF PRINT ─────────────────────────────────
+  printRecipePDF(id){
+    const r=this.recipes.find(x=>x.id===id); if(!r) return;
+    const cost=this._calcRecipeCost(r);
+    const logoEl=document.getElementById('header-logo');
+    const logoSrc=logoEl?logoEl.src:'';
+    const ings=(r.ingredients||[]).map(i=>'<tr><td style="padding:4px 8px;border-bottom:1px solid #eee">'+i.name+'</td><td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:700">'+i.amount+' '+i.unit+'</td></tr>').join('');
+    const win=window.open('','_blank');
+    win.document.write('<!DOCTYPE html><html><head><title>'+r.name+'</title>'+
+      '<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>'+
+      '<style>@page{margin:1in}body{font-family:Lato,sans-serif;margin:0;padding:0;color:#111;max-width:7in;margin:0 auto}.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #FCBFCE;padding-bottom:12px;margin-bottom:16px}.brand{font-family:"Great Vibes",cursive;font-size:2rem;color:#D4789A}.brand-sub{font-size:.72rem;color:#888}.logo{width:60px;height:60px;border-radius:10px;object-fit:cover}h1{font-family:"Playfair Display",serif;font-size:1.5rem;color:#D4789A;margin:0 0 4px}.meta{display:flex;flex-wrap:wrap;gap:12px;background:#FEF2F6;padding:10px 12px;border-radius:8px;margin-bottom:16px;font-size:.82rem}.meta-item strong{display:block;font-size:.68rem;color:#888;text-transform:uppercase;letter-spacing:.5px}h3{font-family:"Playfair Display",serif;font-size:.95rem;color:#D4789A;border-bottom:1px solid #FCBFCE;padding-bottom:4px;margin:14px 0 8px;text-transform:uppercase;letter-spacing:.5px}table{width:100%;border-collapse:collapse;margin-bottom:16px}th{background:#FCBFCE;padding:5px 8px;text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px}.notes{font-size:.85rem;line-height:1.6;white-space:pre-wrap;color:#444}.footer{margin-top:24px;padding-top:10px;border-top:1px solid #eee;font-size:.7rem;color:#aaa;text-align:center}</style></head><body>'+
+      '<div class="hdr"><div><div class="brand">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div>'+(logoSrc?'<img class="logo" src="'+logoSrc+'" alt=""/>':'')+'</div>'+
+      '<h1>'+r.name+'</h1>'+
+      '<div class="meta">'+
+        '<div class="meta-item"><strong>Category</strong>'+(r.category||'—')+'</div>'+
+        '<div class="meta-item"><strong>Version</strong>'+(r.version||'v1')+'</div>'+
+        (r.batchSize?'<div class="meta-item"><strong>Batch Size</strong>'+r.batchSize+' '+(r.batchUnit||'oz')+'</div>':'')+
+        (r.unitsPerBatch?'<div class="meta-item"><strong>Units</strong>'+r.unitsPerBatch+(r.unitSize?' @ '+r.unitSize+' ea':'')+'</div>':'')+
+        (r.cureTime?'<div class="meta-item"><strong>Cure Time</strong>'+r.cureTime+'</div>':'')+
+        (cost.total?'<div class="meta-item"><strong>Est. Cost</strong>$'+cost.total.toFixed(2)+'</div>':'')+
+      '</div>'+
+      (ings?'<h3>Ingredients</h3><table><thead><tr><th>Ingredient</th><th style="text-align:right">Amount</th></tr></thead><tbody>'+ings+'</tbody></table>':'')+
+      (r.description?'<h3>Description</h3><div class="notes">'+r.description+'</div>':'')+
+      (r.instructions?'<h3>Instructions</h3><div class="notes">'+r.instructions+'</div>':'')+
+      (r.notes?'<h3>Notes</h3><div class="notes">'+r.notes+'</div>':'')+
+      (r.scent?'<h3>Fragrance Notes</h3><div class="notes">'+r.scent+'</div>':'')+
+      '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; Printed '+new Date().toLocaleDateString()+'</div>'+
+      '</body></html>');
+    win.document.close(); setTimeout(()=>win.print(),600);
+  },
+
+  // ── TASK 6: INGREDIENT SIMILARITY ───────────────────────────
+  _ingAliases: {'coconut oil':['coconut oil 76','co76','76 deg coconut'],'shea butter':['shae butter','shea'],'sodium hydroxide':['naoh','lye','caustic soda'],'castor oil':['castor'],'stearic acid':['stearic'],'beeswax':['bees wax']},
+
+  _findSimilarIngredient(name){
+    if(!name||name.length<3) return null;
+    const nl=name.toLowerCase().trim();
+    return this.inventory.find(i=>{
+      const il=i.name.toLowerCase();
+      if(il===nl) return false;
+      if(il.includes(nl)||nl.includes(il)) return true;
+      for(const [c,aliases] of Object.entries(this._ingAliases)){
+        const all=[c,...aliases];
+        if(all.some(a=>il.includes(a)||a.includes(il))&&all.some(a=>nl.includes(a)||a.includes(nl))) return true;
+      }
+      return false;
+    })||null;
+  },
+
+  // ── TASK 12: MANAGE USERS ────────────────────────────────────
+  async openManageUsers(){
+    const body=document.getElementById('manage-users-body');
+    if(!body) return;
+    body.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted)">Loading...</div>';
+    document.getElementById('modal-manage-users').classList.add('open');
+    try {
+      const res=await this._sbFetch('GET','users?select=id,username,display_name,role,created_at&order=created_at.asc');
+      const users=await res.json();
+      const dBtn = u => u.id==='u1' ? '' : '<button onclick="App._deleteUser(\''+u.id+'\',\''+u.username+'\');" style="background:var(--red-l);border:1px solid var(--red);border-radius:7px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;font-weight:700;color:var(--red);cursor:pointer">Remove</button>';
+      body.innerHTML=users.map(u=>'<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700;font-size:.88rem">'+this.h(u.display_name||u.username)+'</div><div style="font-size:.75rem;color:var(--muted)">@'+this.h(u.username)+' - '+(u.role||'user')+'</div></div><div style="display:flex;gap:6px">'+dBtn(u)+'</div></div>').join('')+
+        '<div style="padding:14px 16px"><div style="font-size:.8rem;font-weight:700;color:var(--brown-d);margin-bottom:10px">Add New User</div>'+
+        '<div class="form-row"><div class="form-group"><label>Username</label><input id="nu-user" placeholder="username"/></div><div class="form-group"><label>Display Name</label><input id="nu-name" placeholder="Full Name"/></div></div>'+
+        '<div class="form-row"><div class="form-group"><label>Password</label><input id="nu-pass" type="password" placeholder="password"/></div><div class="form-group"><label>Role</label><select id="nu-role"><option>user</option><option>admin</option></select></div></div>'+
+        '<button class="btn btn-primary btn-full" onclick="App._createUser()">Create User</button></div>';
+    } catch(e){ body.innerHTML='<div style="padding:20px;color:var(--red)">Failed to load users.</div>'; }
+  },
+
+  async _createUser(){
+    const username=(document.getElementById('nu-user').value||'').trim().toLowerCase();
+    const display=document.getElementById('nu-name').value.trim();
+    const pass=document.getElementById('nu-pass').value.trim();
+    const role=document.getElementById('nu-role').value;
+    if(!username||!pass){this._toast('Username and password required');return;}
+    try {
+      await this._sbFetch('POST','users',[{id:this.uid(),username,password_hash:pass,display_name:display||username,role,created_at:new Date().toISOString()}]);
+      this._toast('User created!'); this.openManageUsers();
+    } catch(e){this._toast('Failed to create user');}
+  },
+
+  async _deleteUser(id,username){
+    this._confirm('Remove User','Remove @'+username+'? This cannot be undone.',async()=>{
+      try { await this._sbFetch('DELETE','users?id=eq.'+id); this._toast('User removed'); this.openManageUsers(); }
+      catch(e){this._toast('Failed to remove user');}
+    });
+  },
+
+  // ── TASK 16: GOAT MILK COST ──────────────────────────────────
+  GOAT_MILK_COST_PER_OZ: 10/64,
+
+  _addGoatMilkCost(recipe){
+    if(!recipe||recipe.category!=='Bar Soap') return 0;
+    const liquid=(recipe.ingredients||[]).find(i=>/(water|milk|goat)/i.test(i.name));
+    if(!liquid) return 0;
+    return (parseFloat(liquid.amount)||0)*this.GOAT_MILK_COST_PER_OZ;
+  },
+
   // ── MODALS & UTILS ───────────────────────────────────────────
   closeModal(id){ document.getElementById(id).classList.remove('open'); },
 
@@ -3278,7 +3782,9 @@ const App = {
       photos: []
     };
     document.getElementById('modal-batch-log-title').textContent = existing ? 'Edit Batch Log' : 'Log This Batch';
+    this._batchFrags = (existing && existing.fragrances_used) ? JSON.parse(JSON.stringify(existing.fragrances_used)) : [];
     document.getElementById('modal-batch-log-body').innerHTML = this._batchLogForm(this._editBatch);
+    this._renderBatchFragRows();
     document.getElementById('modal-batch-log').classList.add('open');
   },
 
@@ -3296,6 +3802,9 @@ const App = {
       '<div class="form-group"><label>Made By</label><input id="bl-by" value="'+this.h(b.made_by)+'" placeholder="Your name"/></div></div>'+
       '<div class="form-group"><label>Date Made</label><input id="bl-date" type="datetime-local" value="'+dateVal+'"/></div>'+
       '<div class="form-group"><label>Notes</label><textarea id="bl-notes" placeholder="Any notes about this batch…">'+this.h(b.notes)+'</textarea></div>'+
+      '<div class="form-group"><label>Fragrances Used</label>'+
+      '<div id="bl-frag-rows"></div>'+
+      '<button type="button" onclick="App._addBatchFragRow()" style="background:var(--cream);border:1px dashed var(--border);border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;color:var(--muted);cursor:pointer;margin-top:4px">+ Add Fragrance</button></div>'+
       '<div class="form-group"><label>Photos</label>'+
       '<div id="bl-photos" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">'+photos+'</div>'+
       '<label style="display:inline-flex;align-items:center;gap:6px;background:var(--cream);border:1.5px dashed var(--border);border-radius:10px;padding:8px 14px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer">'+
@@ -3357,7 +3866,10 @@ const App = {
     b.made_by = document.getElementById('bl-by').value;
     b.made_at = new Date(document.getElementById('bl-date').value).toISOString();
     b.notes = document.getElementById('bl-notes').value;
+    b.fragrances_used = JSON.parse(JSON.stringify(this._batchFrags||[]));
     await this._saveBatch(b);
+    await this._applyBatchFragrances();
+    this._batchFrags = [];
     this.closeModal('modal-batch-log');
     this.renderBatches();
     this._toast('Batch logged!');
@@ -3493,7 +4005,67 @@ const App = {
     }
   },
 
-  // ── RECIPE VERSIONS ──────────────────────────────────────────
+  async showVersionHistory(recipeId){
+    const body = document.getElementById('version-history-body');
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Loading history…</div>';
+    document.getElementById('modal-version-history').classList.add('open');
+
+    try {
+      const res = await this._sbFetch('GET',
+        'recipe_versions?recipe_id=eq.'+recipeId+'&order=saved_at.desc&limit=20');
+      const versions = await res.json();
+
+      if(!versions || !versions.length){
+        body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">No version history yet.<br><small>Versions are saved each time you edit.</small></div>';
+        return;
+      }
+
+      body.innerHTML = versions.map(v => {
+        const d = new Date(v.saved_at);
+        const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+        const timeStr = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        return `<div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-weight:700;font-size:.9rem;color:var(--text)">${this.h(v.version_label)} — ${dateStr} ${timeStr}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px">
+                ${v.saved_by?'By '+this.h(v.saved_by):''}${v.notes?' · '+this.h(v.notes):''}
+              </div>
+            </div>
+            <button onclick="App.restoreVersion('${v.id}')" 
+              style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;flex-shrink:0;margin-left:8px">
+              Restore
+            </button>
+          </div>
+        </div>`;
+      }).join('');
+
+    } catch(e){
+      body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--red)">Failed to load history.</div>';
+    }
+  },
+
+  async restoreVersion(versionId){
+    this._confirm('Restore This Version',
+      'This will replace the current recipe with this older version. The current version will be saved to history first.',
+      async () => {
+        try {
+          const res = await this._sbFetch('GET', 'recipe_versions?id=eq.'+versionId+'&select=*');
+          const rows = await res.json();
+          if(!rows || !rows.length){ this._toast('Version not found'); return; }
+          const v = rows[0];
+          const r = Object.assign({}, v.data, { updated_at: new Date().toISOString() });
+          const idx = this.recipes.findIndex(x=>x.id===r.id);
+          if(idx>=0) this.recipes[idx]=r; else this.recipes.unshift(r);
+          this._saveR();
+          await this._saveRecipeVersion(r, 'Restored from '+v.version_label+' ('+new Date(v.saved_at).toLocaleDateString()+')');
+          this.closeModal('modal-version-history');
+          this.renderRecipes();
+          this.openRecipeDetail(r.id);
+          this._toast('Version restored!');
+        } catch(e){ this._toast('Restore failed'); }
+      });
+  },
   _pendingRecipeSave: null,
 
   saveRecipe(){
@@ -3534,14 +4106,32 @@ const App = {
       const ver = (r.version||'v1');
       const num = parseInt(ver.replace('v',''))||1;
       r = Object.assign({},r,{id:this.uid(), version:'v'+(num+1), created:new Date().toISOString().slice(0,10)});
-    } else {
-      r.updated = new Date().toISOString().slice(0,10);
     }
+    // Always stamp updated_at so bidirectional sync knows this is the newest
+    r.updated_at = new Date().toISOString();
     const idx = this.recipes.findIndex(x=>x.id===r.id);
     if(idx>=0) this.recipes[idx]=r; else this.recipes.unshift(r);
-    this._saveR(); this.renderRecipes(); this.populateCalcRecipes(); this.closeModal('modal-recipe');
+    this._saveR();
+    // Save version snapshot to Supabase
+    this._saveRecipeVersion(r, asNew ? 'New version' : 'Updated');
+    this.renderRecipes(); this.populateCalcRecipes(); this.closeModal('modal-recipe');
     this._toast(asNew?'New version saved!':'Recipe updated!');
     if(this.subview==='recipe-detail') this.openRecipeDetail(r.id);
+  },
+
+  async _saveRecipeVersion(r, changeNote){
+    try {
+      const snap = {
+        id: this.uid(),
+        recipe_id: r.id,
+        version_label: r.version || 'v1',
+        data: r,
+        saved_by: this._currentUser ? this._currentUser.display_name : 'Unknown',
+        saved_at: new Date().toISOString(),
+        notes: changeNote || ''
+      };
+      await this._sbFetch('POST', 'recipe_versions', [snap]);
+    } catch(e){}
   },
 
   // ── PDF PRINT ────────────────────────────────────────────────
