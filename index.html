@@ -37,35 +37,48 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
 .print-btn:active{background:var(--brown-d)}
 @media print{
   @page { margin: 1in; size: letter portrait; }
-  /* Pagination counter top-right */
-  @page {
-    @top-right { content: "Page " counter(page) " of " counter(pages); font-size: .65rem; color: #888; }
+
+  /* When recipe print area is active, show ONLY it */
+  body.printing-recipe #app,
+  body.printing-recipe #nav { display:none!important }
+  body.printing-recipe #recipe-print-area {
+    display:block!important;
+    position:static!important;
+    width:100%!important;
   }
-  /* Fallback: CSS counter in each section */
-  body { counter-reset: page-num; }
 
-  /* Hide everything EXCEPT the order report modal */
-  #nav,#header-add,#header-back,#header-sync,#header-gsearch,#header-settings,
-  .search-bar,.chips,.sort-row,.btn,.copy-btn,.print-btn,
-  #view-recipes,#view-inventory,#view-calc,#view-batches,#view-fragrances,
-  #view-recipe-detail,#view-inv-detail,#view-batch-detail,#view-frag-detail,
-  .settings-overlay,.gsearch-overlay,.passcode-overlay,
-  .modal-overlay:not(#modal-order-report),
-  #modal-order-report .modal-handle,
-  #modal-order-report .modal-hdr,
-  .toast,.sync-status{display:none!important}
+  /* Default (Low Inventory Report) print — only when NOT printing recipe */
+  body:not(.printing-recipe) #recipe-print-area { display:none!important }
 
-  /* Unfurl the order report modal as page content */
-  #modal-order-report{
+  body:not(.printing-recipe) #nav,
+  body:not(.printing-recipe) #header-add,body:not(.printing-recipe) #header-back,
+  body:not(.printing-recipe) #header-sync,body:not(.printing-recipe) #header-gsearch,
+  body:not(.printing-recipe) #header-settings,body:not(.printing-recipe) .search-bar,
+  body:not(.printing-recipe) .chips,body:not(.printing-recipe) .sort-row,
+  body:not(.printing-recipe) .btn,body:not(.printing-recipe) .copy-btn,
+  body:not(.printing-recipe) .print-btn,
+  body:not(.printing-recipe) #view-recipes,body:not(.printing-recipe) #view-inventory,
+  body:not(.printing-recipe) #view-calc,body:not(.printing-recipe) #view-batches,
+  body:not(.printing-recipe) #view-fragrances,body:not(.printing-recipe) #view-recipe-detail,
+  body:not(.printing-recipe) #view-inv-detail,body:not(.printing-recipe) #view-batch-detail,
+  body:not(.printing-recipe) #view-frag-detail,body:not(.printing-recipe) .settings-overlay,
+  body:not(.printing-recipe) .gsearch-overlay,body:not(.printing-recipe) .passcode-overlay,
+  body:not(.printing-recipe) .modal-overlay:not(#modal-order-report),
+  body:not(.printing-recipe) #modal-order-report .modal-handle,
+  body:not(.printing-recipe) #modal-order-report .modal-hdr,
+  body:not(.printing-recipe) .toast,body:not(.printing-recipe) .sync-status{display:none!important}
+
+  /* Unfurl the order report modal as page content — inventory report only */
+  body:not(.printing-recipe) #modal-order-report{
     display:block!important;position:static!important;
     background:none!important;inset:auto!important;z-index:auto!important
   }
-  #modal-order-report .modal-sheet{
+  body:not(.printing-recipe) #modal-order-report .modal-sheet{
     border-radius:0!important;box-shadow:none!important;
     max-height:none!important;height:auto!important;
     background:#fff!important;padding:0!important
   }
-  #modal-order-report .modal-body{
+  body:not(.printing-recipe) #modal-order-report .modal-body{
     overflow:visible!important;max-height:none!important;padding:0!important
   }
 
@@ -511,6 +524,9 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 </style>
 </head>
 <body>
+<!-- Hidden recipe print area — shown only during window.print() -->
+<div id="recipe-print-area" style="display:none"></div>
+
 <div id="app">
   <div id="header">
     <button id="header-back" onclick="App.goBack()">
@@ -4058,22 +4074,23 @@ const App = {
     const _sSec = r.scent ? '<h3>Fragrance Notes</h3><div class="notes">'+this.h(r.scent)+'</div>' : '';
 
     const html =
-      '<!DOCTYPE html><html><head><title>'+this.h(r.name)+'</title>'+
-      '<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>'+
-      '<style>@page{margin:1in;size:letter portrait}*{box-sizing:border-box}'+
-      'body{font-family:Lato,sans-serif;margin:0;padding:0;color:#111;font-size:11px;line-height:1.45}'+
-      '.hdr{display:flex;align-items:center;gap:16px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}'+
-      '.brand-name{font-family:"Great Vibes",cursive;font-size:2.2rem;color:#D4789A;line-height:1}'+
-      '.brand-sub{font-size:9px;color:#555;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}'+
-      'h1{font-family:"Playfair Display",serif;font-size:1.25rem;color:#111;margin:0 0 8px}'+
-      '.meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}'+
-      '.meta-item{font-size:10px}.meta-item strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.5px;font-weight:700}'+
-      '.meta-item span{font-weight:700;color:#111}'+
-      '.two-col{display:grid;grid-template-columns:52% 46%;gap:2%;align-items:start}'+
-      'h3{font-family:"Playfair Display",serif;font-size:10px;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}'+
-      '.notes{font-size:10px;line-height:1.5;color:#111;white-space:pre-wrap}'+
-      '.footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}'+
-      '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>'+
+      '<style>'+
+      '#recipe-print-area{font-size:11px;line-height:1.45;color:#111}'+
+      '#recipe-print-area *{box-sizing:border-box}'+
+      '#recipe-print-area .hdr{display:flex;align-items:center;gap:16px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}'+
+      '#recipe-print-area .brand-name{font-family:"Great Vibes",cursive;font-size:2.2rem;color:#D4789A;line-height:1}'+
+      '#recipe-print-area .brand-sub{font-size:9px;color:#555;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}'+
+      '#recipe-print-area h1{font-family:"Playfair Display",serif;font-size:1.25rem;color:#111;margin:0 0 8px}'+
+      '#recipe-print-area .meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}'+
+      '#recipe-print-area .meta-item{font-size:10px}'+
+      '#recipe-print-area .meta-item strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.5px;font-weight:700}'+
+      '#recipe-print-area .meta-item span{font-weight:700;color:#111}'+
+      '#recipe-print-area .two-col{display:grid;grid-template-columns:52% 46%;gap:2%;align-items:start}'+
+      '#recipe-print-area table{width:100%;border-collapse:collapse;margin-bottom:10px}'+
+      '#recipe-print-area h3{font-family:"Playfair Display",serif;font-size:10px;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}'+
+      '#recipe-print-area .notes{font-size:10px;line-height:1.5;color:#111;white-space:pre-wrap}'+
+      '#recipe-print-area .footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}'+
+      '</style>'+
       '<div class="hdr">'+_logo+'<div><div class="brand-name">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div></div>'+
       '<h1>'+this.h(r.name)+'</h1>'+
       '<div class="meta"><div class="meta-item"><strong>Category</strong><span>'+this.h(r.category||'—')+'</span></div>'+
@@ -4083,25 +4100,21 @@ const App = {
         '<div>'+ingTablesHtml+'</div>'+
         '<div>'+_dSec+_iSec+_nSec+_sSec+'</div>'+
       '</div>'+
-      '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; '+this.h(r.name)+' &middot; Printed '+new Date().toLocaleDateString()+'</div>'+
-      '</body></html>';
+      '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; '+this.h(r.name)+' &middot; Printed '+new Date().toLocaleDateString()+'</div>';
 
-    let pf = document.getElementById('__print-frame');
-    if(!pf){
-      pf = document.createElement('iframe');
-      pf.id = '__print-frame';
-      pf.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:800px;height:1100px;border:none;visibility:hidden';
-      document.body.appendChild(pf);
-    }
-    pf.onload = null; // clear any previous handler
-    pf.srcdoc = html;
-    pf.onload = function(){
-      // Give fonts time to load before printing
+    // Inject into the print area div and print inline — works on iOS Safari
+    const printArea = document.getElementById('recipe-print-area');
+    printArea.innerHTML = html;
+    document.body.classList.add('printing-recipe');
+    // Let the DOM render, then print
+    setTimeout(function(){
+      window.print();
+      // Restore after print dialog closes
       setTimeout(function(){
-        try { pf.contentWindow.focus(); pf.contentWindow.print(); }
-        catch(e){ console.error('Print failed:', e); }
-      }, 800);
-    };
+        document.body.classList.remove('printing-recipe');
+        printArea.innerHTML = '';
+      }, 1000);
+    }, 150);
   },
 
   // ── SPLIT CALC PDF PRINT ─────────────────────────────────────
