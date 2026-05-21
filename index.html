@@ -595,9 +595,23 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
           <button class="s-clear" id="fr-clear" onclick="App.clrSearch('fr-search','fr-clear',App.renderFragrances.bind(App))" style="display:none">×</button>
         </div>
       </div>
-      <div class="chips" id="fr-chips"></div>
-      <div class="chips" id="fr-cp-chips" style="padding-top:0"></div>
-      <div class="chips" id="fr-note-chips" style="padding-top:0"></div>
+      <!-- Fragrance filter button -->
+      <div style="padding:4px 14px 8px;display:flex;align-items:center;gap:8px">
+        <button id="frag-filter-btn" onclick="App.toggleFragFilter()" style="display:flex;align-items:center;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;color:var(--text);cursor:pointer">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          <span id="frag-filter-label">Filter</span>
+        </button>
+        <button id="frag-filter-clear" onclick="App.clearFragFilters()" style="display:none;background:none;border:none;font-size:.78rem;color:var(--muted);cursor:pointer;text-decoration:underline">✕ Clear</button>
+      </div>
+      <!-- Fragrance filter dropdown panel -->
+      <div id="frag-filter-panel" style="display:none;margin:0 14px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 4px 16px var(--shadow)">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Scent Family</div>
+        <div id="fr-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">CP Behavior</div>
+        <div id="fr-cp-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Note</div>
+        <div id="fr-note-chips" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
       <div id="fr-list"></div>
     </div>
     <!-- FRAGRANCE DETAIL -->
@@ -1858,7 +1872,7 @@ const App = {
         document.getElementById('header').appendChild(printBtn);
       }
       printBtn.style.display='flex';
-      printBtn.onclick=()=>App.printRecipePDF(this.selRId);
+      printBtn.onclick=function(){ App.printRecipePDF(App.selRId); };
       title.textContent=r?r.name:'Recipe'; sub.textContent=r?r.category:'';
     } else if(this.subview==='inv-detail'){
       const i=this.inventory.find(x=>x.id===this.selIId);
@@ -2906,6 +2920,46 @@ const App = {
     try { await this._sbFetch('DELETE','fragrances?id=eq.'+id); } catch(e){}
   },
 
+  toggleFragFilter(){
+    const panel = document.getElementById('frag-filter-panel');
+    if(!panel) return;
+    const open = panel.style.display === 'none';
+    panel.style.display = open ? 'block' : 'none';
+    const btn = document.getElementById('frag-filter-btn');
+    if(btn){
+      const arrow = btn.querySelector('span') ? '' : '';
+      btn.style.borderColor = open ? 'var(--accent)' : 'var(--border)';
+      btn.style.color = open ? 'var(--accent)' : 'var(--text)';
+    }
+    if(open) this._buildFragChips();
+  },
+
+  clearFragFilters(){
+    this._frCat=''; this._frNote=''; this._frCp='';
+    this._updateFragFilterLabel();
+    document.getElementById('frag-filter-panel').style.display='none';
+    document.getElementById('frag-filter-btn').style.borderColor='var(--border)';
+    document.getElementById('frag-filter-btn').style.color='var(--text)';
+    this.renderFragrances();
+  },
+
+  _updateFragFilterLabel(){
+    const parts=[];
+    if(this._frCat) parts.push(this._frCat);
+    if(this._frCp==='no-dis') parts.push('No Discoloration');
+    else if(this._frCp==='no-acc') parts.push('Stays Fluid');
+    else if(this._frCp==='acc') parts.push('Accelerates');
+    if(this._frNote) parts.push(this._frNote);
+    const lbl = document.getElementById('frag-filter-label');
+    if(lbl) lbl.textContent = parts.length ? 'Filter: '+parts.join(', ') : 'Filter';
+    const clr = document.getElementById('frag-filter-clear');
+    if(clr) clr.style.display = parts.length ? 'block' : 'none';
+    // Accent border when active
+    const btn = document.getElementById('frag-filter-btn');
+    if(btn) btn.style.borderColor = parts.length ? 'var(--accent)' : 'var(--border)';
+    if(btn) btn.style.color = parts.length ? 'var(--accent)' : 'var(--text)';
+  },
+
   _buildFragChips(){
     // CP behavior filter chips
     const cpEl = document.getElementById('fr-cp-chips');
@@ -2943,13 +2997,15 @@ const App = {
 
   _setFragCat(val){
     this._frCat = val==='All'?'':val;
-    document.querySelectorAll('#fr-chips .chip').forEach(c=>c.classList.toggle('on',c.dataset.v===val));
+    document.querySelectorAll('#fr-chips .chip').forEach(c=>c.classList.toggle('on',c.dataset.v===val||(val==='All'&&c.dataset.v==='All')));
+    this._updateFragFilterLabel();
     this.renderFragrances();
   },
 
   _setFragNote(val){
     this._frNote = val;
     document.querySelectorAll('#fr-note-chips .chip').forEach(c=>c.classList.toggle('on',c.textContent===val||(val===''&&c.textContent==='Any Note')));
+    this._updateFragFilterLabel();
     this.renderFragrances();
   },
 
@@ -2959,6 +3015,7 @@ const App = {
       const cv = c.getAttribute('onclick').match(/'([^']*)'/)?.[1]||'';
       c.classList.toggle('on', cv===val);
     });
+    this._updateFragFilterLabel();
     this.renderFragrances();
   },
 
@@ -3902,13 +3959,32 @@ const App = {
       '</div>';
     }).join('');
     res.innerHTML = out;
-    // Show footer buttons once there are results
+    // Show footer buttons and a clear button once there are results
     const foot = document.getElementById('split-calc-foot');
     if(foot) foot.style.display = rows.length ? 'block' : 'none';
+    // Add clear/reset link above results
+    if(rows.length){
+      res.insertAdjacentHTML('afterbegin',
+        '<div style="text-align:right;margin-bottom:6px">'+
+        '<button onclick="App._clearSplitCalc()" style="background:none;border:none;font-size:.75rem;color:var(--muted);cursor:pointer;text-decoration:underline">✕ Clear results</button>'+
+        '</div>');
+    }
   },
 
-  // Store last split data for save/print
-  _lastSplitData: null,
+  _clearSplitCalc(){
+    this._lastSplitData = null;
+    const res = document.getElementById('split-result');
+    if(res) res.innerHTML = '';
+    const foot = document.getElementById('split-calc-foot');
+    if(foot) foot.style.display = 'none';
+    // Clear all percentage inputs
+    for(let i=0;i<6;i++){
+      const p=document.getElementById('split-pct-'+i);
+      const l=document.getElementById('split-label-'+i);
+      if(p) p.value='';
+      if(l) l.value='';
+    }
+  },
 
   printSplitCalc(){
     if(!this._lastSplitData) return;
@@ -3916,57 +3992,73 @@ const App = {
     const logoEl = document.getElementById('header-logo');
     const logoSrc = logoEl ? logoEl.src : '';
     const oz2g = v => Math.round(v*28.3495*10)/10;
+
     const rowHtml = rows.map(r=>{
       const totalOz = Math.round(totalWt*(r.pct/100)*100)/100;
       const oilOz   = Math.round(oilTotal*(r.pct/100)*100)/100;
       const lyeOz   = Math.round(lyeTotal*(r.pct/100)*100)/100;
-      return `<tr>
-        <td style="padding:7px 10px;border-bottom:1px solid #f0e0ea;font-weight:700;font-size:14px">${r.lbl}</td>
-        <td style="padding:7px 10px;border-bottom:1px solid #f0e0ea;text-align:center;font-size:14px">${r.pct}%</td>
-        <td style="padding:7px 10px;border-bottom:1px solid #f0e0ea;text-align:center;font-size:14px">${totalOz} oz<br><span style="font-size:12px;color:#666">${oz2g(totalOz)} g</span></td>
-        <td style="padding:7px 10px;border-bottom:1px solid #f0e0ea;text-align:center;font-size:14px;color:#A8527A">${oilOz} oz<br><span style="font-size:12px;color:#666">${oz2g(oilOz)} g</span></td>
-        <td style="padding:7px 10px;border-bottom:1px solid #f0e0ea;text-align:center;font-size:14px;color:#5C35C2">${lyeOz} oz<br><span style="font-size:12px;color:#666">${oz2g(lyeOz)} g</span></td>
-      </tr>`;
+      return '<tr>'+
+        '<td style="padding:7px 10px;border-bottom:1px solid #f0e0ea;font-weight:700;font-size:13px">'+(r.lbl||'')+'</td>'+
+        '<td style="padding:7px 10px;border-bottom:1px solid #f0e0ea;text-align:center;font-size:13px">'+r.pct+'%</td>'+
+        '<td style="padding:7px 10px;border-bottom:1px solid #f0e0ea;text-align:center;font-size:13px;color:#5C35C2">'+lyeOz+' oz<br><span style="font-size:11px;color:#666">'+oz2g(lyeOz)+' g</span></td>'+
+        '<td style="padding:7px 10px;border-bottom:1px solid #f0e0ea;text-align:center;font-size:13px;color:#A8527A">'+oilOz+' oz<br><span style="font-size:11px;color:#666">'+oz2g(oilOz)+' g</span></td>'+
+        '<td style="padding:7px 10px;border-bottom:1px solid #f0e0ea;text-align:center;font-size:13px">'+totalOz+' oz<br><span style="font-size:11px;color:#666">'+oz2g(totalOz)+' g</span></td>'+
+      '</tr>';
     }).join('');
-    const win = window.open('','_blank');
-    const _logo = logoSrc ? '<img class="logo" src="'+logoSrc+'" alt="Sudsy Sisters"/>' : '';
-    const _bsRow = r.batchSize ? '<div class="meta-item"><strong>Batch Size</strong><span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>' : '';
-    const _upbRow = r.unitsPerBatch ? '<div class="meta-item"><strong>Units</strong><span>'+r.unitsPerBatch+(r.unitSize?' @ '+r.unitSize+' oz ea':'')+'</span></div>' : '';
-    const _ctRow = r.cureTime ? '<div class="meta-item"><strong>Cure Time</strong><span>'+this.h(r.cureTime)+'</span></div>' : '';
-    const _costRow = cost.total ? '<div class="meta-item"><strong>Est. Cost</strong><span>$'+cost.total.toFixed(2)+'</span></div>' : '';
-    const _dSec = r.description ? '<h3>Description</h3><div class="notes">'+this.h(r.description)+'</div>' : '';
-    const _iSec = r.instructions ? '<h3>Instructions</h3><div class="notes">'+this.h(r.instructions)+'</div>' : '';
-    const _nSec = r.notes ? '<h3>Notes</h3><div class="notes">'+this.h(r.notes)+'</div>' : '';
-    const _sSec = r.scent ? '<h3>Fragrance</h3><div class="notes">'+this.h(r.scent)+'</div>' : '';
-    win.document.write(
-      '<!DOCTYPE html><html><head><title>'+this.h(r.name)+'</title>'+
+
+    const logoTag = logoSrc ? '<img style="width:64px;height:64px;border-radius:10px;object-fit:cover" src="'+logoSrc+'" alt=""/>' : '';
+
+    const html =
+      '<!DOCTYPE html><html><head><title>'+recipeName+' — Split Calculator</title>'+
       '<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>'+
-      '<style>@page{margin:1in;size:letter portrait}*{box-sizing:border-box}'+
-      'body{font-family:Lato,sans-serif;margin:0;padding:0;color:#111;font-size:11px;line-height:1.45}'+
-      '.hdr{display:flex;align-items:center;gap:16px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}'+
-      '.logo{width:68px;height:68px;border-radius:10px;object-fit:cover;flex-shrink:0}'+
-      '.brand-name{font-family:"Great Vibes",cursive;font-size:2rem;color:#D4789A;line-height:1}'+
-      '.brand-sub{font-size:9px;color:#555;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}'+
-      'h1{font-family:"Playfair Display",serif;font-size:1.25rem;color:#111;margin:0 0 8px}'+
-      '.meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}'+
-      '.meta-item strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.5px}'+
-      '.meta-item span{font-size:10px;font-weight:700;color:#111}'+
-      '.two-col{display:grid;grid-template-columns:52% 46%;gap:2%;margin-bottom:8px}'+
-      '.rc h3{font-family:"Playfair Display",serif;font-size:9.5px;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 3px;text-transform:uppercase;letter-spacing:.4px}'+
-      '.notes{font-size:9.5px;line-height:1.45;color:#111;white-space:pre-wrap}'+
-      '.footer{margin-top:8px;padding-top:5px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}'+
-      '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>'+
-      '<div class="hdr">'+_logo+'<div><div class="brand-name">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div></div>'+
-      '<h1>'+this.h(r.name)+'</h1>'+
-      '<div class="meta"><div class="meta-item"><strong>Category</strong><span>'+this.h(r.category||'—')+'</span></div>'+
-      '<div class="meta-item"><strong>Version</strong><span>'+this.h(r.version||'v1')+'</span></div>'+
-      _bsRow+_upbRow+_ctRow+_costRow+'</div>'+
-      '<div class="two-col"><div>'+apt+'</div><div class="rc">'+_dSec+_iSec+_nSec+_sSec+'</div></div>'+
-      '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; Printed '+new Date().toLocaleDateString()+'</div>'+
-      '</body></html>'
-    );
-    win.document.close();
-    setTimeout(()=>win.print(), 600);
+      '<style>'+
+      '@page{margin:1in;size:letter portrait}'+
+      '*{box-sizing:border-box}'+
+      'body{font-family:Lato,sans-serif;margin:0;padding:0;color:#111;font-size:13px}'+
+      '.hdr{display:flex;align-items:center;gap:16px;border-bottom:3px solid #FCBFCE;padding-bottom:12px;margin-bottom:18px}'+
+      '.brand{font-family:"Great Vibes",cursive;font-size:2rem;color:#D4789A;line-height:1}'+
+      '.brand-sub{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.5px}'+
+      'h2{font-family:"Playfair Display",serif;font-size:1.2rem;color:#111;margin:0 0 4px}'+
+      '.sub{font-size:12px;color:#555;margin-bottom:18px}'+
+      '.totals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}'+
+      '.total-box{background:#FEF2F6;border-radius:8px;padding:10px 12px;text-align:center}'+
+      '.total-box .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888}'+
+      '.total-box .val{font-size:1rem;font-weight:700;margin-top:4px}'+
+      '.total-box .gval{font-size:11px;color:#888}'+
+      'table{width:100%;border-collapse:collapse}'+
+      'thead tr{background:#FCBFCE}'+
+      'th{padding:7px 10px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#333}'+
+      'th:first-child{text-align:left}'+
+      '.footer{margin-top:20px;padding-top:8px;border-top:1px solid #ddd;font-size:10px;color:#888;text-align:center}'+
+      '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'+
+      '</style></head><body>'+
+      '<div class="hdr">'+logoTag+'<div><div class="brand">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div></div>'+
+      '<h2>'+recipeName+' — Color &amp; Layer Split</h2>'+
+      '<div class="sub">Printed '+new Date().toLocaleDateString()+'</div>'+
+      '<div class="totals">'+
+        '<div class="total-box"><div class="lbl">Total Batch</div><div class="val">'+totalWt.toFixed(2)+' '+(batchUnit||'oz')+'</div><div class="gval">'+oz2g(totalWt)+' g</div></div>'+
+        '<div class="total-box"><div class="lbl">Milk &amp; Lye</div><div class="val" style="color:#5C35C2">'+lyeTotal.toFixed(2)+' oz</div><div class="gval">'+oz2g(lyeTotal)+' g</div></div>'+
+        '<div class="total-box"><div class="lbl">Oils &amp; Butters</div><div class="val" style="color:#A8527A">'+oilTotal.toFixed(2)+' oz</div><div class="gval">'+oz2g(oilTotal)+' g</div></div>'+
+      '</div>'+
+      '<table>'+
+        '<thead><tr><th style="text-align:left">Color / Layer</th><th>%</th><th style="color:#5C35C2">Milk &amp; Lye</th><th style="color:#A8527A">Oils</th><th>Total</th></tr></thead>'+
+        '<tbody>'+rowHtml+'</tbody>'+
+      '</table>'+
+      '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; '+recipeName+'</div>'+
+      '</body></html>';
+
+    // Use hidden iframe to avoid iOS Safari popup blocker
+    let pf = document.getElementById('__print-frame-split');
+    if(!pf){
+      pf = document.createElement('iframe');
+      pf.id = '__print-frame-split';
+      pf.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none';
+      document.body.appendChild(pf);
+    }
+    pf.srcdoc = html;
+    pf.onload = function(){
+      try { pf.contentWindow.focus(); pf.contentWindow.print(); } catch(e){ window.print(); }
+    };
   },
 
     // ── TASK 6: INGREDIENT SIMILARITY ───────────────────────────
@@ -4392,7 +4484,10 @@ const App = {
           '</div>'+
         '</div>';
       }).join('');
-    } catch(e){ body.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">Failed to load variants.</div>'; }
+    } catch(e){
+      console.error('Variants list error:', e);
+      body.innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">Failed to load variants: ' + e.message + '</div>';
+    }
   },
 
   async openVariantForm(variantId, recipeId){
@@ -4477,7 +4572,8 @@ const App = {
     const name=(document.getElementById('vf-name')||{}).value?.trim();
     if(!name){ this._toast('Variant name required'); return; }
     const v = Object.assign({}, this._editVariant, {
-      name, notes:(document.getElementById('vf-notes')||{}).value||'',
+      name,
+      notes:(document.getElementById('vf-notes')||{}).value||'',
       mold_type:(document.getElementById('vf-mold')||{}).value||'loaf',
       batch_size:parseFloat((document.getElementById('vf-batch')||{}).value)||null,
       fragrance_id:(document.getElementById('vf-frag')||{}).value||null,
@@ -4485,13 +4581,37 @@ const App = {
       colorant:(document.getElementById('vf-colorant')||{}).value||'',
       updated_at:new Date().toISOString()
     });
-    if(!v.id) v.id=this.uid();
+    if(!v.id) v.id = this.uid();
+
+    // Clean up empty fields that may cause type errors
+    if(!v.batch_size) delete v.batch_size;
+    if(!v.fragrance_id) delete v.fragrance_id;
+    if(!v.fragrance_amount) delete v.fragrance_amount;
+
+    this._showSyncStatus('Saving variant…');
     try {
-      await this._sbFetch('POST','recipe_variants',[v]);
+      const res = await fetch(this.SB_URL + '/rest/v1/recipe_variants?on_conflict=id', {
+        method: 'POST',
+        headers: {
+          'apikey': this.SB_KEY,
+          'Authorization': 'Bearer ' + this.SB_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify(v)
+      });
+      if(!res.ok){
+        const err = await res.text();
+        console.error('Variant save error:', res.status, err);
+        this._showSyncStatus('Save failed: ' + res.status);
+        this._toast('Save failed: ' + res.status);
+        return;
+      }
+      this._showSyncStatus('Saved ✓');
       this.closeModal('modal-variant-form');
       await this._renderVariantsList(v.base_recipe_id);
       this._toast('Variant saved!');
-    } catch(e){ this._toast('Failed to save variant'); }
+    } catch(e){ this._showSyncStatus('Save failed'); this._toast('Failed to save variant: ' + e.message); }
   },
 
   async makeBatchFromVariant(variantId){
@@ -4616,16 +4736,37 @@ const App = {
       const num = parseInt(ver.replace('v',''))||1;
       r = Object.assign({},r,{id:this.uid(), version:'v'+(num+1), created:new Date().toISOString().slice(0,10)});
     }
-    // Always stamp updated_at so bidirectional sync knows this is the newest
     r.updated_at = new Date().toISOString();
     const idx = this.recipes.findIndex(x=>x.id===r.id);
     if(idx>=0) this.recipes[idx]=r; else this.recipes.unshift(r);
-    this._saveR();
-    // Save version snapshot to Supabase
-    this._saveRecipeVersion(r, asNew ? 'New version' : 'Updated');
+    // Save locally first so UI is instant
+    this._localSaveR();
     this.renderRecipes(); this.populateCalcRecipes(); this.closeModal('modal-recipe');
     this._toast(asNew?'New version saved!':'Recipe updated!');
     if(this.subview==='recipe-detail') this.openRecipeDetail(r.id);
+    // Push just this one recipe to DB immediately
+    this._pushSingleRecipe(r);
+    // Save version snapshot
+    this._saveRecipeVersion(r, asNew ? 'New version' : 'Updated');
+  },
+
+  async _pushSingleRecipe(r){
+    this._showSyncStatus('Saving…');
+    try {
+      await fetch(this.SB_URL + '/rest/v1/recipes?on_conflict=id', {
+        method: 'POST',
+        headers: {
+          'apikey': this.SB_KEY,
+          'Authorization': 'Bearer ' + this.SB_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify({id: r.id, data: r, updated_at: r.updated_at})
+      });
+      this._showSyncStatus('Saved ✓');
+    } catch(e){
+      this._showSyncStatus('Save failed — offline');
+    }
   },
 
   async _saveRecipeVersion(r, changeNote){
