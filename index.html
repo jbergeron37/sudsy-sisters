@@ -4032,7 +4032,7 @@ const App = {
   // ── BLOB PRINT UTILITIES ─────────────────────────────────────
   _bPrintCSS: "*{box-sizing:border-box;margin:0;padding:0}html,body{font-family:Lato,sans-serif;font-size:11px;line-height:1.45;color:#111;background:#fff}@page{margin:1in .5in;size:letter portrait}@media print{html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}.hdr{display:flex;align-items:center;gap:14px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}.brand{font-family:'Great Vibes',cursive;font-size:2rem;color:#D4789A;line-height:1}.brand-sub{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:#111;margin-bottom:8px}h3{font-family:'Playfair Display',serif;font-size:.85rem;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.4px}.meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}.mi{font-size:10px}.mi strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.4px;font-weight:700}.mi span{font-weight:700;color:#111}.two-col{display:grid;grid-template-columns:52% 46%;gap:2%}table{width:100%;border-collapse:collapse;margin-bottom:10px}th{padding:4px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px}td{padding:3px 8px;border-bottom:1px solid #f0e0ea;font-size:11px}.tr td{font-weight:700;color:#A8527A;border-top:1.5px solid #FCBFCE;background:#FEF2F6}.notes{font-size:10px;line-height:1.5;white-space:pre-wrap}.footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}.section{margin-bottom:14px;page-break-inside:avoid}.sec-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;border-bottom:1px solid #FCBFCE;padding-bottom:3px;margin-bottom:6px}.row-card{padding:8px 10px;border:1px solid #f0e0ea;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:flex-start}.row-name{font-size:11px;font-weight:700}.row-detail{font-size:9.5px;color:#555}",
 
-  _bOpenPrint(body, title){
+  _bOpenPrint(body, title, existingWin){
     const logo = (document.getElementById('header-logo')||{}).src||'';
     const logoTag = logo ? '<img style="width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0" src="'+logo+'" alt=""/>' : '';
     const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+this.h(title||'Sudsy Sisters')+'</title>'+
@@ -4042,13 +4042,11 @@ const App = {
       body+
       '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; Printed '+new Date().toLocaleDateString()+'</div>'+
       '</body></html>';
-    // Open blank window first (must be synchronous), then write content
-    const win = window.open('', '_blank');
+    const win = existingWin || window.open('', '_blank');
     if(win){
       win.document.write(doc);
       win.document.close();
     } else {
-      // PWA standalone: window.open blocked — show in-app overlay
       this._showPrintOverlay(doc, title);
     }
   },
@@ -4077,7 +4075,7 @@ const App = {
   },
 
   // ── 1. RECIPE & VARIANT PRINT ─────────────────────────────────
-  printRecipePDF(id, recipeOverride){
+  printRecipePDF(id, recipeOverride, existingWin){
     const r = recipeOverride || this.recipes.find(x=>x.id===id); if(!r) return;
     const cost = this._calcRecipeCost(r);
     const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
@@ -4117,7 +4115,7 @@ const App = {
       r.notes?'<h3>Notes</h3><div class="notes">'+this.h(r.notes)+'</div>':'',
       r.scent?'<h3>Fragrance Notes</h3><div class="notes">'+this.h(r.scent)+'</div>':''
     ].filter(Boolean).join('');
-    this._bOpenPrint('<h1>'+this.h(r.name)+'</h1><div class="meta">'+meta+'</div><div class="two-col"><div>'+ingHtml+'</div><div>'+right+'</div></div>', r.name);
+    this._bOpenPrint('<h1>'+this.h(r.name)+'</h1><div class="meta">'+meta+'</div><div class="two-col"><div>'+ingHtml+'</div><div>'+right+'</div></div>', r.name, existingWin);
   },
 
   // ── 2. LOW INVENTORY REPORT PRINT ─────────────────────────────
@@ -5040,13 +5038,15 @@ const App = {
 
   // ── PDF PRINT ────────────────────────────────────────────────
   async printVariantPDF(variantId, recipeId){
+    // Open window FIRST synchronously before any async code
+    const win = window.open('', '_blank');
     try {
       const res = await this._sbFetch('GET','recipe_variants?id=eq.'+variantId);
       const rows = await res.json();
-      if(!rows||!rows[0]){ this._toast('Variant not found'); return; }
+      if(!rows||!rows[0]){ if(win) win.close(); this._toast('Variant not found'); return; }
       const v = rows[0];
       const baseR = this.recipes.find(x=>x.id===(recipeId||v.base_recipe_id));
-      if(!baseR){ this._toast('Base recipe not found'); return; }
+      if(!baseR){ if(win) win.close(); this._toast('Base recipe not found'); return; }
       const merged = Object.assign({}, baseR, {
         name: baseR.name+' - '+v.name,
         batchSize: v.batch_size || baseR.batchSize,
@@ -5054,8 +5054,9 @@ const App = {
         notes: [baseR.notes, v.colorant?'Colorant: '+v.colorant:'', v.notes].filter(Boolean).join('\n\n'),
         version: v.mold_type?(v.mold_type.charAt(0).toUpperCase()+v.mold_type.slice(1)+' mold'):baseR.version
       });
-      this.printRecipePDF(merged.id, merged);
-    } catch(e){ this._toast('Print failed: '+e.message); }
+      // Pass the already-opened window to printRecipePDF
+      this.printRecipePDF(merged.id, merged, win);
+    } catch(e){ if(win) win.close(); this._toast('Print failed: '+e.message); }
   },
 
   printBatchPDF(batchId){
