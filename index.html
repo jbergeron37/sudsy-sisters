@@ -602,6 +602,8 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
           <span id="frag-filter-label">Filter</span>
         </button>
         <button id="frag-filter-clear" onclick="App.clearFragFilters()" style="display:none;background:none;border:none;font-size:.78rem;color:var(--muted);cursor:pointer;text-decoration:underline">✕ Clear</button>
+      
+        <button onclick="App.printFragranceList()" title="Print visible fragrances" style="background:rgba(0,0,0,.08);border:none;border-radius:20px;padding:7px 10px;font-family:Lato,sans-serif;font-size:.82rem;color:var(--text);cursor:pointer;flex-shrink:0">🖨</button>
       </div>
       <!-- Fragrance filter dropdown panel -->
       <div id="frag-filter-panel" style="display:none;margin:0 14px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 4px 16px var(--shadow)">
@@ -839,6 +841,8 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
   <div class="modal-sheet" style="border-radius:0 0 20px 20px;animation:slideDown .24s ease-out;max-height:60vh">
     <div class="modal-hdr"><div class="modal-title">🔧 Tools</div><button class="modal-close" onclick="App.closeModal('modal-tools')">×</button></div>
     <div class="modal-body" style="padding:0">
+      <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.printInventoryReport()"><div><div class="settings-label">🖨 Print Low Inventory Report</div><div class="settings-sub">Standalone print — items needing restock</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.printLowStockFragrances()"><div><div class="settings-label">🖨 Print Low Stock Fragrances</div><div class="settings-sub">Fragrances at or below reorder level</div></div><span style="color:var(--muted)">›</span></div>
       <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openOrderReport()"><div><div class="settings-label">Low Inventory Report</div><div class="settings-sub">View and print items needing restock</div></div><span style="color:var(--muted)">›</span></div>
       <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openCalcModal()"><div><div class="settings-label">Batch Calculator</div><div class="settings-sub">Scale any recipe by oz or bars</div></div><span style="color:var(--muted)">›</span></div>
       <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openPricingModal()"><div><div class="settings-label">Pricing Manager</div><div class="settings-sub">Calculate retail price per product</div></div><span style="color:var(--muted)">›</span></div>
@@ -2752,7 +2756,7 @@ const App = {
         <h2>📋 Low Inventory Report</h2>
         <div style="display:flex;gap:8px">
           <button class="copy-btn" onclick="App.copyReport()">Copy List</button>
-          <button class="print-btn" onclick="window.print()">🖨 Print</button>
+          <button class="copy-btn" onclick="App.printInventoryReport()">🖨 Print Report</button>
         </div>
       </div>
       ${catSections}
@@ -3987,121 +3991,161 @@ const App = {
   },
 
   // ── RECIPE PDF PRINT ─────────────────────────────────────────
-  printRecipePDF(id){
-    const r = this.recipes.find(x=>x.id===id); if(!r) return;
-    const cost = this._calcRecipeCost(r);
-    const logoEl = document.getElementById('header-logo');
-    const logoSrc = logoEl ? logoEl.src : '';
+  // ── BLOB PRINT UTILITIES ─────────────────────────────────────
+  _bPrintCSS: "*{box-sizing:border-box;margin:0;padding:0}html,body{font-family:Lato,sans-serif;font-size:11px;line-height:1.45;color:#111;background:#fff}@page{margin:1in;size:letter portrait}@media print{html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}.hdr{display:flex;align-items:center;gap:14px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}.brand{font-family:'Great Vibes',cursive;font-size:2rem;color:#D4789A;line-height:1}.brand-sub{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:#111;margin-bottom:8px}h3{font-family:'Playfair Display',serif;font-size:.85rem;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.4px}.meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}.mi{font-size:10px}.mi strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.4px;font-weight:700}.mi span{font-weight:700;color:#111}.two-col{display:grid;grid-template-columns:52% 46%;gap:2%}table{width:100%;border-collapse:collapse;margin-bottom:10px}th{padding:4px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px}td{padding:3px 8px;border-bottom:1px solid #f0e0ea;font-size:11px}.tr td{font-weight:700;color:#A8527A;border-top:1.5px solid #FCBFCE;background:#FEF2F6}.notes{font-size:10px;line-height:1.5;white-space:pre-wrap}.footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}.section{margin-bottom:14px;page-break-inside:avoid}.sec-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;border-bottom:1px solid #FCBFCE;padding-bottom:3px;margin-bottom:6px}.row-card{padding:8px 10px;border:1px solid #f0e0ea;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:flex-start}.row-name{font-size:11px;font-weight:700}.row-detail{font-size:9.5px;color:#555}",
 
+  _bOpenPrint(body, title){
+    const logo = (document.getElementById('header-logo')||{}).src||'';
+    const logoTag = logo ? '<img style="width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0" src="'+logo+'" alt=""/>' : '';
+    const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+this.h(title||'Sudsy Sisters')+'</title>'+
+      '<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">'+
+      '<style>'+this._bPrintCSS+'</style></head><body>'+
+      '<div class="hdr">'+logoTag+'<div><div class="brand">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div></div>'+
+      body+
+      '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; Printed '+new Date().toLocaleDateString()+'</div>'+
+      '</body></html>';
+    try {
+      const blob = new Blob([doc], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+      if(!win){
+        const a = document.createElement('a');
+        a.href=url; a.download=(title||'report').replace(/[^a-z0-9]/gi,'_')+'.html';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        this._toast('File saved — open it to print');
+      }
+      setTimeout(()=>URL.revokeObjectURL(url), 120000);
+    } catch(e){ this._toast('Print failed: '+e.message); }
+  },
+
+  // ── 1. RECIPE & VARIANT PRINT ─────────────────────────────────
+  printRecipePDF(id, recipeOverride){
+    const r = recipeOverride || this.recipes.find(x=>x.id===id); if(!r) return;
+    const cost = this._calcRecipeCost(r);
     const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
     const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
-
-    // Ingredient row for table
     const ingRow = (i, shade) => {
-      const isG = i.unit==='g';
-      const ozAmt = isG ? g2oz(i.amount) : (parseFloat(i.amount)||0);
-      const gAmt  = isG ? (parseFloat(i.amount)||0) : oz2g(i.amount);
-      return '<tr style="background:'+(shade?'#fdf6f9':'#fff')+'">'+
-        '<td style="padding:3px 8px;border-bottom:1px solid #f0e0ea;font-size:11px;color:#111">'+this.h(i.name)+'</td>'+
-        '<td style="padding:3px 8px;border-bottom:1px solid #f0e0ea;text-align:right;font-weight:700;font-size:11px;color:#111;white-space:nowrap">'+ozAmt.toFixed(2)+'</td>'+
-        '<td style="padding:3px 8px;border-bottom:1px solid #f0e0ea;text-align:right;font-size:10px;color:#555;white-space:nowrap">'+gAmt.toFixed(1)+'</td>'+
-        '</tr>';
+      const isG=i.unit==='g', ozAmt=isG?g2oz(i.amount):(parseFloat(i.amount)||0), gAmt=isG?(parseFloat(i.amount)||0):oz2g(i.amount);
+      return '<tr style="background:'+(shade?'#fdf6f9':'#fff')+'"><td>'+this.h(i.name)+'</td>'+
+        '<td style="text-align:right;font-weight:700;white-space:nowrap">'+ozAmt.toFixed(2)+'</td>'+
+        '<td style="text-align:right;color:#555;white-space:nowrap">'+gAmt.toFixed(1)+'</td></tr>';
     };
-    const groupTotal = arr => {
-      const totalOz = arr.reduce((s,i)=>s+(i.unit==='g'?g2oz(i.amount):(parseFloat(i.amount)||0)),0);
-      return {oz:totalOz.toFixed(2), g:oz2g(totalOz).toFixed(1)};
+    const gTotal = arr => { const oz=arr.reduce((s,i)=>s+(i.unit==='g'?g2oz(i.amount):(parseFloat(i.amount)||0)),0); return {oz:oz.toFixed(2),g:oz2g(oz).toFixed(1)}; };
+    const tRow = (l,oz,g) => '<tr class="tr"><td>'+l+'</td><td style="text-align:right">'+oz+'</td><td style="text-align:right;color:#888">'+g+'</td></tr>';
+    const LYE=/lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
+    const FRAG=/fragrance|scent|eo|essential oil|colorant|pigment|mica|oxide|dye/i;
+    const pL={'1':'Phase 1 — Goat Milk & Lye','2':'Phase 2 — Oils & Butters','3':'Phase 3 — Fragrance & Color','':'Ingredients'};
+    const pC={'1':'#5C35C2','2':'#A8527A','3':'#2E7D32','':'#666'};
+    const byP={};
+    (r.ingredients||[]).forEach(i=>{const p=i.phase||(LYE.test(i.name)?'1':FRAG.test(i.name)?'3':'2');if(!byP[p])byP[p]=[];byP[p].push(i);});
+    const tbl=(label,ings,color)=>{
+      const tot=gTotal(ings);
+      return '<table><thead><tr><th style="background:'+color+'22;color:'+color+';border-left:3px solid '+color+'">'+label+'</th>'+
+        '<th style="background:'+color+'22;color:'+color+';text-align:right">oz</th><th style="background:'+color+'22;color:'+color+';text-align:right">Grams</th></tr></thead>'+
+        '<tbody>'+ings.map((i,n)=>ingRow(i,n%2===1)).join('')+tRow('Total',tot.oz,tot.g)+'</tbody></table>';
     };
-    const totalRow = (label, oz, g) =>
-      '<tr style="background:#FEF2F6"><td style="padding:4px 8px;font-weight:700;font-size:11px;color:#A8527A;border-top:1.5px solid #FCBFCE">'+label+'</td>'+
-      '<td style="padding:4px 8px;text-align:right;font-weight:700;font-size:11px;color:#A8527A;border-top:1.5px solid #FCBFCE">'+oz+'</td>'+
-      '<td style="padding:4px 8px;text-align:right;font-size:10px;color:#888;border-top:1.5px solid #FCBFCE">'+g+'</td></tr>';
+    let ingHtml=''; ['1','2','3',''].forEach(p=>{if(byP[p]&&byP[p].length)ingHtml+=tbl(pL[p],byP[p],pC[p]);});
+    const meta=[
+      r.category?'<div class="mi"><strong>Category</strong><span>'+this.h(r.category)+'</span></div>':'',
+      '<div class="mi"><strong>Version</strong><span>'+this.h(r.version||'v1')+'</span></div>',
+      r.batchSize?'<div class="mi"><strong>Batch Size</strong><span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>':'',
+      r.unitsPerBatch?'<div class="mi"><strong>Units</strong><span>'+r.unitsPerBatch+(r.unitSize?' @ '+r.unitSize+' oz':'')+'</span></div>':'',
+      r.cureTime?'<div class="mi"><strong>Cure Time</strong><span>'+this.h(r.cureTime)+'</span></div>':'',
+      cost.total?'<div class="mi"><strong>Est. Cost</strong><span>$'+cost.total.toFixed(2)+'</span></div>':''
+    ].filter(Boolean).join('');
+    const right=[
+      r.description?'<h3>Description</h3><div class="notes">'+this.h(r.description)+'</div>':'',
+      r.instructions?'<h3>Instructions</h3><div class="notes">'+this.h(r.instructions)+'</div>':'',
+      r.notes?'<h3>Notes</h3><div class="notes">'+this.h(r.notes)+'</div>':'',
+      r.scent?'<h3>Fragrance Notes</h3><div class="notes">'+this.h(r.scent)+'</div>':''
+    ].filter(Boolean).join('');
+    this._bOpenPrint('<h1>'+this.h(r.name)+'</h1><div class="meta">'+meta+'</div><div class="two-col"><div>'+ingHtml+'</div><div>'+right+'</div></div>', r.name);
+  },
 
-    // Group by phase
-    const LYE_RE = /lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
-    const FRAG_RE = /fragrance|scent|eo |essential oil|colorant|pigment|mica|oxide|dye/i;
-    const phaseLabels = {'1':'Phase 1 — Goat Milk & Lye','2':'Phase 2 — Oils & Butters','3':'Phase 3 — Fragrance & Color','':`Ingredients`};
-    const phaseColors = {'1':'#5C35C2','2':'#A8527A','3':'#2E7D32','':'#666'};
-    const byPhase = {};
-    (r.ingredients||[]).forEach(i=>{
-      const p = i.phase || (LYE_RE.test(i.name)?'1':FRAG_RE.test(i.name)?'3':'2');
-      if(!byPhase[p]) byPhase[p]=[];
-      byPhase[p].push(i);
+  // ── 2. LOW INVENTORY REPORT PRINT ─────────────────────────────
+  printInventoryReport(){
+    const low = this.inventory.filter(i=>this._iStat(i)!=='ok');
+    if(!low.length){ this._toast('All inventory is well stocked!'); return; }
+    const byCategory={};
+    low.sort((a,b)=>a.name.localeCompare(b.name)).forEach(i=>{const c=i.category||'Other';if(!byCategory[c])byCategory[c]=[];byCategory[c].push(i);});
+    const sortedCats = Object.keys(byCategory).sort((a,b)=>byCategory[b].length-byCategory[a].length);
+    let sectionsHtml='';
+    let grandTotal=0;
+    sortedCats.forEach(cat=>{
+      const items=byCategory[cat];
+      const catCost=items.reduce((s,i)=>{const n=Math.max(0,(i.reorderAt||0)*2-i.quantity);return s+(n*(parseFloat(i.cost)||0));},0);
+      grandTotal+=catCost;
+      const rows=items.map(i=>{
+        const need=Math.max(0,(i.reorderAt||0)*2-i.quantity);
+        const status=this._iStat(i);
+        const dot=status==='out'?'<span style="color:#c0392b">●</span>':'<span style="color:#e65100">●</span>';
+        return '<tr><td>'+dot+' '+this.h(i.name)+'</td><td style="text-align:right">'+i.quantity+' '+i.unit+'</td>'+
+          '<td style="text-align:right;color:#c0392b">'+need.toFixed(1)+' '+i.unit+'</td>'+
+          '<td style="text-align:right">'+(parseFloat(i.cost)?'$'+parseFloat(i.cost).toFixed(2)+'/'+i.unit:'—')+'</td></tr>';
+      }).join('');
+      sectionsHtml+='<div class="section"><div class="sec-title">'+this.h(cat)+' ('+items.length+')</div>'+
+        '<table><thead><tr><th>Item</th><th style="text-align:right">Remaining</th><th style="text-align:right">Need</th><th style="text-align:right">Price/Unit</th></tr></thead>'+
+        '<tbody>'+rows+'</tbody></table>'+
+        (catCost>0?'<div style="text-align:right;font-size:9px;font-weight:700;color:#A8527A;padding:2px 0">Est. Replenishment: ~$'+catCost.toFixed(2)+'</div>':'')+
+      '</div>';
     });
-    const hasPhases = Object.keys(byPhase).length > 1 || !byPhase[''];
+    sectionsHtml+='<div style="border-top:2px solid #FCBFCE;padding-top:8px;margin-top:8px;display:flex;justify-content:space-between;font-weight:700;font-size:11px">'+
+      '<span>Est. Total Replenishment Cost</span><span style="color:#A8527A">~$'+grandTotal.toFixed(2)+'</span></div>';
+    this._bOpenPrint('<h1>Low Inventory Report</h1>'+sectionsHtml, 'Low Inventory Report');
+  },
 
-    const tbl = (label, ings, color) => {
-      const tot = groupTotal(ings);
-      const rows = ings.map((i,n)=>ingRow(i,n%2===1)).join('');
-      return '<table style="width:100%;border-collapse:collapse;margin-bottom:10px">'+
-        '<thead><tr>'+
-          '<th style="background:'+color+'22;padding:4px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:'+color+';border-left:3px solid '+color+'">'+label+'</th>'+
-          '<th style="background:'+color+'22;padding:4px 8px;text-align:right;font-size:10px;text-transform:uppercase;color:'+color+'">oz</th>'+
-          '<th style="background:'+color+'22;padding:4px 8px;text-align:right;font-size:10px;text-transform:uppercase;color:'+color+'">Grams</th>'+
-        '</tr></thead>'+
-        '<tbody>'+rows+totalRow('Total',tot.oz,tot.g)+'</tbody></table>';
-    };
+  // ── 3. PRINT VISIBLE/FILTERED FRAGRANCES ──────────────────────
+  printFragranceList(){
+    const list = this._getFilteredFragrances();
+    if(!list.length){ this._toast('No fragrances to print'); return; }
+    const cpColor={None:'#2E7D32',Mild:'#E65100',Moderate:'#C62828',Heavy:'#B71C1C',Unknown:'#888'};
+    const rows=list.map(f=>{
+      const accClr=cpColor[f.cp_acceleration]||'#888';
+      const disClr=cpColor[f.cp_discoloration]||'#888';
+      return '<tr><td><strong>'+this.h(f.name)+'</strong><br><span style="color:#888;font-size:9px">'+this.h(f.scent_family||'')+'</span></td>'+
+        '<td style="font-size:9.5px">'+this.h([f.top_notes,f.middle_notes,f.base_notes].filter(Boolean).join(' / '))+'</td>'+
+        '<td style="text-align:center;font-size:9.5px;color:'+accClr+'">'+this.h(f.cp_acceleration||'?')+'</td>'+
+        '<td style="text-align:center;font-size:9.5px;color:'+disClr+'">'+this.h(f.cp_discoloration||'?')+'</td>'+
+        '<td style="text-align:right;font-size:9.5px">'+(f.quantity||0)+' '+(f.unit||'oz')+'</td></tr>';
+    }).join('');
+    const body='<h1>Fragrances</h1>'+
+      '<table><thead><tr><th>Name</th><th>Notes</th><th style="text-align:center">Acceleration</th><th style="text-align:center">Discoloration</th><th style="text-align:right">Stock</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table>';
+    this._bOpenPrint(body, 'Fragrance List');
+  },
 
-    let ingTablesHtml = '';
-    ['1','2','3',''].forEach(p=>{
-      if(byPhase[p]&&byPhase[p].length)
-        ingTablesHtml += tbl(phaseLabels[p], byPhase[p], phaseColors[p]);
+  // ── 4. PRINT LOW STOCK FRAGRANCES ────────────────────────────
+  printLowStockFragrances(){
+    const low=this.fragrances.filter(f=>(f.quantity||0)<=(f.reorder_at||2));
+    if(!low.length){ this._toast('All fragrances are well stocked!'); return; }
+    const rows=low.map(f=>'<tr><td><strong>'+this.h(f.name)+'</strong></td>'+
+      '<td style="text-align:center">'+this.h(f.scent_family||'—')+'</td>'+
+      '<td style="text-align:right;color:#c0392b">'+(f.quantity||0)+' '+(f.unit||'oz')+'</td>'+
+      '<td style="text-align:right">'+(f.reorder_at||2)+' '+(f.unit||'oz')+'</td>'+
+      '<td style="text-align:right">'+(f.cost?'$'+parseFloat(f.cost).toFixed(2)+'/oz':'—')+'</td></tr>'
+    ).join('');
+    const body='<h1>Low Stock Fragrances</h1>'+
+      '<table><thead><tr><th>Fragrance</th><th style="text-align:center">Family</th><th style="text-align:right">In Stock</th><th style="text-align:right">Reorder At</th><th style="text-align:right">Cost</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table>';
+    this._bOpenPrint(body, 'Low Stock Fragrances');
+  },
+
+  // helper: get currently filtered fragrance list
+  _getFilteredFragrances(){
+    const q=(document.getElementById('fr-search')||{}).value||'';
+    return this.fragrances.filter(f=>{
+      const allText=[f.name,f.description,f.top_notes,f.middle_notes,f.base_notes,f.scent_family,f.notes].join(' ').toLowerCase();
+      const mq=!q||allText.includes(q.toLowerCase());
+      const mc=!this._frCat||f.scent_family===this._frCat;
+      const mn=!this._frNote||[f.top_notes,f.middle_notes,f.base_notes].join(',').toLowerCase().includes(this._frNote.toLowerCase());
+      const dis=(f.cp_discoloration||'Unknown').toLowerCase();
+      const acc=(f.cp_acceleration||'Unknown').toLowerCase();
+      let mcp=true;
+      if(this._frCp==='no-dis') mcp=dis==='none';
+      else if(this._frCp==='no-acc') mcp=acc==='none';
+      else if(this._frCp==='acc') mcp=acc!=='none'&&acc!=='unknown';
+      return mq&&mc&&mn&&mcp;
     });
-
-    const _logo = logoSrc ? '<img style="width:72px;height:72px;border-radius:12px;object-fit:cover;flex-shrink:0" src="'+logoSrc+'" alt=""/>' : '';
-    const _bsRow = r.batchSize ? '<div class="meta-item"><strong>Batch Size</strong><span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>' : '';
-    const _upbRow = r.unitsPerBatch ? '<div class="meta-item"><strong>Units</strong><span>'+r.unitsPerBatch+(r.unitSize?' @ '+r.unitSize+' oz ea':'')+'</span></div>' : '';
-    const _ctRow = r.cureTime ? '<div class="meta-item"><strong>Cure Time</strong><span>'+this.h(r.cureTime)+'</span></div>' : '';
-    const _costRow = cost.total ? '<div class="meta-item"><strong>Est. Cost</strong><span>$'+cost.total.toFixed(2)+'</span></div>' : '';
-    const _dSec = r.description ? '<h3>Description</h3><div class="notes">'+this.h(r.description)+'</div>' : '';
-    const _iSec = r.instructions ? '<h3>Instructions</h3><div class="notes">'+this.h(r.instructions)+'</div>' : '';
-    const _nSec = r.notes ? '<h3>Notes</h3><div class="notes">'+this.h(r.notes)+'</div>' : '';
-    const _sSec = r.scent ? '<h3>Fragrance Notes</h3><div class="notes">'+this.h(r.scent)+'</div>' : '';
-
-    const html =
-      '<!DOCTYPE html><html><head><title>'+this.h(r.name)+'</title>'+
-      '<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>'+
-      '<style>@page{margin:1in;size:letter portrait}*{box-sizing:border-box}'+
-      'body{font-family:Lato,sans-serif;margin:0;padding:0;color:#111;font-size:11px;line-height:1.45}'+
-      '.hdr{display:flex;align-items:center;gap:16px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}'+
-      '.brand-name{font-family:"Great Vibes",cursive;font-size:2.2rem;color:#D4789A;line-height:1}'+
-      '.brand-sub{font-size:9px;color:#555;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}'+
-      'h1{font-family:"Playfair Display",serif;font-size:1.25rem;color:#111;margin:0 0 8px}'+
-      '.meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}'+
-      '.meta-item{font-size:10px}.meta-item strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.5px;font-weight:700}'+
-      '.meta-item span{font-weight:700;color:#111}'+
-      '.two-col{display:grid;grid-template-columns:52% 46%;gap:2%;align-items:start}'+
-      'h3{font-family:"Playfair Display",serif;font-size:10px;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}'+
-      '.notes{font-size:10px;line-height:1.5;color:#111;white-space:pre-wrap}'+
-      '.footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}'+
-      '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>'+
-      '<div class="hdr">'+_logo+'<div><div class="brand-name">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div></div>'+
-      '<h1>'+this.h(r.name)+'</h1>'+
-      '<div class="meta"><div class="meta-item"><strong>Category</strong><span>'+this.h(r.category||'—')+'</span></div>'+
-        '<div class="meta-item"><strong>Version</strong><span>'+this.h(r.version||'v1')+'</span></div>'+
-        _bsRow+_upbRow+_ctRow+_costRow+'</div>'+
-      '<div class="two-col">'+
-        '<div>'+ingTablesHtml+'</div>'+
-        '<div>'+_dSec+_iSec+_nSec+_sSec+'</div>'+
-      '</div>'+
-      '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; '+this.h(r.name)+' &middot; Printed '+new Date().toLocaleDateString()+'</div>'+
-      '</body></html>';
-
-    let pf = document.getElementById('__print-frame');
-    if(!pf){
-      pf = document.createElement('iframe');
-      pf.id = '__print-frame';
-      pf.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:800px;height:1100px;border:none;visibility:hidden';
-      document.body.appendChild(pf);
-    }
-    pf.onload = null; // clear any previous handler
-    pf.srcdoc = html;
-    pf.onload = function(){
-      // Give fonts time to load before printing
-      setTimeout(function(){
-        try { pf.contentWindow.focus(); pf.contentWindow.print(); }
-        catch(e){ console.error('Print failed:', e); }
-      }, 800);
-    };
   },
 
   // ── SPLIT CALC PDF PRINT ─────────────────────────────────────
