@@ -873,7 +873,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     <div class="modal-body" id="split-calc-body"></div>
     <div class="modal-foot" id="split-calc-foot" style="display:none">
       <div style="display:flex;gap:8px">
-        <button class="btn btn-outline" style="flex:1" onclick="App.printSplitCalc()">🖨 Print PDF</button>
+        <button class="btn btn-outline" onclick="App.printSplitCalc()" title="Print PDF" style="padding:8px 14px">🖨</button>
         <button class="btn btn-primary" style="flex:1" onclick="App.saveSplitToNotes()">💾 Save to Batch Notes</button>
       </div>
     </div>
@@ -4545,7 +4545,7 @@ const App = {
       +'</div>'
       +(b.notes?'<div class="section"><div class="section-title">Notes</div><div class="prose-muted">'+this.h(b.notes)+'</div></div>':'')
       +(photos?'<div class="section"><div class="section-title">Photos</div><div class="photo-grid">'+photos+'</div></div>':'')
-      +'<div style="padding:0 14px 10px"><button class="btn btn-primary btn-full" onclick="App.printBatchPDF(\''+b.id+'\')">🖨 Print / Save as PDF</button></div>'
+      +'<div style="padding:0 14px 10px"><button class="btn btn-primary" onclick="App.printBatchPDF(\''+b.id+'\')" title="Print / Save as PDF" style="padding:8px 14px">🖨</button></div>'
       +'<div class="detail-actions">'
       +'<button class="btn btn-outline" onclick="App._editBatchEntry(\''+b.id+'\')">✏️ Edit</button>'
       +'<button class="btn btn-danger" onclick="App._deleteBatchEntry(\''+b.id+'\')">🗑 Delete</button>'
@@ -4954,6 +4954,25 @@ const App = {
   },
 
   // ── PDF PRINT ────────────────────────────────────────────────
+  async printVariantPDF(variantId, recipeId){
+    try {
+      const res = await this._sbFetch('GET','recipe_variants?id=eq.'+variantId);
+      const rows = await res.json();
+      if(!rows||!rows[0]){ this._toast('Variant not found'); return; }
+      const v = rows[0];
+      const baseR = this.recipes.find(x=>x.id===(recipeId||v.base_recipe_id));
+      if(!baseR){ this._toast('Base recipe not found'); return; }
+      const merged = Object.assign({}, baseR, {
+        name: baseR.name+' - '+v.name,
+        batchSize: v.batch_size || baseR.batchSize,
+        ingredients: [...(baseR.ingredients||[]),...(v.added_ingredients||[])],
+        notes: [baseR.notes, v.colorant?'Colorant: '+v.colorant:'', v.notes].filter(Boolean).join('\n\n'),
+        version: v.mold_type?(v.mold_type.charAt(0).toUpperCase()+v.mold_type.slice(1)+' mold'):baseR.version
+      });
+      this.printRecipePDF(merged.id, merged);
+    } catch(e){ this._toast('Print failed: '+e.message); }
+  },
+
   printBatchPDF(batchId){
     const b = this.batches.find(x=>x.id===batchId);
     const r = this.recipes.find(x=>x.id===b.recipe_id)||{};
