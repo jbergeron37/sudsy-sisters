@@ -2051,12 +2051,12 @@ const App = {
         <div style="padding:0 14px 10px">
           <button class="btn btn-primary btn-full" onclick="App.makeBatch('${r.id}')">🧼 Make This Batch</button>
         </div>
-        <div class="detail-actions">
-          <button class="btn btn-outline" onclick="App.openRecipeModal('${r.id}')">✏️ Edit</button>
-          <button class="btn btn-outline" onclick="App.showVersionHistory('${r.id}')">🕐 History</button>
-          <button class="btn btn-outline" onclick="App.openSplitCalc('${r.id}')">📐 % Split</button>
-          <button class="btn btn-outline" onclick="App.openVariantsModal('${r.id}')">🎨 Variants</button>
-          <button class="btn btn-danger" onclick="App.delRecipe('${r.id}')">🗑 Delete</button>
+        <div class="detail-actions" style="flex-wrap:wrap;gap:6px">
+          <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.openRecipeModal('${r.id}')">✏️ Edit</button>
+          <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.showVersionHistory('${r.id}')">🕐 History</button>
+          <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.openSplitCalc('${r.id}')">📐 % Split</button>
+          <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.openVariantsModal('${r.id}')">🎨 Variants</button>
+          <button class="btn btn-danger" style="padding:8px 12px;font-size:1rem;flex-shrink:0" title="Delete recipe" onclick="App.delRecipe('${r.id}')">🗑</button>
         </div>
       </div>`;
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -4192,8 +4192,6 @@ const App = {
   printSplitCalc(){
     if(!this._lastSplitData) return;
     const {recipeName, totalWt, oilTotal, lyeTotal, batchUnit, rows} = this._lastSplitData;
-    const logoEl = document.getElementById('header-logo');
-    const logoSrc = logoEl ? logoEl.src : '';
     const oz2g = v => Math.round(v*28.3495*10)/10;
 
     const rowHtml = rows.map(r=>{
@@ -4211,47 +4209,24 @@ const App = {
 
     const logoTag = logoSrc ? '<img style="width:64px;height:64px;border-radius:10px;object-fit:cover" src="'+logoSrc+'" alt=""/>' : '';
 
-    const html =
-      '<!DOCTYPE html><html><head><title>'+recipeName+' — Split Calculator</title>'+
-      '<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>'+
-      '<style>'+
-      '@page{margin:1in .5in;size:letter portrait}'+
-      '*{box-sizing:border-box}'+
-      'body{font-family:Lato,sans-serif;margin:0;padding:0;color:#111;font-size:13px}'+
-      '.hdr{display:flex;align-items:center;gap:16px;border-bottom:3px solid #FCBFCE;padding-bottom:12px;margin-bottom:18px}'+
-      '.brand{font-family:"Great Vibes",cursive;font-size:2rem;color:#D4789A;line-height:1}'+
-      '.brand-sub{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.5px}'+
-      'h2{font-family:"Playfair Display",serif;font-size:1.2rem;color:#111;margin:0 0 4px}'+
-      '.sub{font-size:12px;color:#555;margin-bottom:18px}'+
-      '.totals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}'+
-      '.total-box{background:#FEF2F6;border-radius:8px;padding:10px 12px;text-align:center}'+
-      '.total-box .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888}'+
-      '.total-box .val{font-size:1rem;font-weight:700;margin-top:4px}'+
-      '.total-box .gval{font-size:11px;color:#888}'+
-      'table{width:100%;border-collapse:collapse}'+
-      'thead tr{background:#FCBFCE}'+
-      'th{padding:7px 10px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#333}'+
-      'th:first-child{text-align:left}'+
-      '.footer{margin-top:20px;padding-top:8px;border-top:1px solid #ddd;font-size:10px;color:#888;text-align:center}'+
-      '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'+
-      '</style></head><body>'+
-      '<div class="hdr">'+logoTag+'<div><div class="brand">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div></div>'+
-      '<h2>'+recipeName+' — Color &amp; Layer Split</h2>'+
-      '<div class="sub">Printed '+new Date().toLocaleDateString()+'</div>'+
-      '<div class="totals">'+
-        '<div class="total-box"><div class="lbl">Total Batch</div><div class="val">'+totalWt.toFixed(2)+' '+(batchUnit||'oz')+'</div><div class="gval">'+oz2g(totalWt)+' g</div></div>'+
-        '<div class="total-box"><div class="lbl">Milk &amp; Lye</div><div class="val" style="color:#5C35C2">'+lyeTotal.toFixed(2)+' oz</div><div class="gval">'+oz2g(lyeTotal)+' g</div></div>'+
-        '<div class="total-box"><div class="lbl">Oils &amp; Butters</div><div class="val" style="color:#A8527A">'+oilTotal.toFixed(2)+' oz</div><div class="gval">'+oz2g(oilTotal)+' g</div></div>'+
+    const body =
+      '<h2 style="font-family:\'Playfair Display\',serif;font-size:1.2rem;color:#111;margin:0 0 4px">'+recipeName+' — Color &amp; Layer Split</h2>'+
+      '<div style="font-size:12px;color:#555;margin-bottom:18px">Printed '+new Date().toLocaleDateString()+'</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">'+
+        '<div style="background:#FEF2F6;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888">Total Batch</div><div style="font-size:1rem;font-weight:700;margin-top:4px">'+totalWt.toFixed(2)+' '+(batchUnit||'oz')+'</div><div style="font-size:11px;color:#888">'+oz2g(totalWt)+' g</div></div>'+
+        '<div style="background:#FEF2F6;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888">Milk &amp; Lye</div><div style="font-size:1rem;font-weight:700;margin-top:4px;color:#5C35C2">'+lyeTotal.toFixed(2)+' oz</div><div style="font-size:11px;color:#888">'+oz2g(lyeTotal)+' g</div></div>'+
+        '<div style="background:#FEF2F6;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888">Oils &amp; Butters</div><div style="font-size:1rem;font-weight:700;margin-top:4px;color:#A8527A">'+oilTotal.toFixed(2)+' oz</div><div style="font-size:11px;color:#888">'+oz2g(oilTotal)+' g</div></div>'+
       '</div>'+
-      '<table>'+
-        '<thead><tr><th style="text-align:left">Color / Layer</th><th>%</th><th style="color:#5C35C2">Milk &amp; Lye</th><th style="color:#A8527A">Oils</th><th>Total</th></tr></thead>'+
+      '<table style="width:100%;border-collapse:collapse">'+
+        '<thead><tr style="background:#FCBFCE"><th style="padding:7px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#333">Color / Layer</th>'+
+        '<th style="padding:7px 10px;text-align:center;font-size:11px;text-transform:uppercase;color:#333">%</th>'+
+        '<th style="padding:7px 10px;text-align:center;font-size:11px;text-transform:uppercase;color:#5C35C2">Milk &amp; Lye</th>'+
+        '<th style="padding:7px 10px;text-align:center;font-size:11px;text-transform:uppercase;color:#A8527A">Oils</th>'+
+        '<th style="padding:7px 10px;text-align:center;font-size:11px;text-transform:uppercase;color:#333">Total</th></tr></thead>'+
         '<tbody>'+rowHtml+'</tbody>'+
-      '</table>'+
-      '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; '+recipeName+'</div>'+
-      '</body></html>';
+      '</table>';
 
-    // Use blob URL — same method as other reports
-    this._bOpenPrint(html, recipeName+' Split');
+    this._bOpenPrint(body, recipeName+' Split');
   },
 
     // ── TASK 6: INGREDIENT SIMILARITY ───────────────────────────
@@ -4672,6 +4647,7 @@ const App = {
             '</div>'+
             '<div style="display:flex;gap:6px;margin-left:8px">'+
               '<button onclick="App.openVariantForm(\''+v.id+'\',\''+rid+'\')" style="background:none;border:1px solid var(--accent);border-radius:8px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;color:var(--accent);cursor:pointer">Edit</button>'+
+              '<button onclick="App.printVariantPDF(\''+v.id+'\',\''+rid+'\')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;color:var(--text);cursor:pointer" title="Print variant recipe">🖨</button>'+
               '<button onclick="App.makeBatchFromVariant(\''+v.id+'\')" style="background:var(--accent);border:none;border-radius:8px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;color:#fff;cursor:pointer;font-weight:700">Make Batch</button>'+
             '</div>'+
           '</div>'+
