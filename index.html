@@ -370,9 +370,9 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .btn-danger{background:var(--red-l);color:var(--red);flex:1}
 .btn-outline{background:var(--white);color:var(--brown);border:1.5px solid var(--border);flex:1}
 .btn-full{width:100%}
-.inv-list{padding:0 14px 8px;display:flex;flex-direction:column;gap:8px}
-.inv-card{background:var(--card);border-radius:13px;padding:12px 14px;box-shadow:0 2px 8px var(--shadow);border:1px solid var(--border);cursor:pointer;transition:transform .13s}
-.inv-card:active{transform:scale(.98)}
+.inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 14px}
+.inv-card{background:var(--card);border-radius:12px;padding:10px 11px;box-shadow:0 2px 6px var(--shadow);border:1px solid var(--border);cursor:pointer;transition:transform .13s}
+.inv-card:active{transform:scale(.97)}
 .inv-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
 .inv-name{font-family:'Playfair Display',serif;font-size:.97rem;font-weight:600;color:var(--brown-d)}
 .inv-cat-tag{font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;background:var(--cream);border:1px solid var(--border);padding:2px 8px;border-radius:7px;white-space:nowrap;margin-left:6px;flex-shrink:0}
@@ -560,14 +560,21 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
           <button class="s-clear" id="i-clear" onclick="App.clrSearch('i-search','i-clear',App.renderInventory.bind(App))" style="display:none">×</button>
         </div>
       </div>
-      <div class="chips" id="i-chips"></div>
-      <div class="sort-row" id="i-sort-row"></div>
-      <div style="padding:0 14px 4px">
-        <button onclick="App.openOrderReport()" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:11px 16px;font-family:Lato,sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-          Low Inventory Report
+      <div class="chips" id="i-chips" style="display:none"></div>
+      <div style="padding:4px 14px 8px;display:flex;align-items:center;gap:8px">
+        <button id="inv-filter-btn" onclick="App.toggleInvFilter()" style="display:flex;align-items:center;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;color:var(--text);cursor:pointer">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          <span id="inv-filter-label">Filter</span>
         </button>
+        <button id="inv-filter-clear" onclick="App.clearInvFilter()" style="display:none;background:none;border:none;font-size:.78rem;color:var(--muted);cursor:pointer;text-decoration:underline">✕ Clear</button>
       </div>
+      <!-- Inventory filter dropdown panel -->
+      <div id="inv-filter-panel" style="display:none;margin:0 14px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 4px 16px var(--shadow)">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Category</div>
+        <div id="i-chips-inner" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+      </div>
+      <div class="sort-row" id="i-sort-row"></div>
+
       <div id="i-list"></div>
     </div>
     <!-- INVENTORY DETAIL -->
@@ -665,13 +672,13 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       Recipes
     </button>
-    <button class="nav-btn" id="nav-inventory" onclick="App.setTab('inventory')">
-      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-      Inventory
-    </button>
     <button class="nav-btn" id="nav-batches" onclick="App.setTab('batches')">
       <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 0-2-2V5a2 2 0 0 0 2-2h11"/></svg>
       Batches
+    </button>
+    <button class="nav-btn" id="nav-inventory" onclick="App.setTab('inventory')">
+      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Inventory
     </button>
     <button class="nav-btn" id="nav-fragrances" onclick="App.setTab('fragrances')">
       <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5c0 3-5 11-5 11S7 10 7 7a5 5 0 0 1 5-5z"/><circle cx="12" cy="7" r="2"/></svg>
@@ -1551,7 +1558,7 @@ const App = {
     if(!localStorage.getItem('ss_r')) this._localSaveR();
     if(!localStorage.getItem('ss_i')) this._localSaveI();
     this._buildRecipeChips();
-    this._buildChips('i-chips', I_CATS, '_iCat', 'renderInventory');
+    this._buildChips('i-chips-inner', I_CATS, '_iCat', 'renderInventory');
     this._buildSortRow();
     this.renderRecipes();
     this.renderInventory();
@@ -2464,7 +2471,38 @@ const App = {
     this.renderInventory();
   },
 
+  toggleInvFilter(){
+    const panel = document.getElementById('inv-filter-panel');
+    if(!panel) return;
+    const open = panel.style.display === 'none';
+    panel.style.display = open ? 'block' : 'none';
+    const btn = document.getElementById('inv-filter-btn');
+    if(btn){ btn.style.borderColor = open ? 'var(--accent)' : 'var(--border)'; btn.style.color = open ? 'var(--accent)' : 'var(--text)'; }
+    if(open) this._buildChips('i-chips-inner', I_CATS, '_iCat', 'renderInventory');
+    this._updateInvFilterLabel();
+  },
+
+  clearInvFilter(){
+    this._iCat = '';
+    document.getElementById('inv-filter-panel').style.display = 'none';
+    const btn = document.getElementById('inv-filter-btn');
+    if(btn){ btn.style.borderColor='var(--border)'; btn.style.color='var(--text)'; }
+    this._updateInvFilterLabel();
+    this.renderInventory();
+  },
+
+  _updateInvFilterLabel(){
+    const lbl = document.getElementById('inv-filter-label');
+    const clr = document.getElementById('inv-filter-clear');
+    const btn = document.getElementById('inv-filter-btn');
+    if(lbl) lbl.textContent = this._iCat ? 'Filter: '+this._iCat : 'Filter';
+    if(clr) clr.style.display = this._iCat ? 'block' : 'none';
+    if(btn) btn.style.borderColor = this._iCat ? 'var(--accent)' : 'var(--border)';
+    if(btn) btn.style.color = this._iCat ? 'var(--accent)' : 'var(--text)';
+  },
+
   renderInventory(){
+    this._updateInvFilterLabel();
     const q=document.getElementById('i-search').value.toLowerCase();
     document.getElementById('i-clear').style.display=q?'flex':'none';
     let list=this.inventory.filter(i=>{
@@ -2481,7 +2519,7 @@ const App = {
     });
     const wrap=document.getElementById('i-list');
     if(!list.length){wrap.innerHTML=`<div class="empty"><div class="empty-icon">📦</div><h3>No items found</h3><p>${q||this._iCat?'Try a different filter.':'Tap + to add ingredients.'}</p></div>`;return;}
-    wrap.innerHTML=`<div class="inv-list">${list.map(i=>this._iCard(i)).join('')}</div>`;
+    wrap.innerHTML=`<div class="inv-grid">${list.map(i=>this._iCard(i)).join('')}</div>`;
   },
   _iCard(i){
     const st=this._iStat(i);
