@@ -3000,16 +3000,48 @@ const App = {
   _mbAdditiveRow(i, a){
     const gval = a.unit==='g'?a.amount:(a.amount?Math.round(parseFloat(a.amount)*28.3495*100)/100:'');
     const ozval = a.unit!=='g'?a.amount:(a.amount?Math.round(parseFloat(a.amount)/28.3495*100)/100:'');
-    const dlId = 'mb-adl-'+i;
-    const dlOpts = this.inventory.map(x=>'<option value="'+this.h(x.name)+'">').join('');
-    return '<div class="ing-form-row" id="mb-ar-'+i+'">'+
-      '<datalist id="'+dlId+'">'+dlOpts+'</datalist>'+
-      '<input list="'+dlId+'" placeholder="Additive" value="'+this.h(a.name||'')+'" '+
-        'oninput="App._mbSession.additives['+i+'].name=this.value" '+
-        'style="flex:2;font-size:16px"/>'+
-      '<input type="number" step="any" placeholder="oz" class="sm" value="'+ozval+'" id="mb-aoz-'+i+'" oninput="App._mbSyncAddOz('+i+')" style="font-size:16px"/>'+
-      '<input type="number" step="any" placeholder="g" class="sm" value="'+gval+'" id="mb-ag-'+i+'" oninput="App._mbSyncAddG('+i+')" style="font-size:16px"/>'+
+    return '<div class="ing-form-row" id="mb-ar-'+i+'" style="flex-wrap:wrap;gap:6px">'+
+      '<div style="position:relative;flex:2;min-width:140px">'+
+        '<input id="mb-ai-'+i+'" placeholder="Search ingredients…" value="'+this.h(a.name||'')+'" '+
+          'autocomplete="off" autocorrect="off" spellcheck="false" '+
+          'oninput="App._mbAddSearch('+i+',this.value)" '+
+          'onfocus="App._mbAddSearch('+i+',this.value)" '+
+          'style="width:100%;font-size:16px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:Lato,sans-serif;color:var(--text);outline:none"/>'+
+        '<div id="mb-adrop-'+i+'" style="display:none;position:fixed;background:var(--white);border:1.5px solid var(--border);border-radius:10px;max-height:200px;overflow-y:auto;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.15)"></div>'+
+      '</div>'+
+      '<input type="number" step="any" placeholder="oz" class="sm" value="'+ozval+'" id="mb-aoz-'+i+'" oninput="App._mbSyncAddOz('+i+')" style="font-size:16px;flex:1;min-width:55px"/>'+
+      '<input type="number" step="any" placeholder="g" class="sm" value="'+gval+'" id="mb-ag-'+i+'" oninput="App._mbSyncAddG('+i+')" style="font-size:16px;flex:1;min-width:55px"/>'+
       '<button onclick="App._mbRemoveAdditive('+i+')" class="ing-del">−</button></div>';
+  },
+
+  _mbAddSearch(i, query){
+    const drop = document.getElementById('mb-adrop-'+i);
+    const inp = document.getElementById('mb-ai-'+i);
+    if(!drop||!inp) return;
+    const q=(query||'').toLowerCase().trim();
+    const matches = (this.inventory||[]).filter(x=> !q||x.name.toLowerCase().includes(q)).slice(0,15);
+    if(!matches.length){ drop.style.display='none'; return; }
+    // Position the dropdown below the input using fixed positioning
+    const rect = inp.getBoundingClientRect();
+    drop.style.left = rect.left+'px';
+    drop.style.top = (rect.bottom+2)+'px';
+    drop.style.width = rect.width+'px';
+    drop.innerHTML = matches.map(x=>
+      '<div onmousedown="App._mbSelectAdd('+i+',\''+this.h(x.name).replace(/'/g,'\\\'')+'\')" '+
+        'ontouchend="event.preventDefault();App._mbSelectAdd('+i+',\''+this.h(x.name).replace(/'/g,'\\\'')+'\')" '+
+        'style="padding:10px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border);background:var(--white)">'
+        +this.h(x.name)+'<span style="color:var(--muted);font-size:.75rem;float:right">'+x.quantity+' '+x.unit+'</span>'
+      +'</div>'
+    ).join('');
+    drop.style.display='block';
+  },
+
+  _mbSelectAdd(i, name){
+    if(this._mbSession.additives[i]) this._mbSession.additives[i].name=name;
+    const inp=document.getElementById('mb-ai-'+i);
+    if(inp) inp.value=name;
+    const drop=document.getElementById('mb-adrop-'+i);
+    if(drop) drop.style.display='none';
   },
 
   _mbAddAdditiveRow(){
@@ -3023,70 +3055,55 @@ const App = {
   _mbSyncAddG(i){ const v=parseFloat(document.getElementById('mb-ag-'+i)?.value)||0; const oz=document.getElementById('mb-aoz-'+i); if(oz)oz.value=v?Math.round(v/28.3495*100)/100:''; if(this._mbSession.additives[i]){this._mbSession.additives[i].amount=String(v);this._mbSession.additives[i].unit='g';} },
 
   _mbFragRow(i, fr){
-    // Find fragrance name from stored ID
     const existing = fr.id ? (this.fragrances||[]).find(f=>f.id===fr.id) : null;
     const displayName = existing ? existing.name : (fr.name||'');
     const stock = existing ? ' ('+existing.quantity+' '+(existing.unit||'oz')+')' : '';
     return '<div class="ing-form-row" id="mb-fr-'+i+'" style="flex-wrap:wrap;gap:6px">'+
       '<div style="position:relative;flex:2;min-width:140px">'+
-        '<input id="mb-fi-'+i+'" placeholder="Search fragrance…" value="'+this.h(displayName)+'" '+
-          'autocomplete="off" '+
+        '<input id="mb-fi-'+i+'" placeholder="Search fragrances…" value="'+this.h(displayName)+'" '+
+          'autocomplete="off" autocorrect="off" spellcheck="false" '+
           'oninput="App._mbFragSearch('+i+',this.value)" '+
           'onfocus="App._mbFragSearch('+i+',this.value)" '+
           'style="width:100%;font-size:16px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:Lato,sans-serif;color:var(--text);outline:none"/>'+
-        '<div id="mb-fdrop-'+i+'" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--white);border:1.5px solid var(--border);border-radius:0 0 10px 10px;max-height:180px;overflow-y:auto;z-index:500;box-shadow:0 4px 12px var(--shadow)"></div>'+
-        '<div id="mb-fsel-'+i+'" style="font-size:.72rem;color:var(--accent);padding:2px 2px 0;min-height:14px">'+
-          (existing ? '✓ '+existing.name+stock : '')+'</div>'+
+        '<div id="mb-fdrop-'+i+'" style="display:none;position:fixed;background:var(--white);border:1.5px solid var(--border);border-radius:10px;max-height:200px;overflow-y:auto;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.15)"></div>'+
+        '<div id="mb-fsel-'+i+'" style="font-size:.72rem;color:var(--accent);padding:2px 2px 0;min-height:14px">'+(existing?'✓ '+existing.name+stock:'')+'</div>'+
       '</div>'+
       '<input type="number" step="any" placeholder="oz" class="sm" value="'+(fr.amount||'')+'" '+
-        'oninput="App._mbSession.fragrances['+i+'].amount=this.value" style="font-size:16px;flex:1;min-width:60px"/>'+
+        'oninput="App._mbSession.fragrances['+i+'].amount=this.value" style="font-size:16px;flex:1;min-width:55px"/>'+
       '<button onclick="App._mbRemoveFrag('+i+')" class="ing-del">−</button></div>';
   },
 
   _mbFragSearch(i, query){
-    const drop = document.getElementById('mb-fdrop-'+i);
-    if(!drop) return;
-    const q = (query||'').toLowerCase().trim();
-    // Clear stored selection if user is typing new text
-    if(this._mbSession.fragrances[i]){
-      const cur = this.fragrances.find(f=>f.id===this._mbSession.fragrances[i].id);
-      if(cur && cur.name.toLowerCase()!==q) {
-        // Don't clear yet — wait for selection
-      }
-    }
-    const matches = (this.fragrances||[]).filter(f=>
-      !q || f.name.toLowerCase().includes(q)
-    ).slice(0,12);
+    const drop=document.getElementById('mb-fdrop-'+i);
+    const inp=document.getElementById('mb-fi-'+i);
+    if(!drop||!inp) return;
+    const q=(query||'').toLowerCase().trim();
+    const matches=(this.fragrances||[]).filter(f=>!q||f.name.toLowerCase().includes(q)).slice(0,12);
     if(!matches.length){ drop.style.display='none'; return; }
-    drop.innerHTML = matches.map(f=>
-      '<div onclick="App._mbSelectFrag('+i+',\''+f.id+'\')" '+
-        'style="padding:9px 12px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border)" '+
-        'onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'\'">'
-        +this.h(f.name)+
-        '<span style="color:var(--muted);font-size:.75rem;float:right">'+(f.quantity||0)+' '+(f.unit||'oz')+'</span>'
+    const rect=inp.getBoundingClientRect();
+    drop.style.left=rect.left+'px';
+    drop.style.top=(rect.bottom+2)+'px';
+    drop.style.width=rect.width+'px';
+    drop.innerHTML=matches.map(f=>
+      '<div onmousedown="App._mbSelectFrag('+i+',\''+f.id+'\')" '+
+        'ontouchend="event.preventDefault();App._mbSelectFrag('+i+',\''+f.id+'\')" '+
+        'style="padding:10px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border);background:var(--white)">'
+        +this.h(f.name)+'<span style="color:var(--muted);font-size:.75rem;float:right">'+(f.quantity||0)+' '+(f.unit||'oz')+'</span>'
       +'</div>'
     ).join('');
     drop.style.display='block';
-    // Close on outside click
-    setTimeout(()=>{
-      const handler = e=>{
-        const row = document.getElementById('mb-fr-'+i);
-        if(row && !row.contains(e.target)){ drop.style.display='none'; document.removeEventListener('click',handler); }
-      };
-      document.addEventListener('click',handler);
-    },0);
   },
 
   _mbSelectFrag(i, fragId){
-    const frag = this.fragrances.find(f=>f.id===fragId);
+    const frag=this.fragrances.find(f=>f.id===fragId);
     if(!frag) return;
     if(this._mbSession.fragrances[i]) this._mbSession.fragrances[i].id=fragId;
-    const inp = document.getElementById('mb-fi-'+i);
-    if(inp) inp.value = frag.name;
-    const drop = document.getElementById('mb-fdrop-'+i);
+    const inp=document.getElementById('mb-fi-'+i);
+    if(inp) inp.value=frag.name;
+    const drop=document.getElementById('mb-fdrop-'+i);
     if(drop) drop.style.display='none';
-    const sel = document.getElementById('mb-fsel-'+i);
-    if(sel) sel.textContent = '✓ '+frag.name+' ('+(frag.quantity||0)+' '+(frag.unit||'oz')+')';
+    const sel=document.getElementById('mb-fsel-'+i);
+    if(sel) sel.textContent='✓ '+frag.name+' ('+(frag.quantity||0)+' '+(frag.unit||'oz')+')';
   },
   _mbAddFragRow(){ const i=(this._mbSession.fragrances||[]).length; if(!this._mbSession.fragrances)this._mbSession.fragrances=[]; this._mbSession.fragrances.push({id:'',amount:'',name:''}); document.getElementById('mb-frag-rows').insertAdjacentHTML('beforeend',this._mbFragRow(i,{id:'',amount:'',name:''})); },
   _mbRemoveFrag(i){ this._mbSession.fragrances.splice(i,1); document.getElementById('mb-frag-rows').innerHTML=this._mbSession.fragrances.map((fr,x)=>this._mbFragRow(x,fr)).join(''); },
