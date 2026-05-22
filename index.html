@@ -4030,7 +4030,7 @@ const App = {
 
   // ── RECIPE PDF PRINT ─────────────────────────────────────────
   // ── BLOB PRINT UTILITIES ─────────────────────────────────────
-  _bPrintCSS: "*{box-sizing:border-box;margin:0;padding:0}html,body{font-family:Lato,sans-serif;font-size:11px;line-height:1.45;color:#111;background:#fff}@page{margin:1in;size:letter portrait}@media print{html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}.hdr{display:flex;align-items:center;gap:14px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}.brand{font-family:'Great Vibes',cursive;font-size:2rem;color:#D4789A;line-height:1}.brand-sub{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:#111;margin-bottom:8px}h3{font-family:'Playfair Display',serif;font-size:.85rem;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.4px}.meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}.mi{font-size:10px}.mi strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.4px;font-weight:700}.mi span{font-weight:700;color:#111}.two-col{display:grid;grid-template-columns:52% 46%;gap:2%}table{width:100%;border-collapse:collapse;margin-bottom:10px}th{padding:4px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px}td{padding:3px 8px;border-bottom:1px solid #f0e0ea;font-size:11px}.tr td{font-weight:700;color:#A8527A;border-top:1.5px solid #FCBFCE;background:#FEF2F6}.notes{font-size:10px;line-height:1.5;white-space:pre-wrap}.footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}.section{margin-bottom:14px;page-break-inside:avoid}.sec-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;border-bottom:1px solid #FCBFCE;padding-bottom:3px;margin-bottom:6px}.row-card{padding:8px 10px;border:1px solid #f0e0ea;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:flex-start}.row-name{font-size:11px;font-weight:700}.row-detail{font-size:9.5px;color:#555}",
+  _bPrintCSS: "*{box-sizing:border-box;margin:0;padding:0}html,body{font-family:Lato,sans-serif;font-size:11px;line-height:1.45;color:#111;background:#fff}@page{margin:1in .5in;size:letter portrait}@media print{html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}.hdr{display:flex;align-items:center;gap:14px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}.brand{font-family:'Great Vibes',cursive;font-size:2rem;color:#D4789A;line-height:1}.brand-sub{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:#111;margin-bottom:8px}h3{font-family:'Playfair Display',serif;font-size:.85rem;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.4px}.meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}.mi{font-size:10px}.mi strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.4px;font-weight:700}.mi span{font-weight:700;color:#111}.two-col{display:grid;grid-template-columns:52% 46%;gap:2%}table{width:100%;border-collapse:collapse;margin-bottom:10px}th{padding:4px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px}td{padding:3px 8px;border-bottom:1px solid #f0e0ea;font-size:11px}.tr td{font-weight:700;color:#A8527A;border-top:1.5px solid #FCBFCE;background:#FEF2F6}.notes{font-size:10px;line-height:1.5;white-space:pre-wrap}.footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}.section{margin-bottom:14px;page-break-inside:avoid}.sec-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;border-bottom:1px solid #FCBFCE;padding-bottom:3px;margin-bottom:6px}.row-card{padding:8px 10px;border:1px solid #f0e0ea;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:flex-start}.row-name{font-size:11px;font-weight:700}.row-detail{font-size:9.5px;color:#555}",
 
   _bOpenPrint(body, title){
     const logo = (document.getElementById('header-logo')||{}).src||'';
@@ -4140,14 +4140,16 @@ const App = {
     const rows=list.map(f=>{
       const accClr=cpColor[f.cp_acceleration]||'#888';
       const disClr=cpColor[f.cp_discoloration]||'#888';
+      const ricClr=cpColor[f.cp_ricing]||'#888';
       return '<tr><td><strong>'+this.h(f.name)+'</strong><br><span style="color:#888;font-size:9px">'+this.h(f.scent_family||'')+'</span></td>'+
         '<td style="font-size:9.5px">'+this.h([f.top_notes,f.middle_notes,f.base_notes].filter(Boolean).join(' / '))+'</td>'+
         '<td style="text-align:center;font-size:9.5px;color:'+accClr+'">'+this.h(f.cp_acceleration||'?')+'</td>'+
+        '<td style="text-align:center;font-size:9.5px;color:'+ricClr+'">'+this.h(f.cp_ricing||'?')+'</td>'+
         '<td style="text-align:center;font-size:9.5px;color:'+disClr+'">'+this.h(f.cp_discoloration||'?')+'</td>'+
         '<td style="text-align:right;font-size:9.5px">'+(f.quantity||0)+' '+(f.unit||'oz')+'</td></tr>';
     }).join('');
     const body='<h1>Fragrances</h1>'+
-      '<table><thead><tr><th>Name</th><th>Notes</th><th style="text-align:center">Acceleration</th><th style="text-align:center">Discoloration</th><th style="text-align:right">Stock</th></tr></thead>'+
+      '<table><thead><tr><th>Name</th><th>Notes</th><th style="text-align:center">Acceleration</th><th style="text-align:center">Ricing</th><th style="text-align:center">Discoloration</th><th style="text-align:right">Stock</th></tr></thead>'+
       '<tbody>'+rows+'</tbody></table>';
     this._bOpenPrint(body, 'Fragrance List');
   },
@@ -4213,7 +4215,7 @@ const App = {
       '<!DOCTYPE html><html><head><title>'+recipeName+' — Split Calculator</title>'+
       '<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>'+
       '<style>'+
-      '@page{margin:1in;size:letter portrait}'+
+      '@page{margin:1in .5in;size:letter portrait}'+
       '*{box-sizing:border-box}'+
       'body{font-family:Lato,sans-serif;margin:0;padding:0;color:#111;font-size:13px}'+
       '.hdr{display:flex;align-items:center;gap:16px;border-bottom:3px solid #FCBFCE;padding-bottom:12px;margin-bottom:18px}'+
@@ -4248,22 +4250,8 @@ const App = {
       '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; '+recipeName+'</div>'+
       '</body></html>';
 
-    // Use hidden iframe to avoid iOS Safari popup blocker
-    let pf = document.getElementById('__print-frame-split');
-    if(!pf){
-      pf = document.createElement('iframe');
-      pf.id = '__print-frame-split';
-      pf.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:800px;height:1100px;border:none;visibility:hidden';
-      document.body.appendChild(pf);
-    }
-    pf.onload = null;
-    pf.srcdoc = html;
-    pf.onload = function(){
-      setTimeout(function(){
-        try { pf.contentWindow.focus(); pf.contentWindow.print(); }
-        catch(e){ console.error('Split print failed:', e); }
-      }, 800);
-    };
+    // Use blob URL — same method as other reports
+    this._bOpenPrint(html, recipeName+' Split');
   },
 
     // ── TASK 6: INGREDIENT SIMILARITY ───────────────────────────
