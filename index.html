@@ -3987,8 +3987,8 @@ const App = {
   },
 
   // ── RECIPE PDF PRINT ─────────────────────────────────────────
-  printRecipePDF(id, recipeOverride){
-    const r = recipeOverride || this.recipes.find(x=>x.id===id); if(!r) return;
+  printRecipePDF(id){
+    const r = this.recipes.find(x=>x.id===id); if(!r) return;
     const cost = this._calcRecipeCost(r);
     const logoEl = document.getElementById('header-logo');
     const logoSrc = logoEl ? logoEl.src : '';
@@ -4602,7 +4602,6 @@ const App = {
             '</div>'+
             '<div style="display:flex;gap:6px;margin-left:8px">'+
               '<button onclick="App.openVariantForm(\''+v.id+'\',\''+rid+'\')" style="background:none;border:1px solid var(--accent);border-radius:8px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;color:var(--accent);cursor:pointer">Edit</button>'+
-              '<button onclick="App.printVariantPDF(\''+v.id+'\',\''+rid+'\')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;color:var(--text);cursor:pointer">🖨</button>'+
               '<button onclick="App.makeBatchFromVariant(\''+v.id+'\')" style="background:var(--accent);border:none;border-radius:8px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;color:#fff;cursor:pointer;font-weight:700">Make Batch</button>'+
             '</div>'+
           '</div>'+
@@ -4695,26 +4694,22 @@ const App = {
   async saveVariant(){
     const name=(document.getElementById('vf-name')||{}).value?.trim();
     if(!name){ this._toast('Variant name required'); return; }
-
-    const fragId = (document.getElementById('vf-frag')||{}).value||null;
-    const fragAmt = parseFloat((document.getElementById('vf-frag-amt')||{}).value)||null;
-    const batchSz = parseFloat((document.getElementById('vf-batch')||{}).value)||null;
-
-    // Only send columns that exist in the table
-    const v = {
-      id: this._editVariant.id || this.uid(),
-      base_recipe_id: this._editVariant.base_recipe_id,
+    const v = Object.assign({}, this._editVariant, {
       name,
-      notes: (document.getElementById('vf-notes')||{}).value||'',
-      mold_type: (document.getElementById('vf-mold')||{}).value||'loaf',
-      batch_unit: this._editVariant.batch_unit || 'oz',
-      added_ingredients: this._editVariant.added_ingredients || [],
-      colorant: (document.getElementById('vf-colorant')||{}).value||'',
-      updated_at: new Date().toISOString()
-    };
-    if(batchSz) v.batch_size = batchSz;
-    if(fragId) v.fragrance_id = fragId;
-    if(fragAmt) v.fragrance_amount = fragAmt;
+      notes:(document.getElementById('vf-notes')||{}).value||'',
+      mold_type:(document.getElementById('vf-mold')||{}).value||'loaf',
+      batch_size:parseFloat((document.getElementById('vf-batch')||{}).value)||null,
+      fragrance_id:(document.getElementById('vf-frag')||{}).value||null,
+      fragrance_amount:parseFloat((document.getElementById('vf-frag-amt')||{}).value)||null,
+      colorant:(document.getElementById('vf-colorant')||{}).value||'',
+      updated_at:new Date().toISOString()
+    });
+    if(!v.id) v.id = this.uid();
+
+    // Clean up empty fields that may cause type errors
+    if(!v.batch_size) delete v.batch_size;
+    if(!v.fragrance_id) delete v.fragrance_id;
+    if(!v.fragrance_amount) delete v.fragrance_amount;
 
     this._showSyncStatus('Saving variant…');
     try {
@@ -4732,35 +4727,17 @@ const App = {
         const err = await res.text();
         console.error('Variant save error:', res.status, err);
         this._showSyncStatus('Save failed: ' + res.status);
-        this._toast('Save failed — check console');
+        this._toast('Save failed: ' + res.status);
         return;
       }
       this._showSyncStatus('Saved ✓');
       this.closeModal('modal-variant-form');
       await this._renderVariantsList(v.base_recipe_id);
       this._toast('Variant saved!');
-    } catch(e){ this._showSyncStatus('Save failed'); this._toast('Failed: ' + e.message); }
+    } catch(e){ this._showSyncStatus('Save failed'); this._toast('Failed to save variant: ' + e.message); }
   },
 
-  async printVariantPDF(variantId, recipeId){
-    try {
-      const res = await this._sbFetch('GET','recipe_variants?id=eq.'+variantId);
-      const rows = await res.json();
-      if(!rows||!rows[0]){ this._toast('Variant not found'); return; }
-      const v = rows[0];
-      const baseR = this.recipes.find(x=>x.id===(recipeId||v.base_recipe_id));
-      if(!baseR){ this._toast('Base recipe not found'); return; }
-      // Build a merged recipe object for printing
-      const merged = Object.assign({}, baseR, {
-        name: baseR.name + ' - ' + v.name,
-        batchSize: v.batch_size || baseR.batchSize,
-        ingredients: [...(baseR.ingredients||[]), ...(v.added_ingredients||[])],
-        notes: [baseR.notes, v.colorant ? 'Colorant: '+v.colorant : '', v.notes].filter(Boolean).join('\n\n'),
-        version: v.mold_type ? (v.mold_type.charAt(0).toUpperCase()+v.mold_type.slice(1)+' mold') : baseR.version
-      });
-      this.printRecipePDF(merged.id, merged);
-    } catch(e){ this._toast('Print failed: '+e.message); }
-  },
+  async makeBatchFromVariant(variantId){
     try {
       const res = await this._sbFetch('GET','recipe_variants?id=eq.'+variantId);
       const rows = await res.json();
