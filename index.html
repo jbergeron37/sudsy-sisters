@@ -4188,6 +4188,38 @@ const App = {
     });
   },
 
+  saveSplitToNotes(){
+    if(!this._lastSplitData){ this._toast('Enter splits first'); return; }
+    const {recipeName, totalWt, oilTotal, lyeTotal, batchUnit, rows} = this._lastSplitData;
+    const oz2g = v => Math.round(v*28.3495*10)/10;
+    const lines = [
+      '=== COLOR / LAYER SPLIT ===',
+      'Recipe: '+recipeName,
+      'Total: '+totalWt.toFixed(2)+' '+(batchUnit||'oz')+' ('+oz2g(totalWt)+' g)',
+      'Oils & Butters: '+oilTotal.toFixed(2)+' oz ('+oz2g(oilTotal)+' g)',
+      'Goat Milk & Lye: '+lyeTotal.toFixed(2)+' oz ('+oz2g(lyeTotal)+' g)',
+      ''
+    ];
+    rows.forEach(r=>{
+      const totalOz = Math.round(totalWt*(r.pct/100)*100)/100;
+      const oilOz   = Math.round(oilTotal*(r.pct/100)*100)/100;
+      const lyeOz   = Math.round(lyeTotal*(r.pct/100)*100)/100;
+      lines.push(r.lbl+' ('+r.pct+'%): Total '+totalOz+' oz / Oils '+oilOz+' oz / Lye+Milk '+lyeOz+' oz');
+    });
+    const splitText = lines.join('\n');
+    // Paste into open batch log notes if available
+    const notesEl = document.getElementById('bl-notes');
+    if(notesEl){
+      notesEl.value = (notesEl.value ? notesEl.value+'\n\n' : '')+splitText;
+      this._toast('Split added to batch notes!');
+      return;
+    }
+    // Otherwise copy to clipboard
+    navigator.clipboard.writeText(splitText)
+      .then(()=>this._toast('Split copied — paste into batch notes'))
+      .catch(()=>this._toast('Copy failed'));
+  },
+
   // ── SPLIT CALC PDF PRINT ─────────────────────────────────────
   printSplitCalc(){
     if(!this._lastSplitData) return;
