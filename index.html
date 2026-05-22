@@ -726,21 +726,38 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
   </div>
 </div>
 <!-- BATCH CONFIRM MODAL -->
-<div class="confirm-overlay" id="modal-batch">
+<div class="modal-overlay" id="modal-make-batch" style="align-items:flex-end">
+  <div class="modal-sheet" style="max-height:96vh;display:flex;flex-direction:column">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr" style="flex-shrink:0">
+      <div class="modal-title" id="mb-title">Make Batch</div>
+      <button class="modal-close" onclick="App.closeMakeBatch()">×</button>
+    </div>
+    <div class="modal-body" id="mb-body" style="flex:1;overflow-y:auto;padding:0"></div>
+    <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0">
+      <button class="btn btn-outline" style="flex:1" onclick="App.saveBatchProgress()">💾 Save Progress</button>
+      <button class="btn btn-primary" style="flex:2" onclick="App.completeBatch()">✅ Complete Batch</button>
+    </div>
+  </div>
+</div>
+<!-- COMPLETE BATCH CONFIRM -->
+<div class="confirm-overlay" id="modal-complete-batch">
   <div class="confirm-box" style="max-width:380px">
-    <h3 id="batch-title">Make Batch?</h3>
-    <p style="font-size:.82rem;color:var(--muted);margin-bottom:12px">These ingredients will be subtracted from your inventory:</p>
-    <div id="batch-ing-list" style="max-height:180px;overflow-y:auto;margin-bottom:10px;text-align:left"></div>
-    <div id="batch-warn" style="display:none;background:#FFF3E0;border-radius:8px;padding:8px 10px;font-size:.76rem;color:#E65100;margin-bottom:10px;text-align:left"></div>
-    <!-- Fragrance selection -->
-    <div style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:12px">
-      <div style="font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:8px">🌸 Fragrances Used <span style="font-weight:400;color:var(--muted)">(optional — deducts from scent inventory)</span></div>
-      <div id="batch-frag-rows"></div>
-      <button onclick="App._addBatchConfirmFragRow()" style="background:none;border:1px dashed var(--border);border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;width:100%;margin-top:4px">+ Add Fragrance</button>
+    <h3>Complete Batch?</h3>
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">Ingredients will be deducted from inventory.</p>
+    <div style="background:var(--cream);border-radius:10px;padding:10px 12px;margin-bottom:14px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:10px">
+        <input type="checkbox" id="cb-save-variant" onchange="document.getElementById('cb-variant-name-row').style.display=this.checked?'flex':'none'" style="width:16px;height:16px;accent-color:var(--accent)"/>
+        <span style="font-size:.88rem;font-weight:700;color:var(--text)">Save as Variant</span>
+      </label>
+      <div id="cb-variant-name-row" style="display:none;flex-direction:column;gap:4px">
+        <label style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Variant Name</label>
+        <input id="cb-variant-name" placeholder="e.g. Lavender Honey Spring 2026" style="background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:Lato,sans-serif;font-size:.88rem;color:var(--text);outline:none;width:100%"/>
+      </div>
     </div>
     <div class="confirm-btns">
-      <button class="cbtn-cancel" onclick="App.closeModal('modal-batch')">Cancel</button>
-      <button class="cbtn-make" id="batch-ok">Confirm Batch</button>
+      <button class="cbtn-cancel" onclick="App.closeModal('modal-complete-batch')">Cancel</button>
+      <button class="cbtn-make" onclick="App._confirmCompleteBatch()">Complete</button>
     </div>
   </div>
 </div>
@@ -2820,105 +2837,436 @@ const App = {
   },
 
   // ── MAKE BATCH ───────────────────────────────────────────────
-  makeBatch(id){
-    const r=this.recipes.find(x=>x.id===id);
-    if(!r||!r.ingredients||!r.ingredients.length){this._toast('No ingredients listed');return;}
-    // Match each ingredient to inventory by name (case-insensitive partial match)
-    const matches=r.ingredients.map(ing=>{
-      const nm=ing.name.toLowerCase();
-      const inv=this.inventory.find(i=>
-        i.name.toLowerCase()===nm||
-        i.name.toLowerCase().includes(nm)||
-        nm.includes(i.name.toLowerCase())
-      );
-      return {ing, inv};
-    });
-    const found=matches.filter(m=>m.inv);
-    const notFound=matches.filter(m=>!m.inv);
-    // Build ingredient list HTML
-    const rows=matches.map(m=>{
-      if(m.inv){
-        const after=Math.max(0,m.inv.quantity-(parseFloat(m.ing.amount)||0));
-        const willBelow=after<=m.inv.reorderAt;
-        return `<div class="batch-ing-row">
-          <div class="batch-ing-left">${this.h(m.ing.name)}</div>
-          <div class="batch-ing-right">
-            <div class="batch-found">− ${m.ing.amount} ${m.ing.unit}</div>
-            <div class="batch-inv-note">${m.inv.quantity} → ${Math.round(after*1000)/1000} ${m.inv.unit}${willBelow?' ⚠️':''}</div>
-          </div>
-        </div>`;
-      } else {
-        return `<div class="batch-ing-row">
-          <div class="batch-ing-left">${this.h(m.ing.name)}</div>
-          <div class="batch-ing-right batch-notfound">Not in inventory</div>
-        </div>`;
-      }
-    }).join('');
-    document.getElementById('batch-title').textContent=`Make: ${r.name}`;
-    document.getElementById('batch-ing-list').innerHTML=rows;
-    // Warning if some items not in inventory
-    const warn=document.getElementById('batch-warn');
-    if(notFound.length){
-      warn.style.display='block';
-      warn.textContent=`⚠️ ${notFound.length} ingredient${notFound.length>1?'s':''} not found in inventory and will be skipped.`;
-    } else {
-      warn.style.display='none';
-    }
-    // Initialize empty fragrance rows
-    const fragRowsEl = document.getElementById('batch-frag-rows');
-    if(fragRowsEl){ fragRowsEl.innerHTML=''; this._batchConfirmFrags=[]; }
-    document.getElementById('batch-ok').onclick=()=>{
-      this.closeModal('modal-batch');
-      this._applyBatch(matches);
+  // ── MAKE BATCH WORKFLOW ─────────────────────────────────────
+  _mbRecipe: null,      // base recipe
+  _mbSession: null,     // current session data {additives, fragrances, notes, batchSize, splitData, batchId}
+
+  makeBatch(recipeId, recipeOverride){
+    const r = recipeOverride || this.recipes.find(x=>x.id===recipeId);
+    if(!r){ this._toast('Recipe not found'); return; }
+    this._mbRecipe = r;
+    this._mbSession = {
+      batchId: this.uid(),
+      recipeId: r.id,
+      recipeName: r.name,
+      batchSize: r.batchSize || '',
+      batchUnit: r.batchUnit || 'oz',
+      additives: [],
+      fragrances: [],
+      notes: '',
+      splitData: null,
+      status: 'in_progress'
     };
-    document.getElementById('modal-batch').classList.add('open');
+    this._openMakeBatch();
   },
 
-  _batchConfirmFrags: [],
-
-  _addBatchConfirmFragRow(){
-    if(!this._batchConfirmFrags) this._batchConfirmFrags=[];
-    const idx = this._batchConfirmFrags.length;
-    this._batchConfirmFrags.push({id:'',amount:'',unit:'oz'});
-    const fragOpts = (this.fragrances||[]).map(f=>`<option value="${f.id}">${this.h(f.name)}${f.quantity?' ('+f.quantity+' '+f.unit+')':''}</option>`).join('');
-    const row = document.createElement('div');
-    row.id='bcfr-'+idx;
-    row.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:6px';
-    row.innerHTML=`<select onchange="App._batchConfirmFrags[${idx}].id=this.value" style="flex:2;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;font-family:Lato,sans-serif;font-size:.82rem;color:var(--text);outline:none"><option value="">— Select fragrance —</option>${fragOpts}</select>`+
-      `<input type="number" step="any" placeholder="oz" style="flex:1;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;font-family:Lato,sans-serif;font-size:.82rem;color:var(--text);outline:none" oninput="App._batchConfirmFrags[${idx}].amount=this.value"/>`+
-      `<button onclick="document.getElementById('bcfr-${idx}').remove();App._batchConfirmFrags.splice(${idx},1)" style="background:var(--red-l);border:none;border-radius:8px;padding:7px 10px;color:var(--red);font-size:1rem;cursor:pointer">−</button>`;
-    document.getElementById('batch-frag-rows').appendChild(row);
+  async continueBatch(batchId){
+    const b = this.batches.find(x=>x.id===batchId);
+    if(!b){ this._toast('Batch not found'); return; }
+    const r = this.recipes.find(x=>x.id===b.recipe_id);
+    if(!r){ this._toast('Recipe not found'); return; }
+    this._mbRecipe = r;
+    const sd = b.session_data || {};
+    this._mbSession = {
+      batchId: b.id,
+      recipeId: b.recipe_id,
+      recipeName: b.recipe_name,
+      batchSize: sd.batchSize || r.batchSize || '',
+      batchUnit: sd.batchUnit || r.batchUnit || 'oz',
+      additives: sd.additives || [],
+      fragrances: sd.fragrances || [],
+      notes: b.notes || '',
+      splitData: sd.splitData || null,
+      status: 'in_progress'
+    };
+    this._openMakeBatch();
   },
 
-  _applyBatch(matches){
+  _openMakeBatch(){
+    const r = this._mbRecipe;
+    const s = this._mbSession;
+    document.getElementById('mb-title').textContent = '🧼 ' + r.name;
+    document.getElementById('modal-make-batch').classList.add('open');
+    this._renderMakeBatch();
+  },
+
+  closeMakeBatch(){
+    document.getElementById('modal-make-batch').classList.remove('open');
+    this._mbRecipe = null;
+    this._mbSession = null;
+  },
+
+  _renderMakeBatch(){
+    const r = this._mbRecipe;
+    const s = this._mbSession;
+    const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
+
+    // Phase grouping
+    const LYE=/lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
+    const FRAG=/fragrance|scent|\beo\b|essential oil|colorant|pigment|mica|oxide|dye/i;
+    const pL={'1':'Phase 1 — Goat Milk & Lye','2':'Phase 2 — Oils & Butters','3':'Phase 3 — Fragrance & Color','':'Ingredients'};
+    const pC={'1':'#5C35C2','2':'#A8527A','3':'#2E7D32','':'#666'};
+    const byPhase={};
+    (r.ingredients||[]).forEach(i=>{
+      const p=i.phase||(LYE.test(i.name)?'1':FRAG.test(i.name)?'3':'2');
+      if(!byPhase[p]) byPhase[p]=[];
+      byPhase[p].push(i);
+    });
+
+    const ingHtml = ['1','2','3',''].map(p=>{
+      if(!byPhase[p]||!byPhase[p].length) return '';
+      const color = pC[p];
+      const rows = byPhase[p].map(i=>{
+        const oz = parseFloat(i.amount)||0;
+        const g = oz2g(oz);
+        return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0e0ea;font-size:.85rem">'+
+          '<span>'+this.h(i.name)+'</span>'+
+          '<span style="font-weight:700;white-space:nowrap">'+oz.toFixed(2)+' oz <span style="color:#888;font-weight:400;font-size:.78rem">/ '+g+' g</span></span>'+
+          '</div>';
+      }).join('');
+      const total = byPhase[p].reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
+      return '<div style="margin-bottom:12px">'+
+        '<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+color+';border-left:3px solid '+color+';padding-left:7px;margin-bottom:5px">'+pL[p]+'</div>'+
+        rows+
+        '<div style="text-align:right;font-size:.78rem;font-weight:700;color:'+color+';padding-top:3px">Total: '+total.toFixed(2)+' oz / '+oz2g(total)+' g</div>'+
+        '</div>';
+    }).join('');
+
+    // Additives rows
+    const addRowHtml = s.additives.map((a,i)=>this._mbAdditiveRow(i,a)).join('');
+
+    // Fragrance rows
+    const fragOpts = (this.fragrances||[]).map(f=>'<option value="'+f.id+'"'+(s.fragrances.length&&s.fragrances[0]&&s.fragrances[0].id===f.id?' selected':'')+'>'+this.h(f.name)+(f.quantity?' ('+f.quantity+' '+f.unit+')':'')+'</option>').join('');
+    const fragRowHtml = s.fragrances.map((fr,i)=>this._mbFragRow(i,fr,fragOpts)).join('');
+
+    // Split calc section
+    const splitResultHtml = s.splitData ? this._mbSplitResultHtml(s.splitData) : '';
+
+    document.getElementById('mb-body').innerHTML =
+      // ── RECIPE SUMMARY ──
+      '<div style="padding:14px 14px 0">'+
+        '<div style="display:flex;gap:8px;margin-bottom:12px">'+
+          '<div style="flex:1;background:var(--cream);border-radius:10px;padding:8px 10px;text-align:center">'+
+            '<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--muted)">Batch Size</div>'+
+            '<div style="font-weight:700;color:var(--text)">'+
+              '<input id="mb-batch-size" type="number" step="any" value="'+(s.batchSize||'')+'" placeholder="'+(r.batchSize||'?')+'" '+
+              'oninput="App._mbSession.batchSize=this.value" '+
+              'style="width:70px;background:transparent;border:none;border-bottom:1.5px solid var(--border);font-family:Lato,sans-serif;font-size:.92rem;font-weight:700;color:var(--text);text-align:center;outline:none"/>'+
+              ' '+(r.batchUnit||'oz')+
+            '</div>'+
+          '</div>'+
+          (r.unitsPerBatch?'<div style="flex:1;background:var(--cream);border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--muted)">Units</div><div style="font-weight:700;color:var(--text)">'+r.unitsPerBatch+(r.unitSize?' @ '+r.unitSize+' oz':'')+'</div></div>':'')+
+          (r.cureTime?'<div style="flex:1;background:var(--cream);border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--muted)">Cure Time</div><div style="font-weight:700;color:var(--text)">'+this.h(r.cureTime)+'</div></div>':'')+
+        '</div>'+
+        ingHtml+
+      '</div>'+
+
+      // ── ADDITIVES / ADJUSTMENTS ──
+      '<div style="background:var(--card);border-top:1px solid var(--border);padding:12px 14px">'+
+        '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">➕ Extra Additives <span style="font-weight:400">(batch-specific)</span></div>'+
+        '<div id="mb-additive-rows">'+addRowHtml+'</div>'+
+        '<button onclick="App._mbAddAdditiveRow()" style="background:none;border:1px dashed var(--border);border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;width:100%;margin-top:4px">+ Add Additive</button>'+
+      '</div>'+
+
+      // ── FRAGRANCES ──
+      '<div style="background:var(--card);border-top:1px solid var(--border);padding:12px 14px">'+
+        '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">🌸 Fragrances Used</div>'+
+        '<div id="mb-frag-rows">'+fragRowHtml+'</div>'+
+        '<button onclick="App._mbAddFragRow()" style="background:none;border:1px dashed var(--border);border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;width:100%;margin-top:4px">+ Add Fragrance</button>'+
+      '</div>'+
+
+      // ── % SPLIT CALCULATOR ──
+      '<div style="background:var(--card);border-top:1px solid var(--border);padding:12px 14px">'+
+        '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">📐 Color / Layer Split</div>'+
+        '<div id="mb-split-inputs" style="margin-bottom:8px"></div>'+
+        '<button onclick="App._mbCalcSplit()" style="background:var(--accent-l,#EDE0FF);border:none;border-radius:8px;padding:7px 14px;font-family:Lato,sans-serif;font-size:.8rem;font-weight:700;color:var(--accent);cursor:pointer;width:100%">📐 Calculate Split</button>'+
+        '<div id="mb-split-result" style="margin-top:8px">'+splitResultHtml+'</div>'+
+      '</div>'+
+
+      // ── NOTES ──
+      '<div style="padding:12px 14px 4px">'+
+        '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">📝 Batch Notes</div>'+
+        '<textarea id="mb-notes" rows="5" placeholder="Process notes, observations, adjustments…" '+
+          'oninput="App._mbSession.notes=this.value" '+
+          'style="width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:10px;font-family:Lato,sans-serif;font-size:.88rem;color:var(--text);outline:none;resize:none;line-height:1.5">'+this.h(s.notes)+'</textarea>'+
+      '</div>';
+
+    // Init split input rows
+    this._mbRenderSplitInputs();
+  },
+
+  _mbAdditiveRow(i, a){
+    const gval = a.unit==='g'?a.amount:(a.amount?Math.round(parseFloat(a.amount)*28.3495*100)/100:'');
+    const ozval = a.unit!=='g'?a.amount:(a.amount?Math.round(parseFloat(a.amount)/28.3495*100)/100:'');
+    return '<div class="ing-form-row" id="mb-ar-'+i+'">'+
+      '<input placeholder="Additive" value="'+this.h(a.name||'')+'" oninput="App._mbSession.additives['+i+'].name=this.value" style="flex:2;font-size:16px"/>'+
+      '<input type="number" step="any" placeholder="oz" class="sm" value="'+ozval+'" id="mb-aoz-'+i+'" oninput="App._mbSyncAddOz('+i+')" style="font-size:16px"/>'+
+      '<input type="number" step="any" placeholder="g" class="sm" value="'+gval+'" id="mb-ag-'+i+'" oninput="App._mbSyncAddG('+i+')" style="font-size:16px"/>'+
+      '<button onclick="App._mbRemoveAdditive('+i+')" class="ing-del">−</button></div>';
+  },
+
+  _mbAddAdditiveRow(){
+    if(!this._mbSession.additives) this._mbSession.additives=[];
+    const i = this._mbSession.additives.length;
+    this._mbSession.additives.push({name:'',amount:'',unit:'oz'});
+    document.getElementById('mb-additive-rows').insertAdjacentHTML('beforeend',this._mbAdditiveRow(i,{name:'',amount:'',unit:'oz'}));
+  },
+  _mbRemoveAdditive(i){ this._mbSession.additives.splice(i,1); document.getElementById('mb-additive-rows').innerHTML=this._mbSession.additives.map((a,x)=>this._mbAdditiveRow(x,a)).join(''); },
+  _mbSyncAddOz(i){ const v=parseFloat(document.getElementById('mb-aoz-'+i)?.value)||0; const g=document.getElementById('mb-ag-'+i); if(g)g.value=v?Math.round(v*28.3495*100)/100:''; if(this._mbSession.additives[i]){this._mbSession.additives[i].amount=String(v);this._mbSession.additives[i].unit='oz';} },
+  _mbSyncAddG(i){ const v=parseFloat(document.getElementById('mb-ag-'+i)?.value)||0; const oz=document.getElementById('mb-aoz-'+i); if(oz)oz.value=v?Math.round(v/28.3495*100)/100:''; if(this._mbSession.additives[i]){this._mbSession.additives[i].amount=String(v);this._mbSession.additives[i].unit='g';} },
+
+  _mbFragRow(i, fr, optsHtml){
+    if(!optsHtml) optsHtml=(this.fragrances||[]).map(f=>'<option value="'+f.id+'"'+(fr.id===f.id?' selected':'')+'>'+this.h(f.name)+(f.quantity?' ('+f.quantity+' '+f.unit+')':'')+'</option>').join('');
+    return '<div class="ing-form-row" id="mb-fr-'+i+'">'+
+      '<select onchange="App._mbSession.fragrances['+i+'].id=this.value" style="flex:2;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px;font-family:Lato,sans-serif;font-size:.82rem;color:var(--text);outline:none">'+
+        '<option value="">— Select —</option>'+optsHtml+'</select>'+
+      '<input type="number" step="any" placeholder="oz" class="sm" value="'+(fr.amount||'')+'" oninput="App._mbSession.fragrances['+i+'].amount=this.value" style="font-size:16px"/>'+
+      '<button onclick="App._mbRemoveFrag('+i+')" class="ing-del">−</button></div>';
+  },
+  _mbAddFragRow(){ const i=(this._mbSession.fragrances||[]).length; if(!this._mbSession.fragrances)this._mbSession.fragrances=[]; this._mbSession.fragrances.push({id:'',amount:''}); document.getElementById('mb-frag-rows').insertAdjacentHTML('beforeend',this._mbFragRow(i,{id:'',amount:''})); },
+  _mbRemoveFrag(i){ this._mbSession.fragrances.splice(i,1); document.getElementById('mb-frag-rows').innerHTML=this._mbSession.fragrances.map((fr,x)=>this._mbFragRow(x,fr)).join(''); },
+
+  _mbRenderSplitInputs(){
+    const el=document.getElementById('mb-split-inputs'); if(!el) return;
+    const sd = this._mbSession.splitData;
+    let rows='';
+    for(let i=0;i<6;i++){
+      const lbl=sd&&sd.rows&&sd.rows[i]?sd.rows[i].lbl:'';
+      const pct=sd&&sd.rows&&sd.rows[i]?sd.rows[i].pct:'';
+      rows+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">'+
+        '<input placeholder="Layer '+(i+1)+'" id="mb-slbl-'+i+'" value="'+this.h(lbl)+'" style="flex:2;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:Lato,sans-serif;font-size:16px;color:var(--text);outline:none"/>'+
+        '<input type="number" min="0" max="100" step="0.1" placeholder="0%" id="mb-spct-'+i+'" value="'+(pct||'')+'" style="width:70px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px;font-family:Lato,sans-serif;font-size:16px;color:var(--text);outline:none;text-align:right"/>'+
+        '<span style="font-size:.82rem;color:var(--muted);flex-shrink:0">%</span>'+
+        '</div>';
+    }
+    el.innerHTML=rows;
+  },
+
+  _mbCalcSplit(){
+    const r = this._mbRecipe; if(!r) return;
+    const s = this._mbSession;
+    const batchSize = parseFloat(document.getElementById('mb-batch-size')?.value||s.batchSize) || parseFloat(r.batchSize)||0;
+    if(!batchSize){ this._toast('Enter a batch size first'); return; }
+
+    // Calculate totals from recipe ingredients
+    const LYE=/lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
+    const FRAG=/fragrance|scent|\beo\b|essential oil|colorant|pigment|mica|oxide|dye/i;
+    let lyeTotal=0, oilTotal=0;
+    (r.ingredients||[]).forEach(i=>{
+      const phase = i.phase||(LYE.test(i.name)?'1':FRAG.test(i.name)?'3':'2');
+      const oz = parseFloat(i.amount)||0;
+      if(phase==='1') lyeTotal+=oz;
+      else if(phase==='2') oilTotal+=oz;
+    });
+    const totalWt = lyeTotal+oilTotal;
+
+    let rows=[]; let sum=0;
+    for(let i=0;i<6;i++){
+      const lbl=(document.getElementById('mb-slbl-'+i)||{}).value||('Layer '+(i+1));
+      const pct=parseFloat((document.getElementById('mb-spct-'+i)||{}).value)||0;
+      if(pct>0){sum+=pct;rows.push({lbl,pct});}
+    }
+    if(!rows.length){this._toast('Enter at least one layer %');return;}
+
+    const splitData={batchSize,totalWt,lyeTotal,oilTotal,rows,sum};
+    this._mbSession.splitData=splitData;
+    document.getElementById('mb-split-result').innerHTML=this._mbSplitResultHtml(splitData);
+  },
+
+  _mbSplitResultHtml(sd){
+    if(!sd) return '';
+    const oz2g=v=>Math.round(v*28.3495*10)/10;
+    const diff=Math.round((sd.sum-100)*10)/10;
+    const warn=Math.abs(diff)>0.05?'<div style="background:#FFF3E0;border-radius:8px;padding:6px 10px;font-size:.76rem;color:#E65100;margin-bottom:6px">⚠️ Percentages total '+sd.sum+'% (off by '+Math.abs(diff)+'%)</div>':'';
+    const rows=sd.rows.map(r=>{
+      const totalOz=Math.round(sd.totalWt*(r.pct/100)*100)/100;
+      const lyeOz=Math.round(sd.lyeTotal*(r.pct/100)*100)/100;
+      const oilOz=Math.round(sd.oilTotal*(r.pct/100)*100)/100;
+      return '<div style="background:var(--cream);border-radius:8px;padding:8px 10px;margin-bottom:6px">'+
+        '<div style="font-weight:700;font-size:.85rem;margin-bottom:4px">'+this.h(r.lbl)+' — '+r.pct+'%</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;text-align:center">'+
+          '<div style="background:#fff;border-radius:6px;padding:4px;border-left:2px solid #5C35C2"><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;font-weight:700">Milk & Lye</div><div style="font-weight:700;color:#5C35C2;font-size:.82rem">'+lyeOz+' oz</div><div style="font-size:.7rem;color:var(--muted)">'+oz2g(lyeOz)+' g</div></div>'+
+          '<div style="background:#fff;border-radius:6px;padding:4px;border-left:2px solid #A8527A"><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;font-weight:700">Oils</div><div style="font-weight:700;color:#A8527A;font-size:.82rem">'+oilOz+' oz</div><div style="font-size:.7rem;color:var(--muted)">'+oz2g(oilOz)+' g</div></div>'+
+          '<div style="background:#fff;border-radius:6px;padding:4px"><div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;font-weight:700">Total</div><div style="font-weight:700;font-size:.82rem">'+totalOz+' oz</div><div style="font-size:.7rem;color:var(--muted)">'+oz2g(totalOz)+' g</div></div>'+
+        '</div></div>';
+    }).join('');
+    return warn+rows+
+      '<button onclick="App._mbPasteSplitToNotes()" style="width:100%;margin-top:6px;background:var(--accent-l,#EDE0FF);border:none;border-radius:8px;padding:8px;font-family:Lato,sans-serif;font-size:.8rem;font-weight:700;color:var(--accent);cursor:pointer">📋 Paste Split to Notes</button>';
+  },
+
+  _mbPasteSplitToNotes(){
+    const sd=this._mbSession.splitData; if(!sd) return;
+    const oz2g=v=>Math.round(v*28.3495*10)/10;
+    const lines=['=== COLOR / LAYER SPLIT ==='];
+    sd.rows.forEach(r=>{
+      const totalOz=Math.round(sd.totalWt*(r.pct/100)*100)/100;
+      const lyeOz=Math.round(sd.lyeTotal*(r.pct/100)*100)/100;
+      const oilOz=Math.round(sd.oilTotal*(r.pct/100)*100)/100;
+      lines.push(r.lbl+' ('+r.pct+'%): Total '+totalOz+' oz / Oils '+oilOz+' oz / Lye+Milk '+lyeOz+' oz');
+    });
+    const text=lines.join('\n');
+    const ta=document.getElementById('mb-notes');
+    if(ta){ ta.value=(ta.value?ta.value+'\n\n':'')+text; this._mbSession.notes=ta.value; this._toast('Split pasted to notes!'); }
+  },
+
+  async saveBatchProgress(){
+    const s=this._mbSession; if(!s) return;
+    // Sync notes from textarea
+    const ta=document.getElementById('mb-notes');
+    if(ta) s.notes=ta.value;
+    const bsEl=document.getElementById('mb-batch-size');
+    if(bsEl) s.batchSize=bsEl.value;
+
+    const batch={
+      id: s.batchId,
+      recipe_id: s.recipeId,
+      recipe_name: s.recipeName,
+      recipe_version: this._mbRecipe?.version||'v1',
+      made_at: new Date().toISOString(),
+      status: 'In Progress',
+      notes: s.notes,
+      session_data: {
+        batchSize: s.batchSize,
+        batchUnit: s.batchUnit,
+        additives: s.additives,
+        fragrances: s.fragrances,
+        splitData: s.splitData
+      },
+      made_by: this._currentUser||'',
+      updated_at: new Date().toISOString()
+    };
+    try {
+      await fetch(this.SB_URL+'/rest/v1/batches?on_conflict=id',{
+        method:'POST',
+        headers:{'apikey':this.SB_KEY,'Authorization':'Bearer '+this.SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify(batch)
+      });
+      // Update local
+      const idx=this.batches.findIndex(x=>x.id===s.batchId);
+      if(idx>=0) this.batches[idx]=batch; else this.batches.unshift(batch);
+      this.closeMakeBatch();
+      this.renderBatches();
+      this._toast('Progress saved!');
+    } catch(e){ this._toast('Save failed: '+e.message); }
+  },
+
+  completeBatch(){
+    const s=this._mbSession; if(!s) return;
+    const ta=document.getElementById('mb-notes');
+    if(ta) s.notes=ta.value;
+    const bsEl=document.getElementById('mb-batch-size');
+    if(bsEl) s.batchSize=bsEl.value;
+    // Reset variant fields
+    const cb=document.getElementById('cb-save-variant');
+    if(cb) cb.checked=false;
+    const vr=document.getElementById('cb-variant-name-row');
+    if(vr) vr.style.display='none';
+    const vn=document.getElementById('cb-variant-name');
+    if(vn) vn.value='';
+    document.getElementById('modal-complete-batch').classList.add('open');
+  },
+
+  async _confirmCompleteBatch(){
+    const s=this._mbSession; if(!s) return;
+    const saveVariant=document.getElementById('cb-save-variant')?.checked;
+    const variantName=document.getElementById('cb-variant-name')?.value?.trim();
+    if(saveVariant&&!variantName){ this._toast('Enter a variant name'); return; }
+
+    // 1. Deduct inventory
+    const r=this._mbRecipe;
     let changed=0;
-    matches.forEach(m=>{
-      if(!m.inv) return;
-      const amt=parseFloat(m.ing.amount)||0;
-      m.inv.quantity=Math.round(Math.max(0,m.inv.quantity-amt)*1000)/1000;
-      m.inv.updated_at=new Date().toISOString();
-      changed++;
+    (r.ingredients||[]).forEach(ing=>{
+      const nm=ing.name.toLowerCase();
+      const inv=this.inventory.find(i=>i.name.toLowerCase()===nm||i.name.toLowerCase().includes(nm)||nm.includes(i.name.toLowerCase()));
+      if(inv){
+        const isG=ing.unit==='g';
+        const oz=isG?parseFloat(ing.amount)/28.3495:parseFloat(ing.amount)||0;
+        inv.quantity=Math.round(Math.max(0,inv.quantity-oz)*1000)/1000;
+        inv.updated_at=new Date().toISOString();
+        changed++;
+      }
     });
-    // Deduct fragrances selected in the confirm dialog
-    (this._batchConfirmFrags||[]).forEach(bf=>{
-      if(!bf.id||!bf.amount) return;
-      const frag = this.fragrances.find(x=>x.id===bf.id);
-      if(!frag) return;
-      const amt = parseFloat(bf.amount)||0;
-      frag.quantity = Math.round(Math.max(0,(frag.quantity||0)-amt)*1000)/1000;
-      frag.updated_at = new Date().toISOString();
-      this._saveFrag(frag);
-      changed++;
+    // Deduct additives
+    (s.additives||[]).forEach(a=>{
+      const nm=a.name.toLowerCase();
+      const inv=this.inventory.find(i=>i.name.toLowerCase()===nm||i.name.toLowerCase().includes(nm));
+      if(inv&&a.amount){
+        const isG=a.unit==='g';
+        const oz=isG?parseFloat(a.amount)/28.3495:parseFloat(a.amount)||0;
+        inv.quantity=Math.round(Math.max(0,inv.quantity-oz)*1000)/1000;
+        inv.updated_at=new Date().toISOString();
+        changed++;
+      }
     });
-    this._batchConfirmFrags=[];
-    this._saveI();
-    this.renderInventory();
-    this.renderOrders();
-    this._toast('Batch logged — ' + changed + ' item' + (changed!==1?'s':'') + ' updated');
-    // Open batch log modal to record details
-    const r = this.recipes.find(x=>x.id===this.selRId);
-    if(r) this.openBatchLogModal(r);
+    // Deduct fragrances
+    (s.fragrances||[]).forEach(fr=>{
+      if(!fr.id||!fr.amount) return;
+      const frag=this.fragrances.find(x=>x.id===fr.id);
+      if(frag){
+        frag.quantity=Math.round(Math.max(0,(frag.quantity||0)-parseFloat(fr.amount))*1000)/1000;
+        frag.updated_at=new Date().toISOString();
+        this._saveFrag(frag);
+        changed++;
+      }
+    });
+    this._saveI(); this.renderInventory(); this.renderOrders();
+
+    // 2. Save batch as completed
+    const batch={
+      id:s.batchId,
+      recipe_id:s.recipeId,
+      recipe_name:s.recipeName,
+      recipe_version:r?.version||'v1',
+      made_at:new Date().toISOString(),
+      status:'Completed',
+      notes:s.notes,
+      session_data:{batchSize:s.batchSize,batchUnit:s.batchUnit,additives:s.additives,fragrances:s.fragrances,splitData:s.splitData},
+      made_by:this._currentUser||'',
+      updated_at:new Date().toISOString()
+    };
+    try {
+      await fetch(this.SB_URL+'/rest/v1/batches?on_conflict=id',{
+        method:'POST',
+        headers:{'apikey':this.SB_KEY,'Authorization':'Bearer '+this.SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify(batch)
+      });
+      const idx=this.batches.findIndex(x=>x.id===s.batchId);
+      if(idx>=0) this.batches[idx]=batch; else this.batches.unshift(batch);
+    } catch(e){ this._toast('Batch save failed'); }
+
+    // 3. Save as variant if requested
+    if(saveVariant&&variantName){
+      const variant={
+        id:this.uid(),
+        base_recipe_id:s.recipeId,
+        name:variantName,
+        mold_type:'loaf',
+        added_ingredients:s.additives||[],
+        fragrance_id:(s.fragrances&&s.fragrances[0])?s.fragrances[0].id:null,
+        fragrance_amount:(s.fragrances&&s.fragrances[0])?parseFloat(s.fragrances[0].amount)||null:null,
+        notes:s.notes,
+        updated_at:new Date().toISOString()
+      };
+      try {
+        await fetch(this.SB_URL+'/rest/v1/recipe_variants?on_conflict=id',{
+          method:'POST',
+          headers:{'apikey':this.SB_KEY,'Authorization':'Bearer '+this.SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+          body:JSON.stringify(variant)
+        });
+      } catch(e){ console.error('Variant save failed',e); }
+    }
+
+    this.closeModal('modal-complete-batch');
+    this.closeMakeBatch();
+    this.renderBatches();
+    this._toast('Batch completed! '+changed+' item'+(changed!==1?'s':'')+' updated.');
   },
+
+  // ── LEGACY compat ─────────────────────────────────────────────
+  _batchConfirmFrags: [],
+  _addBatchConfirmFragRow(){},
+  _applyBatch(){},
+
 
 
   // ── FRAGRANCE DATABASE ───────────────────────────────────────
@@ -4582,6 +4930,7 @@ const App = {
       const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
       const statusCls = {'Curing':'bs-curing','Ready':'bs-ready','Sold Out':'bs-soldout'}[b.status]||'bs-curing';
       const thumb = b.photos&&b.photos[0] ? '<img class="batch-thumb" src="'+b.photos[0]+'" loading="lazy"/>' : '';
+      const isInProgress = b.status==='In Progress' || b.status==='in_progress';
       return '<div class="batch-card" onclick="App.openBatchDetail(\''+b.id+'\')">'
         +'<div class="batch-card-top">'
         +'<div><div class="batch-card-name">'+this.h(b.recipe_name)+'<span class="version-badge">'+this.h(b.recipe_version)+'</span></div>'
@@ -4593,6 +4942,7 @@ const App = {
         +(b.cost_estimate?'<div class="meta-pill">Cost <span>$'+Number(b.cost_estimate).toFixed(2)+'</span></div>':'')
         +'</div>'
         +(thumb?'<div class="batch-photos-row">'+thumb+'</div>':'')
+        +(isInProgress?'<div style="padding:6px 0 2px" onclick="event.stopPropagation()"><button onclick="App.continueBatch(\''+b.id+'\')" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px;font-family:Lato,sans-serif;font-size:.85rem;font-weight:700;cursor:pointer">▶ Continue Batch</button></div>':'')
         +'</div>';
     }).join('');
     wrap.innerHTML = '';
@@ -4874,15 +5224,21 @@ const App = {
       const v = rows[0];
       const baseR = this.recipes.find(x=>x.id===v.base_recipe_id);
       if(!baseR) return;
-      const merged = Object.assign({}, baseR, {
-        name: baseR.name+' — '+v.name,
-        batchSize: v.batch_size || baseR.batchSize,
-        ingredients: [...(baseR.ingredients||[]),(v.added_ingredients||[])].flat(),
-        notes:(baseR.notes||'')+(v.notes?'\n\nVariant: '+v.notes:'')
-      });
+      this._mbRecipe = baseR;
+      this._mbSession = {
+        batchId: this.uid(),
+        recipeId: baseR.id,
+        recipeName: baseR.name+' - '+v.name,
+        batchSize: v.batch_size || baseR.batchSize || '',
+        batchUnit: v.batch_unit || baseR.batchUnit || 'oz',
+        additives: v.added_ingredients || [],
+        fragrances: v.fragrance_id ? [{id:v.fragrance_id, amount:v.fragrance_amount||''}] : [],
+        notes: v.notes||'',
+        splitData: null,
+        status: 'in_progress'
+      };
       this.closeModal('modal-variants');
-      this.selRId = baseR.id;
-      this.makeBatch(baseR.id, merged);
+      this._openMakeBatch();
     } catch(e){ this._toast('Failed to load variant'); }
   },
 
