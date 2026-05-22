@@ -729,12 +729,12 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 <div class="modal-overlay" id="modal-make-batch" style="align-items:flex-end">
   <div class="modal-sheet" style="max-height:96vh;display:flex;flex-direction:column">
     <div class="modal-handle"></div>
-    <div class="modal-hdr" style="flex-shrink:0">
-      <div class="modal-title" id="mb-title">Make Batch</div>
-      <button class="modal-close" onclick="App.closeMakeBatch()">×</button>
-    </div>
-    <div style="padding:4px 16px 10px;flex-shrink:0;border-bottom:1px solid var(--border)">
-      <div style="font-family:'Great Vibes',cursive;font-size:1.6rem;color:var(--brown-d);line-height:1">Let's Make Something!</div>
+    <div style="padding:10px 16px 10px;flex-shrink:0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+      <div>
+        <div style="font-family:'Great Vibes',cursive;font-size:1.7rem;color:var(--brown-d);line-height:1.1">Let's Make Something!</div>
+        <div class="modal-title" id="mb-title" style="font-size:.92rem;margin-top:3px;color:var(--muted)">Make Batch</div>
+      </div>
+      <button onclick="App.closeMakeBatch()" style="background:rgba(0,0,0,.07);border:none;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text)">✕</button>
     </div>
     <div class="modal-body" id="mb-body" style="flex:1;overflow-y:auto;padding:0"></div>
     <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0">
@@ -2024,6 +2024,7 @@ const App = {
       r.batchSize?`<div class="meta-pill">Batch <span>${r.batchSize} ${r.batchUnit||'oz'}</span></div>`:'',
       r.cureTime?`<div class="meta-pill">Cure <span>${this.h(r.cureTime)}</span></div>`:'',
       r.superfat?`<div class="meta-pill">Superfat <span>${this.h(r.superfat)}</span></div>`:'',
+      r.refUrl?`<div class="meta-pill"><a href="${this.h(r.refUrl)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:700">📖 Recipe Book</a></div>`:'',
       r.lye&&r.lye!=='None'?`<div class="meta-pill">Lye <span>${r.lye}</span></div>`:'',
       r.scent?`<div class="meta-pill">Scent <span>${this.h(r.scent)}</span></div>`:''
     ].filter(Boolean).join('');
@@ -2208,6 +2209,9 @@ const App = {
       <div class="form-row">
         <div class="form-group"><label>Cure Time</label><input id="fct" value="${this.h(r.cureTime)}" placeholder="4–6 weeks"/></div>
         <div class="form-group"><label>Superfat</label><input id="fsf" value="${this.h(r.superfat)}" placeholder="5%"/></div>
+      </div>
+      <div class="form-group"><label>Recipe / Instruction Book URL <span style="font-weight:400;color:var(--muted)">(optional link)</span></label>
+        <input id="furl" type="url" value="${this.h(r.refUrl||'')}" placeholder="https://…" style="font-size:16px"/>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Lye Type</label><select id="fly">${so(LYE_T,r.lye)}</select></div>
@@ -3066,7 +3070,7 @@ const App = {
           'onfocus="App._mbFragSearch('+i+',this.value)" '+
           'style="width:100%;font-size:16px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:Lato,sans-serif;color:var(--text);outline:none"/>'+
         '<div id="mb-fdrop-'+i+'" style="display:none;position:fixed;background:var(--white);border:1.5px solid var(--border);border-radius:10px;max-height:200px;overflow-y:auto;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.15)"></div>'+
-        '<div id="mb-fsel-'+i+'" style="font-size:.72rem;color:var(--accent);padding:2px 2px 0;min-height:14px">'+(existing?'✓ '+existing.name+stock:'')+'</div>'+
+        (existing?'<div style="font-size:.72rem;color:var(--accent);padding:2px 2px 0">✓ '+this.h(existing.name)+stock+'</div>':'<div id="mb-fsel-'+i+'" style="font-size:.72rem;color:var(--accent);padding:2px 2px 0;min-height:14px"></div>')+
       '</div>'+
       '<input type="number" step="any" placeholder="oz" class="sm" value="'+(fr.amount||'')+'" '+
         'oninput="App._mbSession.fragrances['+i+'].amount=this.value" style="font-size:16px;flex:1;min-width:55px"/>'+
@@ -3084,24 +3088,30 @@ const App = {
     drop.style.left=rect.left+'px';
     drop.style.top=(rect.bottom+2)+'px';
     drop.style.width=rect.width+'px';
-    drop.innerHTML=matches.map(f=>
-      '<div onmousedown="App._mbSelectFrag('+i+',\''+f.id+'\')" '+
-        'ontouchend="event.preventDefault();App._mbSelectFrag('+i+',\''+f.id+'\')" '+
-        'style="padding:10px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border);background:var(--white)">'
-        +this.h(f.name)+'<span style="color:var(--muted);font-size:.75rem;float:right">'+(f.quantity||0)+' '+(f.unit||'oz')+'</span>'
-      +'</div>'
+    // Store matches in a temp map to avoid embedding IDs in HTML
+    drop._fragMatches = matches;
+    drop.innerHTML=matches.map((f,idx)=>
+      '<div onmousedown="App._mbPickFrag('+i+','+idx+')" '+
+        'ontouchend="event.preventDefault();App._mbPickFrag('+i+','+idx+')" '+
+        'style="padding:10px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border);background:var(--white)">'+
+        this.h(f.name)+'<span style="color:var(--muted);font-size:.75rem;float:right">'+(f.quantity||0)+' '+(f.unit||'oz')+'</span>'+
+      '</div>'
     ).join('');
     drop.style.display='block';
   },
 
-  _mbSelectFrag(i, fragId){
-    const frag=this.fragrances.find(f=>f.id===fragId);
+  _mbPickFrag(i, idx){
+    const drop=document.getElementById('mb-fdrop-'+i);
+    if(!drop||!drop._fragMatches) return;
+    const frag=drop._fragMatches[idx];
     if(!frag) return;
-    if(this._mbSession.fragrances[i]) this._mbSession.fragrances[i].id=fragId;
+    if(this._mbSession.fragrances[i]){
+      this._mbSession.fragrances[i].id=frag.id;
+      this._mbSession.fragrances[i].name=frag.name;
+    }
     const inp=document.getElementById('mb-fi-'+i);
     if(inp) inp.value=frag.name;
-    const drop=document.getElementById('mb-fdrop-'+i);
-    if(drop) drop.style.display='none';
+    drop.style.display='none';
     const sel=document.getElementById('mb-fsel-'+i);
     if(sel) sel.textContent='✓ '+frag.name+' ('+(frag.quantity||0)+' '+(frag.unit||'oz')+')';
   },
@@ -5398,6 +5408,7 @@ const App = {
     r.unitsPerBatch=document.getElementById('fupb').value;
     r.unitSize=document.getElementById('fusz').value;
     r.cureTime=document.getElementById('fct').value; r.superfat=document.getElementById('fsf').value;
+    r.refUrl=document.getElementById('furl')?.value?.trim()||'';
     r.lye=document.getElementById('fly').value; r.scent=document.getElementById('fsc').value;
     r.description=document.getElementById('fde').value; r.instructions=document.getElementById('fin').value; r.notes=document.getElementById('fno').value;
     const tv=document.getElementById('rtags').value; r.tags=tv?JSON.parse(tv):[];
