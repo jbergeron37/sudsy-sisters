@@ -4042,18 +4042,38 @@ const App = {
       body+
       '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; Printed '+new Date().toLocaleDateString()+'</div>'+
       '</body></html>';
-    try {
-      const blob = new Blob([doc], {type:'text/html'});
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, '_blank');
-      if(!win){
-        const a = document.createElement('a');
-        a.href=url; a.download=(title||'report').replace(/[^a-z0-9]/gi,'_')+'.html';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        this._toast('File saved — open it to print');
-      }
-      setTimeout(()=>URL.revokeObjectURL(url), 120000);
-    } catch(e){ this._toast('Print failed: '+e.message); }
+    // Open blank window first (must be synchronous), then write content
+    const win = window.open('', '_blank');
+    if(win){
+      win.document.write(doc);
+      win.document.close();
+    } else {
+      // PWA standalone: window.open blocked — show in-app overlay
+      this._showPrintOverlay(doc, title);
+    }
+  },
+
+  _showPrintOverlay(doc, title){
+    const existing = document.getElementById('__print-overlay');
+    if(existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = '__print-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column';
+    overlay.innerHTML =
+      '<div style="background:#FCBFCE;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'+
+        '<div style="font-family:\'Playfair Display\',serif;font-weight:700;color:#111;font-size:1rem">'+this.h(title||'Print Preview')+'</div>'+
+        '<div style="display:flex;gap:8px;align-items:center">'+
+          '<div style="font-size:.75rem;color:#555">Tap Share → Print</div>'+
+          '<button onclick="document.getElementById(\'__print-overlay\').remove()" style="background:rgba(0,0,0,.1);border:none;border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.8rem;font-weight:700;cursor:pointer">✕ Close</button>'+
+        '</div>'+
+      '</div>'+
+      '<iframe id="__print-iframe" style="flex:1;border:none;width:100%;height:100%"></iframe>';
+    document.body.appendChild(overlay);
+    // Write doc into iframe
+    const iframe = document.getElementById('__print-iframe');
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(doc);
+    iframe.contentDocument.close();
   },
 
   // ── 1. RECIPE & VARIANT PRINT ─────────────────────────────────
@@ -4207,17 +4227,52 @@ const App = {
       lines.push(r.lbl+' ('+r.pct+'%): Total '+totalOz+' oz / Oils '+oilOz+' oz / Lye+Milk '+lyeOz+' oz');
     });
     const splitText = lines.join('\n');
-    // Paste into open batch log notes if available
+    // Paste directly into open batch log notes if available
     const notesEl = document.getElementById('bl-notes');
     if(notesEl){
       notesEl.value = (notesEl.value ? notesEl.value+'\n\n' : '')+splitText;
       this._toast('Split added to batch notes!');
       return;
     }
-    // Otherwise copy to clipboard
-    navigator.clipboard.writeText(splitText)
-      .then(()=>this._toast('Split copied — paste into batch notes'))
-      .catch(()=>this._toast('Copy failed'));
+    // Try clipboard API first (works in PWA standalone)
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(splitText)
+        .then(()=>this._toast('Copied! Paste into your batch notes.'))
+        .catch(()=>this._showCopyModal(splitText));
+      return;
+    }
+    // Fallback: show textarea modal for manual copy
+    this._showCopyModal(splitText);
+  },
+
+  _showCopyModal(text){
+    // Remove any existing copy modal
+    const existing = document.getElementById('copy-text-modal');
+    if(existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'copy-text-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:flex-end;justify-content:center';
+    modal.innerHTML =
+      '<div style="background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:16px 16px calc(16px + var(--safe-b))">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+          '<div style="font-family:\'Playfair Display\',serif;font-size:1rem;font-weight:700;color:var(--text)">Copy Split Results</div>'+
+          '<button onclick="document.getElementById(\'copy-text-modal\').remove()" style="background:none;border:none;font-size:1.4rem;color:var(--muted);cursor:pointer">×</button>'+
+        '</div>'+
+        '<div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Select all and copy, then paste into batch notes:</div>'+
+        '<textarea id="copy-modal-text" readonly style="width:100%;height:180px;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:10px;font-family:Lato,sans-serif;font-size:.82rem;color:var(--text);resize:none;outline:none">'+text.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>'+
+        '<button onclick="var t=document.getElementById(\'copy-modal-text\');t.select();t.setSelectionRange(0,99999);document.execCommand(\'copy\');App._toast(\'Copied!\')" '+
+          'style="width:100%;margin-top:10px;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:12px;font-family:Lato,sans-serif;font-size:.9rem;font-weight:700;cursor:pointer">'+
+          'Select All &amp; Copy'+
+        '</button>'+
+      '</div>';
+    document.body.appendChild(modal);
+    // Auto-select the textarea
+    setTimeout(()=>{
+      const ta = document.getElementById('copy-modal-text');
+      if(ta){ ta.focus(); ta.select(); }
+    }, 100);
+    // Close on backdrop tap
+    modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
   },
 
   // ── SPLIT CALC PDF PRINT ─────────────────────────────────────
