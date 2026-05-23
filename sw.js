@@ -1,5 +1,5 @@
 // ── INCREMENT THIS VERSION every time you upload a new index.html ──
-const CACHE = 'sudsy-202605231400';
+const CACHE = 'sudsy-202605230231';
 
 const ASSETS = [
   './',
