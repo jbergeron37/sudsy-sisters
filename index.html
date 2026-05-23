@@ -3324,6 +3324,28 @@ const App = {
 
     // 2. Save as variant with full batch details (recipe_variants is the single source of truth)
     if(saveVariant&&variantName){
+      const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
+      const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
+
+      // Build full combined ingredient list: base recipe + additives
+      const baseIngs = (r.ingredients||[]).map(i=>{
+        const oz = i.unit==='g' ? g2oz(i.amount) : (parseFloat(i.amount)||0);
+        const g  = i.unit==='g' ? (parseFloat(i.amount)||0) : oz2g(i.amount);
+        return { name:i.name, oz:oz, g:g, phase:i.phase||'' };
+      });
+      const addIngs = (s.additives||[]).filter(a=>a.name).map(a=>{
+        const isG = a.unit==='g';
+        const oz = isG ? g2oz(a.amount) : (parseFloat(a.amount)||0);
+        const g  = isG ? (parseFloat(a.amount)||0) : oz2g(a.amount);
+        return { name:a.name, oz:oz, g:g, phase:'additive' };
+      });
+      const fragIngs = (s.fragrances||[]).filter(f=>f.id&&f.amount).map(f=>{
+        const frag = (this.fragrances||[]).find(x=>x.id===f.id);
+        const oz = parseFloat(f.amount)||0;
+        return { name:frag?frag.name:'Fragrance', oz:oz, g:oz2g(oz), phase:'3', frag_id:f.id };
+      });
+      const allIngs = [...baseIngs, ...fragIngs, ...addIngs];
+
       const variant={
         id:this.uid(),
         base_recipe_id:s.recipeId,
@@ -3340,7 +3362,14 @@ const App = {
         split_data:s.splitData||null,
         made_at:new Date().toISOString(),
         made_by:this._currentUser||'',
-        updated_at:new Date().toISOString()
+        updated_at:new Date().toISOString(),
+        full_recipe:{
+          ingredients: allIngs,
+          batch_size: s.batchSize,
+          batch_unit: s.batchUnit||'oz',
+          cure_time: r.cureTime||'',
+          notes: s.notes||''
+        }
       };
       try {
         const saveRes = await this._sbFetch('POST','recipe_variants?on_conflict=id',variant);
@@ -5081,7 +5110,7 @@ const App = {
     }
   },
 
-  async openVariantDetail(variantId){
+    async openVariantDetail(variantId){
     try {
       const res = await this._sbFetch('GET','recipe_variants?id=eq.'+variantId);
       const rows = await res.json();
@@ -5093,26 +5122,66 @@ const App = {
       const dateStr = v.made_at ? new Date(v.made_at).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : '';
       if(!this.fragrances||!this.fragrances.length) await this._loadFragrances();
 
-      const fragsHtml = (v.fragrances_used||[]).filter(f=>f&&f.id).map(f=>{
-        const frag = (this.fragrances||[]).find(x=>x.id===f.id);
-        const name = frag ? frag.name : (f.name||'Unknown');
-        return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:.85rem">'+
-          '<span>'+this.h(name)+'</span>'+
-          (f.amount?'<span style="font-weight:700">'+f.amount+' oz <span style="color:var(--muted);font-weight:400;font-size:.78rem">/ '+oz2g(f.amount)+' g</span></span>':'')+
-        '</div>';
-      }).join('');
+      // ── FULL RECIPE VIEW ──────────────────────────────────────
+      const pLabels = {'1':'Phase 1 — Goat Milk & Lye','2':'Phase 2 — Oils & Butters','3':'Phase 3 — Fragrance & Color','additive':'Extra Additives','':'Ingredients'};
+      const pColors = {'1':'#5C35C2','2':'#A8527A','3':'#2E7D32','additive':'#E65100','':'#666'};
 
-      const addsHtml = (v.added_ingredients||[]).filter(x=>x&&x.name).map(a=>{
-        const oz = parseFloat(a.amount)||0;
-        return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:.85rem">'+
-          '<span>'+this.h(a.name)+'</span>'+
-          (oz?'<span style="font-weight:700">'+oz.toFixed(2)+' oz <span style="color:var(--muted);font-weight:400;font-size:.78rem">/ '+oz2g(oz)+' g</span></span>':'')+
-        '</div>';
-      }).join('');
+      let recipeHtml = '';
+      const fr = v.full_recipe;
+      if(fr && fr.ingredients && fr.ingredients.length){
+        // Group by phase
+        const byPhase = {};
+        fr.ingredients.forEach(i=>{
+          const p = i.phase||'';
+          if(!byPhase[p]) byPhase[p]=[];
+          byPhase[p].push(i);
+        });
+        ['1','2','3','additive',''].forEach(p=>{
+          if(!byPhase[p]||!byPhase[p].length) return;
+          const color = pColors[p];
+          const rows = byPhase[p].map(i=>
+            '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:.85rem">'+
+              '<span>'+this.h(i.name)+'</span>'+
+              '<span style="white-space:nowrap;font-weight:700">'+
+                (parseFloat(i.oz)||0).toFixed(2)+' oz'+
+                '<span style="color:var(--muted);font-weight:400;font-size:.78rem"> / '+(parseFloat(i.g)||0).toFixed(1)+' g</span>'+
+              '</span>'+
+            '</div>'
+          ).join('');
+          const total = byPhase[p].reduce((s,i)=>s+(parseFloat(i.oz)||0),0);
+          recipeHtml += '<div style="margin-bottom:12px">'+
+            '<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+color+';border-left:3px solid '+color+';padding-left:7px;margin-bottom:5px">'+pLabels[p]+'</div>'+
+            rows+
+            '<div style="text-align:right;font-size:.78rem;font-weight:700;color:'+color+';padding-top:3px">'+
+              'Total: '+total.toFixed(2)+' oz / '+oz2g(total).toFixed(1)+' g'+
+            '</div>'+
+          '</div>';
+        });
+      } else {
+        // Legacy: no full_recipe stored — fall back to old display
+        const fragsHtml = (v.fragrances_used||[]).filter(f=>f&&f.id).map(f=>{
+          const frag = (this.fragrances||[]).find(x=>x.id===f.id);
+          const oz = parseFloat(f.amount)||0;
+          return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:.85rem">'+
+            '<span>'+this.h(frag?frag.name:(f.name||'?'))+'</span>'+
+            (oz?'<span style="font-weight:700">'+oz.toFixed(2)+' oz <span style="color:var(--muted);font-weight:400;font-size:.78rem">/ '+oz2g(oz).toFixed(1)+' g</span></span>':'')+
+          '</div>';
+        }).join('');
+        const addsHtml = (v.added_ingredients||[]).filter(x=>x&&x.name).map(a=>{
+          const oz = parseFloat(a.amount)||0;
+          return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:.85rem">'+
+            '<span>'+this.h(a.name)+'</span>'+
+            (oz?'<span style="font-weight:700">'+oz.toFixed(2)+' oz <span style="color:var(--muted);font-weight:400;font-size:.78rem">/ '+oz2g(oz).toFixed(1)+' g</span></span>':'')+
+          '</div>';
+        }).join('');
+        recipeHtml = (fragsHtml?'<div style="margin-bottom:12px"><div class="section-title">Fragrances Used</div>'+fragsHtml+'</div>':'')+
+                     (addsHtml?'<div style="margin-bottom:12px"><div class="section-title">Extra Additives</div>'+addsHtml+'</div>':'');
+      }
 
+      // ── SPLIT DATA ────────────────────────────────────────────
       let splitHtml = '';
       const sd = v.split_data;
-      if(sd && sd.rows && sd.rows.length){
+      if(sd&&sd.rows&&sd.rows.length){
         splitHtml = '<div style="margin-bottom:12px"><div class="section-title">Color / Layer Split</div>'+
           sd.rows.map(row=>{
             const lyeOz = Math.round((sd.lyeTotal||0)*(row.pct/100)*100)/100;
@@ -5120,7 +5189,11 @@ const App = {
             const totOz = Math.round((sd.totalWt||0)*(row.pct/100)*100)/100;
             return '<div style="background:var(--cream);border-radius:8px;padding:8px 10px;margin-bottom:6px">'+
               '<div style="font-weight:700;font-size:.85rem;margin-bottom:4px">'+this.h(row.lbl)+' ('+row.pct+'%)</div>'+
-              '<div style="font-size:.78rem;color:var(--muted)">Lye+Milk: <b style="color:#5C35C2">'+lyeOz+' oz</b> | Oils: <b style="color:#A8527A">'+oilOz+' oz</b> | Total: <b>'+totOz+' oz</b></div>'+
+              '<div style="font-size:.78rem;color:var(--muted)">'+
+                'Lye+Milk: <b style="color:#5C35C2">'+lyeOz.toFixed(2)+' oz / '+oz2g(lyeOz).toFixed(1)+' g</b> | '+
+                'Oils: <b style="color:#A8527A">'+oilOz.toFixed(2)+' oz / '+oz2g(oilOz).toFixed(1)+' g</b> | '+
+                'Total: <b>'+totOz.toFixed(2)+' oz / '+oz2g(totOz).toFixed(1)+' g</b>'+
+              '</div>'+
             '</div>';
           }).join('')+'</div>';
       }
@@ -5129,16 +5202,18 @@ const App = {
       if(bodyEl) bodyEl.innerHTML =
         '<div style="padding:14px">'+
           '<div style="font-size:.72rem;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">'+this.h(baseName)+'</div>'+
-          (dateStr?'<div style="font-size:.75rem;color:var(--muted);margin-bottom:12px">Made '+dateStr+(v.made_by?' by '+this.h(v.made_by):'')+'</div>':'')+
-          (v.batch_size?'<div style="background:var(--cream);border-radius:10px;padding:8px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:.75rem;color:var(--muted);font-weight:700;text-transform:uppercase">Batch Size</span><span style="font-weight:700">'+v.batch_size+' '+(v.batch_unit||'oz')+'</span></div>':'')+
-          (fragsHtml?'<div style="margin-bottom:12px"><div class="section-title">Fragrances Used</div>'+fragsHtml+'</div>':'')+
-          (addsHtml?'<div style="margin-bottom:12px"><div class="section-title">Extra Additives</div>'+addsHtml+'</div>':'')+
+          (dateStr?'<div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Made '+dateStr+(v.made_by?' by '+this.h(v.made_by):'')+'</div>':'')+
+          (v.batch_size?'<div style="background:var(--cream);border-radius:10px;padding:8px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">'+
+            '<span style="font-size:.75rem;color:var(--muted);font-weight:700;text-transform:uppercase">Batch Size</span>'+
+            '<span style="font-weight:700">'+v.batch_size+' '+(v.batch_unit||'oz')+'</span>'+
+          '</div>':'')+
+          recipeHtml+
           splitHtml+
           (v.batch_notes||v.notes?'<div style="margin-bottom:12px"><div class="section-title">Batch Notes</div><div style="font-size:.85rem;line-height:1.5;white-space:pre-wrap;color:var(--text)">'+this.h(v.batch_notes||v.notes)+'</div></div>':'')+
           '<div style="display:flex;gap:8px;margin-top:14px">'+
-            '<button class="btn btn-outline" style="flex:1" onclick="App.openVariantForm(\''+v.id+'\',\''+v.base_recipe_id+'\')">Edit</button>'+
-            '<button class="btn btn-outline" onclick="App.printVariantPDF(\''+v.id+'\',\''+v.base_recipe_id+'\')" style="padding:8px 14px">&#x1F5A8;</button>'+
-            '<button class="btn btn-danger" onclick="App._deleteVariant(\''+v.id+'\')" style="padding:8px 14px">&#x1F5D1;</button>'+
+            '<button class="btn btn-outline" style="flex:1" onclick="App.openVariantForm(\''+v.id+'\',' + '\''+v.base_recipe_id+'\')">Edit</button>'+
+            '<button class="btn btn-outline" onclick="App.printVariantPDF(\''+v.id+'\',' + '\''+v.base_recipe_id+'\')">&#x1F5A8;</button>'+
+            '<button class="btn btn-danger" onclick="App._deleteVariant(\''+v.id+'\')">&#x1F5D1;</button>'+
           '</div>'+
         '</div>';
 
@@ -5146,6 +5221,7 @@ const App = {
       document.getElementById('modal-variants').classList.add('open');
     } catch(e){ this._toast('Failed to load variant: '+e.message); }
   },
+
 
   async _deleteVariant(id){
     if(!confirm('Delete this variant?')) return;
@@ -5406,8 +5482,11 @@ const App = {
         '<div class="form-group"><label>Fragrance</label>'+
           '<select id="vf-frag" style="font-size:16px"><option value="">— Base recipe FO —</option>'+fragOpts+'</select>'+
         '</div>'+
-        '<div class="form-group"><label>Amount (oz)</label>'+
-          '<input id="vf-frag-amt" type="number" step="any" value="'+this.h(v.fragrance_amount||'')+'" placeholder="oz" style="font-size:16px"/>'+
+        '<div class="form-group"><label>Amount</label>'+
+          '<div style="display:flex;gap:6px">'+
+          '<input id="vf-frag-amt" type="number" step="any" value="'+this.h(v.fragrance_amount||'')+'" placeholder="oz" oninput="var g=document.getElementById(\'vf-frag-amt-g\');if(g)g.value=this.value?Math.round(parseFloat(this.value)*28.3495*100)/100:\'\';" style="font-size:16px;flex:1"/>'+
+          '<input id="vf-frag-amt-g" type="number" step="any" value="'+(v.fragrance_amount?Math.round(parseFloat(v.fragrance_amount)*28.3495*100)/100:'')+'" placeholder="g" oninput="var o=document.getElementById(\'vf-frag-amt\');if(o)o.value=this.value?Math.round(parseFloat(this.value)/28.3495*100)/100:\'\';" style="font-size:16px;flex:1"/>'+
+          '</div>'+
         '</div>'+
       '</div>'+
       '<div class="form-group"><label>Colorant</label>'+
@@ -5417,7 +5496,9 @@ const App = {
     document.getElementById('modal-variant-form').classList.add('open');
   },
 
-  _variantIngRow(i, ing){
+  _syncFragOz(v){ var g=document.getElementById('vf-frag-amt-g'); if(g) g.value=v?Math.round(parseFloat(v)*28.3495*100)/100:''; },
+  _syncFragG(v){ var o=document.getElementById('vf-frag-amt'); if(o) o.value=v?Math.round(parseFloat(v)/28.3495*100)/100:''; },
+    _variantIngRow(i, ing){
     const gval = ing.unit==='g' ? ing.amount : (ing.amount ? Math.round(parseFloat(ing.amount)*28.3495*100)/100 : '');
     const ozval = ing.unit!=='g' ? ing.amount : (ing.amount ? Math.round(parseFloat(ing.amount)/28.3495*100)/100 : '');
     return '<div class="ing-form-row" id="vir'+i+'">'+
@@ -6194,4 +6275,15 @@ window.addEventListener('pageshow', function(e){
 });
 </script>
 </body>
-</html>
+</html>        '<div class="form-row">'+
+        '<div class="form-group"><label>Fragrance</label>'+
+          '<select id="vf-frag" style="font-size:16px"><option value="">— Base recipe FO —</option>'+fragOpts+'</select>'+
+        '</div>'+
+        '<div class="form-group"><label>Amount</label>'+
+          '<div style="display:flex;gap:6px">'+
+          '<input id="vf-frag-amt" type="number" step="any" value="'+this.h(v.fragrance_amount||'')+'" placeholder="oz" oninput="App._syncFragOz(this.value)" style="font-size:16px;flex:1"/>'+
+          '<input id="vf-frag-amt-g" type="number" step="any" value="'+(v.fragrance_amount?Math.round(parseFloat(v.fragrance_amount)*28.3495*100)/100:'')+'" placeholder="g" oninput="App._syncFragG(this.value)" style="font-size:16px;flex:1"/>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+        
