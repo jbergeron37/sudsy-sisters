@@ -5921,42 +5921,91 @@ const App = {
   // ── RECIPE VERSIONS ──────────────────────────────────────────
   async showVersionHistory(recipeId){
     const body = document.getElementById('version-history-body');
-    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Loading history…</div>';
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Loading history\u2026</div>';
     document.getElementById('modal-version-history').classList.add('open');
 
     try {
-      const res = await this._sbFetch('GET',
-        'recipe_versions?recipe_id=eq.'+recipeId+'&order=saved_at.desc&limit=20');
-      const versions = await res.json();
+      // Fetch recipe edit versions AND variants in parallel
+      const [verRes, varRes] = await Promise.all([
+        this._sbFetch('GET','recipe_versions?recipe_id=eq.'+recipeId+'&order=saved_at.desc&limit=50'),
+        this._sbFetch('GET','recipe_variants?base_recipe_id=eq.'+recipeId+'&order=created_at.desc')
+      ]);
+      const versions  = (await verRes.json()) || [];
+      const variants  = (await varRes.json()) || [];
 
-      if(!versions || !versions.length){
-        body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">No version history yet.<br><small>Versions are saved each time you edit.</small></div>';
+      // Build a unified timeline entry for each
+      const items = [];
+
+      versions.forEach(v => {
+        items.push({
+          type: 'edit',
+          date: new Date(v.saved_at),
+          label: v.version_label || 'v?',
+          by: v.saved_by || '',
+          note: v.notes || '',
+          id: v.id
+        });
+      });
+
+      variants.forEach(v => {
+        const isDraft = (v.name||'').startsWith('[Draft]');
+        items.push({
+          type: isDraft ? 'draft' : 'variant',
+          date: new Date(v.made_at || v.created_at),
+          label: (v.name||'').replace(/^\[Draft\]\s*/,''),
+          by: (()=>{ let by=v.made_by||''; try{ const u=JSON.parse(by); by=u.display_name||u.username||by; }catch(e){} return by; })(),
+          note: v.batch_notes || v.notes || '',
+          batchSize: v.batch_size ? v.batch_size+' '+(v.batch_unit||'oz') : '',
+          id: v.id
+        });
+      });
+
+      // Sort newest first
+      items.sort((a,b) => b.date - a.date);
+
+      if(!items.length){
+        body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">No history yet.<br><small>Edit the recipe or create a variant to start tracking.</small></div>';
         return;
       }
 
-      body.innerHTML = versions.map(v => {
-        const d = new Date(v.saved_at);
-        const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-        const timeStr = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-        const byLine = (v.saved_by ? 'By '+this.h(v.saved_by) : '') + (v.notes ? ' \u00b7 '+this.h(v.notes) : '');
+      const tagStyles = {
+        edit:    'background:#EDE0FF;color:#6600EE',
+        variant: 'background:#FFF0E0;color:#E65100',
+        draft:   'background:#E8F5E9;color:#2E7D32'
+      };
+      const tagLabels = {
+        edit:    'Base Edit',
+        variant: 'Variant',
+        draft:   'Draft'
+      };
+
+      body.innerHTML = items.map(item => {
+        const dateStr = item.date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+        const timeStr = item.date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        const tag = '<span style="'+tagStyles[item.type]+';border-radius:6px;padding:2px 7px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px">'+tagLabels[item.type]+'</span>';
+        const byLine = (item.by?'By '+this.h(item.by):'') + (item.batchSize?' \u00b7 '+item.batchSize:'') + (item.note?' \u00b7 '+this.h(item.note.slice(0,60)):'');
+        const restoreBtn = item.type==='edit'
+          ? '<button onclick="App.restoreVersion(\''+item.id+'\')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;flex-shrink:0;margin-left:8px">Restore</button>'
+          : '<button onclick="App.openVariantDetail(\''+item.id+'\')" style="background:var(--cream);color:var(--accent);border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;flex-shrink:0;margin-left:8px">View</button>';
         return '<div style="padding:12px 16px;border-bottom:1px solid var(--border)">'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
-            '<div>'+
-              '<div style="font-weight:700;font-size:.9rem;color:var(--text)">'+this.h(v.version_label)+' \u2014 '+dateStr+' '+timeStr+'</div>'+
-              '<div style="font-size:.75rem;color:var(--muted);margin-top:2px">'+byLine+'</div>'+
+            '<div style="flex:1;min-width:0">'+
+              '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'+
+                tag+
+                '<span style="font-weight:700;font-size:.9rem;color:var(--text)">'+this.h(item.label)+'</span>'+
+              '</div>'+
+              '<div style="font-size:.75rem;color:var(--muted)">'+dateStr+' '+timeStr+(byLine?' \u00b7 '+byLine:'')+'</div>'+
             '</div>'+
-            '<button onclick="App.restoreVersion(\''+v.id+'\')" '+
-              'style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;flex-shrink:0;margin-left:8px">'+
-              'Restore'+
-            '</button>'+
+            restoreBtn+
           '</div>'+
         '</div>';
       }).join('');
 
     } catch(e){
-      body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--red)">Failed to load history.</div>';
+      body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--red)">Failed to load history: '+this.h(e.message)+'</div>';
     }
-  },
+  }
+,
 
   async restoreVersion(versionId){
     this._confirm('Restore This Version',
