@@ -5538,7 +5538,7 @@ const App = {
           </div>
           <div class="detail-actions" style="flex-wrap:wrap;gap:6px">
             <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.openVariantForm('${v.id}','${v.base_recipe_id}')">✏️ Edit</button>
-            <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.showVersionHistory('${v.base_recipe_id}')">🕐 History</button>
+            <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.showVersionHistory('${v.base_recipe_id}', true)">🕐 History</button>
             <button class="btn btn-outline" onclick="App.printVariantPDF('${v.id}','${v.base_recipe_id}')" style="padding:8px 14px">🖨 Print</button>
             <button class="btn btn-danger" style="padding:8px 12px;font-size:1rem;flex-shrink:0" title="Delete variant" onclick="App._deleteVariant('${v.id}')">🗑</button>
           </div>
@@ -5919,7 +5919,7 @@ const App = {
   },
 
   // ── RECIPE VERSIONS ──────────────────────────────────────────
-  async showVersionHistory(recipeId){
+  async showVersionHistory(recipeId, variantsOnly){
     const body = document.getElementById('version-history-body');
     body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Loading history\u2026</div>';
     document.getElementById('modal-version-history').classList.add('open');
@@ -5960,11 +5960,12 @@ const App = {
         });
       });
 
-      // Sort newest first
-      items.sort((a,b) => b.date - a.date);
+      // Filter and sort
+      const filtered = variantsOnly ? items.filter(i=>i.type!=='edit') : items;
+      filtered.sort((a,b) => b.date - a.date);
 
-      if(!items.length){
-        body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">No history yet.<br><small>Edit the recipe or create a variant to start tracking.</small></div>';
+      if(!filtered.length){
+        body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">No variant history yet.<br><small>Complete a batch and save as a variant to see it here.</small></div>';
         return;
       }
 
@@ -5979,7 +5980,7 @@ const App = {
         draft:   'Draft'
       };
 
-      body.innerHTML = items.map(item => {
+      body.innerHTML = filtered.map(item => {
         const dateStr = item.date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
         const timeStr = item.date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
         const tag = '<span style="'+tagStyles[item.type]+';border-radius:6px;padding:2px 7px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px">'+tagLabels[item.type]+'</span>';
@@ -6106,17 +6107,31 @@ const App = {
 
   async _saveRecipeVersion(r, changeNote){
     try {
+      let by = '';
+      if(this._currentUser){
+        try { const u=JSON.parse(this._currentUser); by=u.display_name||u.username||''; }
+        catch(e){ by = typeof this._currentUser==='string' ? this._currentUser : ''; }
+      }
       const snap = {
-        id: this.uid(),
         recipe_id: r.id,
         version_label: r.version || 'v1',
         data: r,
-        saved_by: this._currentUser ? this._currentUser.display_name : 'Unknown',
+        saved_by: by || 'Unknown',
         saved_at: new Date().toISOString(),
         notes: changeNote || ''
       };
-      await this._sbFetch('POST', 'recipe_versions', [snap]);
-    } catch(e){}
+      // Use raw fetch — no Prefer merge header needed, just a plain INSERT
+      await fetch(this.SB_URL+'/rest/v1/recipe_versions', {
+        method: 'POST',
+        headers: {
+          'apikey': this.SB_KEY,
+          'Authorization': 'Bearer '+this.SB_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(snap)
+      });
+    } catch(e){ console.error('_saveRecipeVersion failed:', e); }
   },
 
   // ── PDF PRINT ────────────────────────────────────────────────
