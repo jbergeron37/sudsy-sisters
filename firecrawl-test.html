@@ -353,8 +353,8 @@ function discoverProductUrls(pages, vendor){
       if(!url.startsWith('http')) return;
       if(!url.includes(vendor.baseUrl.replace('https://','').replace('http://',''))) return;
 
-      // Skip nav/utility pages
-      const skip = ['account','cart','checkout','login','register','blog','contact','about','faq','search','wishlist','compare','review','mwdownload','customer','policy'];
+      // Skip nav/utility/subcategory pages
+      const skip = ['account','cart','checkout','login','register','blog','contact','about','faq','search','wishlist','compare','review','mwdownload','customer','policy','essential-oils','marine','animal','mineral','organic','fair_trade','kosher','rspo','plant-oils'];
       if(skip.some(s => url.toLowerCase().includes(s))) return;
       // Skip the exact crawl start URL (category page)
       if(url === vendor.crawlUrl.split('#')[0]) return;
@@ -380,7 +380,7 @@ function matchUrlsToIngredients(urls, vendor){
 
   // Synonym map for common ingredient name variations in URLs
   const synonyms = {
-    'coconut oil': ['coconut'],
+    'coconut oil': ['coconut-oil','coconut_oil','coconut oil','coconut76','coconut-76','coconut'],
     'olive oil':   ['olive'],
     'castor oil':  ['castor'],
     'avocado oil': ['avocado'],
@@ -425,24 +425,38 @@ function matchUrlsToIngredients(urls, vendor){
   return matched;
 }
 
-// ── PASS 2: Scrape individual product page and extract pricing ─────────────
+// ── PASS 2: Scrape individual product page using async batch endpoint ───────
 async function scrapeProductPage(url, ingredientName, vendorName){
-  const res = await fetch('https://api.firecrawl.dev/v1/scrape', {
+  // Use /v1/batch/scrape (async) — synchronous /v1/scrape gets CORS-blocked from browser
+  const res = await fetch('https://api.firecrawl.dev/v1/batch/scrape', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      url,
+      urls: [url],
       formats: ['markdown'],
       onlyMainContent: true
     })
   });
-  if(!res.ok) throw new Error(`Scrape HTTP ${res.status}`);
-  const data = await res.json();
-  const markdown = data.data?.markdown || data.markdown || '';
-  if(!markdown) throw new Error('Empty markdown returned');
+  if(!res.ok) throw new Error(`Batch scrape HTTP ${res.status}: ${await res.text()}`);
+  const { id: jobId } = await res.json();
+  if(!jobId) throw new Error('No batch job ID returned');
 
-  // Use Claude API to extract structured pricing from the markdown
-  return await extractPricingWithClaude(markdown, ingredientName, vendorName, url);
+  // Poll until done
+  for(let i=0; i<20; i++){
+    await sleep(2500);
+    const poll = await fetch(`https://api.firecrawl.dev/v1/batch/scrape/${jobId}`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` }
+    });
+    if(!poll.ok) throw new Error(`Poll HTTP ${poll.status}`);
+    const data = await poll.json();
+    if(data.status === 'completed' || (data.data||[]).length > 0){
+      const markdown = data.data?.[0]?.markdown || '';
+      if(!markdown) throw new Error('Empty markdown from batch scrape');
+      return await extractPricingWithClaude(markdown, ingredientName, vendorName, url);
+    }
+    if(data.status === 'failed') throw new Error('Batch scrape job failed');
+  }
+  throw new Error('Batch scrape timed out');
 }
 
 // ── Claude API extracts pricing tiers from raw markdown ───────────────────
