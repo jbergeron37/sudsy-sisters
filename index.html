@@ -1075,7 +1075,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.24.26.76.00';
+    const _ver = 'V-5.24.26.77.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2394,6 +2394,10 @@ const App = {
     let deducted = 0, skipped = 0;
     const usedAt = new Date().toISOString();
     const transactions = [];
+    // Calculate units this batch yields
+    const _r = p.r;
+    const _unitsYielded = _r && _r.unitsPerBatch ? parseFloat(_r.unitsPerBatch) :
+      (_r && _r.batchSize && _r.unitSize ? Math.round(parseFloat(_r.batchSize)/parseFloat(_r.unitSize)*100)/100 : null);
 
     for(const it of p.items){
       if(!it.found){ skipped++; continue; }
@@ -2416,6 +2420,7 @@ const App = {
             recipe_name: p.r ? p.r.name : null,
             variant_id: p.variantId||null,
             variant_name: p.v ? p.v.name : null,
+            units_yielded: _unitsYielded,
             used_at: usedAt
           });
         }
@@ -2436,6 +2441,7 @@ const App = {
             recipe_name: p.r ? p.r.name : null,
             variant_id: p.variantId||null,
             variant_name: p.v ? p.v.name : null,
+            units_yielded: _unitsYielded,
             used_at: usedAt
           });
         }
@@ -2946,35 +2952,64 @@ const App = {
     if(!wrap) return;
     try {
       const res = await fetch(
-        'https://brxtdstcvaudxneikazg.supabase.co/rest/v1/inventory_transactions?inventory_id=eq.'+invId+'&order=used_at.desc&limit=20',
+        'https://brxtdstcvaudxneikazg.supabase.co/rest/v1/inventory_transactions?inventory_id=eq.'+invId+'&order=used_at.desc&limit=11',
         {headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c'}}
       );
       const rows = res.ok ? await res.json() : [];
-      if(!rows.length){
-        wrap.textContent = 'No usage recorded yet.';
-        return;
-      }
-      wrap.innerHTML = rows.map(tx=>{
+      if(!rows.length){ wrap.innerHTML='<span style="font-style:italic">No usage recorded yet.</span>'; return; }
+      const hasMore = rows.length > 10;
+      const mkRow = tx => {
         const date = new Date(tx.used_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
         const time = new Date(tx.used_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-        const amt = tx.unit==='ea'
-          ? tx.amount_used+' unit'+(tx.amount_used!==1?'s':'')
-          : tx.amount_used+' '+tx.unit;
-        const src = tx.variant_name
-          ? this.h(tx.recipe_name||'Unknown')+' — '+this.h(tx.variant_name)
-          : this.h(tx.recipe_name||'Unknown');
-        return '<div style="display:flex;justify-content:space-between;align-items:flex-start;'+
-          'padding:7px 0;border-bottom:1px solid var(--border)">'+
-          '<div>'+
-            '<div style="font-weight:600;color:var(--text);font-size:.83rem">'+src+'</div>'+
-            '<div style="font-size:.72rem;color:var(--muted);margin-top:2px">'+date+' · '+time+'</div>'+
-          '</div>'+
-          '<span style="font-weight:700;color:var(--brown);white-space:nowrap;margin-left:10px;font-size:.83rem">−'+amt+'</span>'+
-        '</div>';
-      }).join('');
-    } catch(e){
-      if(wrap) wrap.textContent = 'Could not load history.';
-    }
+        const amt = tx.unit==='ea' ? tx.amount_used+' unit'+(tx.amount_used!==1?'s':'') : tx.amount_used+' '+(tx.unit||'oz');
+        const src = tx.variant_name ? this.h(tx.recipe_name||'Unknown')+' — '+this.h(tx.variant_name) : this.h(tx.recipe_name||'Unknown');
+        const units = tx.units_yielded ? ' · '+tx.units_yielded+' units made' : '';
+        return `<div style="padding:7px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-weight:600;color:var(--text);font-size:.83rem">${src}</span>
+            <span style="font-weight:700;color:var(--brown);white-space:nowrap;margin-left:10px;font-size:.83rem">−${amt}</span>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${date} · ${time}${units}</div>
+        </div>`;
+      };
+      let html = rows.slice(0,10).map(mkRow).join('');
+      if(hasMore) html += `<button data-iid="${invId}" onclick="App.openInvUsageFullHistory(this.dataset.iid)"
+        style="margin-top:10px;width:100%;background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:.8rem;cursor:pointer;color:var(--brown);font-weight:600">View Full History →</button>`;
+      wrap.innerHTML = html;
+    } catch(e){ if(wrap) wrap.textContent='Could not load history.'; }
+  },
+
+  async openInvUsageFullHistory(invId){
+    const wrap = document.getElementById('inv-usage-list');
+    const inv = this.inventory.find(i=>i.id===invId);
+    const itemName = inv ? inv.name : 'Item';
+    if(wrap) wrap.innerHTML='<span style="color:var(--muted);font-size:.8rem">Loading full history...</span>';
+    try {
+      const res = await fetch(
+        'https://brxtdstcvaudxneikazg.supabase.co/rest/v1/inventory_transactions?inventory_id=eq.'+invId+'&order=used_at.desc&limit=500',
+        {headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c'}}
+      );
+      const rows = res.ok ? await res.json() : [];
+      const mkRow = tx => {
+        const date = new Date(tx.used_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+        const time = new Date(tx.used_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        const amt = tx.unit==='ea' ? tx.amount_used+' unit'+(tx.amount_used!==1?'s':'') : tx.amount_used+' '+(tx.unit||'oz');
+        const src = tx.variant_name ? this.h(tx.recipe_name||'Unknown')+' — '+this.h(tx.variant_name) : this.h(tx.recipe_name||'Unknown');
+        const units = tx.units_yielded ? ' · '+tx.units_yielded+' units made' : '';
+        return `<div style="padding:7px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-weight:600;color:var(--text);font-size:.83rem">${src}</span>
+            <span style="font-weight:700;color:var(--brown);white-space:nowrap;margin-left:10px;font-size:.83rem">−${amt}</span>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${date} · ${time}${units}</div>
+        </div>`;
+      };
+      if(wrap) wrap.innerHTML = `<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <span>All ${rows.length} record${rows.length!==1?'s':''} for ${this.h(itemName)}</span>
+        <button data-iid="${invId}" onclick="App._loadInvUsageHistory(this.dataset.iid)"
+          style="background:none;border:none;color:var(--brown);font-size:.8rem;cursor:pointer;font-weight:600">← Show less</button>
+      </div>${rows.length ? rows.map(mkRow).join('') : '<span style="font-style:italic;color:var(--muted)">No records found.</span>'}`;
+    } catch(e){ if(wrap) wrap.textContent='Could not load full history.'; }
   },
 
   openInvDetail(id){
