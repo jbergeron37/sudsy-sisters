@@ -1075,7 +1075,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.30.26.85.00';
+    const _ver = 'V-5.30.26.86.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -5821,6 +5821,7 @@ const App = {
   },
 
   async openVariantForm(variantId, recipeId){
+    if(recipeId) this._variantRecipeId = recipeId;
     const r = this.recipes.find(x=>x.id===(recipeId||this._variantRecipeId));
     let v = {id:'', base_recipe_id:recipeId||this._variantRecipeId, name:'',
       added_ingredients:[], notes:'', fragrance_id:'', fragrance_amount:'', colorant:''};
