@@ -1121,7 +1121,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.24.26.68.00';
+    const _ver = 'V-5.24.26.69.00';
     if(localStorage.getItem('ss_ver') !== _ver){
       localStorage.removeItem('ss_r');
       localStorage.removeItem('ss_i');
@@ -2149,7 +2149,7 @@ const App = {
         </div>
       </div>`;
       // Load variants async
-      App._loadVariantTree('${r.id}');
+      App._loadVariantTree(r.id);
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     document.getElementById('view-recipe-detail').classList.add('active');
     this._hdr();
