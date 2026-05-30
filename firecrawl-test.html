@@ -102,6 +102,14 @@
 <h1>🔬 Vendor Price Crawl — Test</h1>
 <p class="subtitle">Oils & Butters · Sudsy Sisters ingredient matching test</p>
 
+<div id="cors-warning" style="background:#fff3cd;border:1.5px solid #f59e0b;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.82rem;color:#7a4a00">
+  ⚠️ <strong>This file must be hosted — not opened locally.</strong>
+  Upload it to your GitHub repo at <code>app.sudsysisters.com</code> as <code>firecrawl-test.html</code>,
+  then open <code>https://app.sudsysisters.com/firecrawl-test.html</code> in your browser.
+  Opening it as a local file will block all API calls (CORS policy).<br><br>
+  <strong>Two-pass process:</strong> Pass 1 crawls the category page to discover product URLs → Pass 2 scrapes each product page individually → Claude API extracts structured pricing tiers with $/oz for every size option.
+</div>
+
 <div class="api-row">
   <input type="password" id="api-key" placeholder="Firecrawl API key (fc-…)" autocomplete="off">
   <button class="btn-outline" onclick="saveKey()">Set Key</button>
@@ -116,7 +124,7 @@
 <div class="vendor-grid" id="vendor-grid"></div>
 
 <div class="controls">
-  <button class="btn-primary" id="run-btn" onclick="runSelected()" disabled>▶ Run Crawl on Selected</button>
+  <button class="btn-primary" id="run-btn" onclick="runSelected()" disabled>▶ Run Two-Pass Crawl</button>
   <button class="btn-outline" onclick="selectAll()">Select All</button>
   <button class="btn-outline" onclick="clearAll()">Clear</button>
   <button class="btn-danger" onclick="clearResults()">Clear Results</button>
@@ -234,157 +242,249 @@ function log(type, msg){
   el.scrollTop = el.scrollHeight;
 }
 
-// ── Main crawl ─────────────────────────────────────────────────────────────
+// ── PASS 1: Crawl to discover product URLs ─────────────────────────────────
 async function runSelected(){
   if(running) return;
   running = true;
   document.getElementById('run-btn').disabled = true;
   document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Running…';
+  clearResults();
 
   for(const vid of selected){
     const vendor = VENDORS.find(v=>v.id===vid);
-    await crawlVendor(vendor);
+    await runVendorTwoPass(vendor);
   }
 
   running = false;
   document.getElementById('run-btn').disabled = false;
   document.getElementById('run-btn').textContent = '▶ Run Crawl on Selected';
-  log('ok','All crawls complete.');
+  log('ok','All done.');
 }
 
-async function crawlVendor(vendor){
-  setVendorStatus(vendor.id, 'running', '⏳ Crawling…');
-  log('info', `Starting crawl: ${vendor.name}`);
+async function runVendorTwoPass(vendor){
+  setVendorStatus(vendor.id, 'running', '⏳ Pass 1: discovering pages…');
+  log('info', `[${vendor.name}] Pass 1: crawling ${vendor.crawlUrl}`);
 
   try {
-    // Start crawl job
+    // ── PASS 1: crawl category page, collect all links ──────────────────────
     const startRes = await fetch('https://api.firecrawl.dev/v1/crawl', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         url: vendor.crawlUrl,
-        limit: 25,
-        scrapeOptions: { formats: ['markdown'], onlyMainContent: true },
-        excludePaths: vendor.exclude.map(e=>`.*${e}.*`)
+        limit: 30,
+        scrapeOptions: { formats: ['markdown', 'links'], onlyMainContent: true },
+        excludePaths: vendor.exclude.map(e => `.*${e}.*`)
       })
     });
+    if(!startRes.ok) throw new Error(`Crawl HTTP ${startRes.status}: ${await startRes.text()}`);
+    const { id: jobId } = await startRes.json();
+    if(!jobId) throw new Error('No job ID returned');
+    log('ok', `[${vendor.name}] Job ${jobId} started`);
 
-    if(!startRes.ok){
-      const err = await startRes.text();
-      throw new Error(`HTTP ${startRes.status}: ${err}`);
+    const pages = await pollCrawl(jobId, vendor.name);
+    log('ok', `[${vendor.name}] Pass 1 complete: ${pages.length} pages`);
+
+    // ── Filter to likely product pages ──────────────────────────────────────
+    const productUrls = discoverProductUrls(pages, vendor);
+    log('info', `[${vendor.name}] Found ${productUrls.length} candidate product pages`);
+
+    if(!productUrls.length) {
+      renderNoResults(vendor, pages, 'No product pages found in crawl. Site may require JS rendering or login.');
+      setVendorStatus(vendor.id, 'error', '✗ No product pages found');
+      return;
     }
 
-    const { id: jobId, success } = await startRes.json();
-    if(!jobId) throw new Error('No job ID returned');
-    log('ok', `${vendor.name} job started: ${jobId}`);
+    // ── Match product URLs to your ingredients ───────────────────────────────
+    const matched = matchUrlsToIngredients(productUrls, vendor);
+    log('info', `[${vendor.name}] ${matched.length} ingredient→URL matches`);
 
-    // Poll for completion
-    const pages = await pollCrawl(jobId, vendor.name);
-    log('ok', `${vendor.name}: got ${pages.length} pages`);
-    setVendorStatus(vendor.id, 'done', `✓ ${pages.length} pages crawled`);
+    // Show pass-1 results + confirmation UI
+    renderPass1Results(vendor, pages, productUrls, matched);
+    setVendorStatus(vendor.id, 'running', `⏳ Pass 2: scraping ${matched.length} pages…`);
 
-    // Extract and match
-    const matches = extractAndMatch(pages, vendor);
-    renderResults(vendor, pages, matches);
+    // ── PASS 2: scrape each matched product page ─────────────────────────────
+    const scraped = [];
+    for(const m of matched){
+      log('info', `[${vendor.name}] Scraping: ${m.url}`);
+      try {
+        const pricing = await scrapeProductPage(m.url, m.ingredient, vendor.name);
+        scraped.push({ ingredient: m.ingredient, url: m.url, pricing });
+        log('ok', `[${vendor.name}] ${m.ingredient}: ${pricing.length} price tiers found`);
+      } catch(e){
+        log('err', `[${vendor.name}] Scrape failed for ${m.url}: ${e.message}`);
+        scraped.push({ ingredient: m.ingredient, url: m.url, pricing: [] });
+      }
+      await sleep(800); // be polite
+    }
+
+    setVendorStatus(vendor.id, 'done', `✓ ${scraped.filter(s=>s.pricing.length).length}/${matched.length} priced`);
+    renderPass2Results(vendor, scraped);
 
   } catch(e){
-    log('err', `${vendor.name} failed: ${e.message}`);
-    setVendorStatus(vendor.id, 'error', `✗ ${e.message.slice(0,40)}`);
+    log('err', `[${vendor.name}] Failed: ${e.message}`);
+    setVendorStatus(vendor.id, 'error', `✗ ${e.message.slice(0,50)}`);
     renderError(vendor, e.message);
   }
 }
 
+// ── Discover product page URLs from crawl results ──────────────────────────
+function discoverProductUrls(pages, vendor){
+  const seen = new Set();
+  const results = [];
+  const oilKeywords = ['oil','butter','tallow','fat','castor','avocado','coconut','olive','almond','shea','cocoa','jojoba','palm','sunflower','lard','beef'];
+
+  pages.forEach(page => {
+    const pageUrl = page.metadata?.url || page.url || '';
+    const content = page.markdown || '';
+    const links = page.links || page.metadata?.links || [];
+
+    // Collect all URLs — from links array and from markdown href patterns
+    const allUrls = [...links];
+    const mdLinks = [...content.matchAll(/\(https?:\/\/[^\s)]+\)/g)].map(m => m[0].slice(1,-1));
+    allUrls.push(...mdLinks);
+
+    allUrls.forEach(url => {
+      if(seen.has(url)) return;
+      if(!url.startsWith('http')) return;
+      if(!url.includes(vendor.baseUrl.replace('https://','').replace('http://',''))) return;
+
+      // Skip nav/utility pages
+      const skip = ['account','cart','checkout','login','register','blog','contact','about','faq','search','category','wishlist','compare','review'];
+      if(skip.some(s => url.toLowerCase().includes(s))) return;
+
+      const urlLower = url.toLowerCase();
+      const isProductUrl = oilKeywords.some(k => urlLower.includes(k));
+      if(isProductUrl){
+        seen.add(url);
+        results.push(url);
+      }
+    });
+  });
+
+  return results.slice(0, 20); // cap at 20 product pages per vendor
+}
+
+// ── Match discovered URLs to your ingredient list ──────────────────────────
+function matchUrlsToIngredients(urls, vendor){
+  const matched = [];
+  const used = new Set();
+
+  ingredients.forEach(ing => {
+    const ingWords = ing.toLowerCase().split(' ').filter(w => w.length > 2);
+    let bestUrl = null, bestScore = 0;
+
+    urls.forEach(url => {
+      const urlLower = url.toLowerCase();
+      const score = ingWords.filter(w => urlLower.includes(w)).length / ingWords.length;
+      if(score > bestScore && score >= 0.5){
+        bestScore = score;
+        bestUrl = url;
+      }
+    });
+
+    if(bestUrl && !used.has(bestUrl)){
+      used.add(bestUrl);
+      matched.push({ ingredient: ing, url: bestUrl, score: bestScore });
+    }
+  });
+
+  return matched;
+}
+
+// ── PASS 2: Scrape individual product page and extract pricing ─────────────
+async function scrapeProductPage(url, ingredientName, vendorName){
+  const res = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      url,
+      formats: ['markdown'],
+      onlyMainContent: true
+    })
+  });
+  if(!res.ok) throw new Error(`Scrape HTTP ${res.status}`);
+  const data = await res.json();
+  const markdown = data.data?.markdown || data.markdown || '';
+  if(!markdown) throw new Error('Empty markdown returned');
+
+  // Use Claude API to extract structured pricing from the markdown
+  return await extractPricingWithClaude(markdown, ingredientName, vendorName, url);
+}
+
+// ── Claude API extracts pricing tiers from raw markdown ───────────────────
+async function extractPricingWithClaude(markdown, ingredientName, vendorName, url){
+  const prompt = `You are extracting product pricing from a vendor website page.
+
+Vendor: ${vendorName}
+Product page: ${url}
+Looking for: "${ingredientName}" or similar oil/butter ingredient
+
+Here is the page content:
+---
+${markdown.slice(0, 3000)}
+---
+
+Extract ALL available size/quantity options and their prices for this product.
+Respond ONLY with a JSON array, no markdown, no explanation:
+[
+  {"size": "1 lb", "size_oz": 16, "price": 12.99, "price_per_oz": 0.812, "sku": "optional"},
+  {"size": "5 lb", "size_oz": 80, "price": 54.00, "price_per_oz": 0.675, "sku": "optional"}
+]
+
+Rules:
+- size_oz must always be in ounces (convert lb×16, kg×35.274, g÷28.35, gallon×128)
+- price_per_oz = price / size_oz, rounded to 4 decimal places
+- If you cannot find clear pricing, return []
+- Include ALL size tiers listed on the page
+- Only include this specific product, ignore unrelated products`;
+
+  const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  if(!apiRes.ok){
+    const err = await apiRes.text();
+    throw new Error(`Claude API ${apiRes.status}: ${err}`);
+  }
+
+  const apiData = await apiRes.json();
+  const raw = apiData.content?.[0]?.text || '[]';
+  try {
+    const clean = raw.replace(/```json|```/g,'').trim();
+    return JSON.parse(clean);
+  } catch(e){
+    log('err', `Claude JSON parse failed for ${ingredientName}: ${raw.slice(0,80)}`);
+    return [];
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 async function pollCrawl(jobId, vendorName){
-  const maxAttempts = 30;
-  for(let i=0; i<maxAttempts; i++){
+  for(let i=0; i<35; i++){
     await sleep(3000);
     const res = await fetch(`https://api.firecrawl.dev/v1/crawl/${jobId}`, {
       headers: { 'Authorization': `Bearer ${apiKey}` }
     });
-    if(!res.ok) throw new Error(`Poll failed: HTTP ${res.status}`);
+    if(!res.ok) throw new Error(`Poll HTTP ${res.status}`);
     const data = await res.json();
-    log('info', `${vendorName} poll ${i+1}: status=${data.status} pages=${(data.data||[]).length}`);
-
-    if(data.status === 'completed') return data.data || [];
-    if(data.status === 'failed') throw new Error('Crawl job failed on server');
-    // If still crawling but we have some pages, accept after 10+ polls with data
-    if(i >= 10 && (data.data||[]).length > 0) {
-      log('info', `${vendorName}: accepting partial results (${data.data.length} pages)`);
-      return data.data;
-    }
+    const n = (data.data||[]).length;
+    log('info', `[Poll ${i+1}] status=${data.status} pages=${n}`);
+    if(data.status==='completed') return data.data||[];
+    if(data.status==='failed') throw new Error('Crawl job failed');
+    if(i>=8 && n>0){ log('info','Accepting partial results'); return data.data; }
   }
-  throw new Error('Timed out waiting for crawl');
-}
-
-// ── Extract prices and match to ingredients ────────────────────────────────
-function extractAndMatch(pages, vendor){
-  const results = [];
-
-  // Flatten all page content
-  const allText = pages.map(p => ({
-    url: p.metadata?.url || p.url || '',
-    title: p.metadata?.title || '',
-    content: p.markdown || p.content || ''
-  }));
-
-  ingredients.forEach(ing => {
-    const ingLower = ing.toLowerCase();
-    const matches = [];
-
-    allText.forEach(page => {
-      const combined = (page.title + ' ' + page.content).toLowerCase();
-      // Fuzzy keyword match — check if page is relevant to this ingredient
-      const keywords = ingLower.split(' ').filter(w=>w.length>3);
-      const relevance = keywords.filter(kw => combined.includes(kw)).length / keywords.length;
-
-      if(relevance >= 0.5){
-        // Extract price patterns from the page
-        const prices = extractPrices(page.content, page.url, page.title);
-        if(prices.length) matches.push(...prices);
-      }
-    });
-
-    if(matches.length){
-      results.push({ ingredient: ing, matches: matches.slice(0,5) });
-    }
-  });
-
-  return results;
-}
-
-function extractPrices(content, url, title){
-  const prices = [];
-  // Match patterns like: $12.99, $12.99/lb, $12.99 for 16 oz, etc.
-  const priceRe = /\$\s*(\d+\.?\d*)\s*(?:\/?\s*(oz|lb|g|kg|pound|ounce|gallon|gal))?\s*(?:for\s+(\d+\.?\d*)\s*(oz|lb|g|kg|pound|ounce|gallon|gal))?/gi;
-  const sizeRe = /(\d+\.?\d*)\s*(oz|lb|g|kg|gallon|gal|pound|ounce)\b/gi;
-
-  let m;
-  const priceMatches = [];
-  while((m = priceRe.exec(content)) !== null){
-    priceMatches.push({ price: parseFloat(m[1]), unit: m[2]||'', forQty: m[3]||'', forUnit: m[4]||'', idx: m.index });
-  }
-
-  // Get context around each price match
-  priceMatches.slice(0,3).forEach(pm => {
-    const snippet = content.slice(Math.max(0,pm.idx-80), pm.idx+80).replace(/\n/g,' ').trim();
-    let pricePerOz = null;
-    if(pm.price){
-      if(pm.forQty && pm.forUnit){
-        const oz = toOz(parseFloat(pm.forQty), pm.forUnit);
-        if(oz) pricePerOz = pm.price/oz;
-      } else if(pm.unit){
-        const oz = toOz(1, pm.unit);
-        if(oz) pricePerOz = pm.price/oz;
-      }
-    }
-    prices.push({ price: pm.price, unit: pm.unit, snippet: snippet.slice(0,120), url, title, pricePerOz });
-  });
-
-  return prices;
+  throw new Error('Timed out');
 }
 
 function toOz(qty, unit){
-  const u = (unit||'').toLowerCase();
+  const u=(unit||'').toLowerCase();
   if(u==='oz'||u==='ounce') return qty;
   if(u==='lb'||u==='pound') return qty*16;
   if(u==='g') return qty/28.3495;
@@ -392,56 +492,74 @@ function toOz(qty, unit){
   if(u==='gal'||u==='gallon') return qty*128;
   return null;
 }
-
 function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function clearResults(){ document.getElementById('results-area').innerHTML=''; }
 
-// ── Render results ─────────────────────────────────────────────────────────
-function renderResults(vendor, pages, matches){
+// ── Render helpers ─────────────────────────────────────────────────────────
+function renderPass1Results(vendor, pages, productUrls, matched){
   const area = document.getElementById('results-area');
-  const hasMatches = matches.length > 0;
-
-  const matchHtml = hasMatches ? `
-    <div class="match-section">
-      <div class="match-title">🎯 Ingredient Matches Found (${matches.length})</div>
-      <table class="match-table">
-        <thead><tr><th>Your Ingredient</th><th>Page / Title</th><th>Price</th><th>$/oz</th><th>Snippet</th></tr></thead>
-        <tbody>
-          ${matches.map(m => m.matches.map(p=>`
-            <tr>
-              <td><strong>${m.ingredient}</strong></td>
-              <td><a href="${p.url}" target="_blank" style="color:var(--accent);font-size:.7rem">${(p.title||p.url).slice(0,40)}</a></td>
-              <td>${p.price ? `<span class="price-tag">$${p.price.toFixed(2)}</span>` : '<span class="no-match">?</span>'}</td>
-              <td>${p.pricePerOz ? `<strong>$${p.pricePerOz.toFixed(3)}</strong>` : '–'}</td>
-              <td style="color:var(--muted);font-size:.7rem">${p.snippet}</td>
-            </tr>`).join('')).join('')}
-        </tbody>
-      </table>
-    </div>` : `<div style="color:var(--muted);padding:10px;font-style:italic">No ingredient matches found in ${pages.length} pages. See raw page list below.</div>`;
-
-  // Show page list regardless
-  const pageListHtml = `
-    <div style="margin-top:12px">
-      <div class="match-title">📄 Pages Crawled (${pages.length})</div>
-      <div style="max-height:180px;overflow-y:auto">
-        ${pages.map(p=>`<div style="font-size:.72rem;padding:3px 0;border-bottom:1px solid var(--border);color:var(--muted)">
-          <a href="${p.metadata?.url||p.url||''}" target="_blank" style="color:var(--accent)">${p.metadata?.title||p.metadata?.url||p.url||'(no title)'}</a>
-        </div>`).join('')}
-      </div>
-    </div>`;
-
   area.insertAdjacentHTML('beforeend', `
-    <div class="result-block">
+    <div class="result-block" id="rb-${vendor.id}">
       <div class="result-header">
         <span>${vendor.name}</span>
-        <span class="pages">${pages.length} pages · ${matches.length} ingredient matches</span>
+        <span class="pages">Pass 1: ${pages.length} pages crawled · ${productUrls.length} product URLs · ${matched.length} ingredient matches</span>
       </div>
+      <div class="result-body" id="rb-body-${vendor.id}">
+        <div class="match-title" style="margin-bottom:6px">🔗 Matched Ingredient → Product URL</div>
+        ${matched.map(m=>`
+          <div style="font-size:.75rem;padding:4px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:baseline">
+            <strong style="min-width:100px;color:var(--brown)">${m.ingredient}</strong>
+            <a href="${m.url}" target="_blank" style="color:var(--accent);word-break:break-all">${m.url}</a>
+            <span style="color:var(--muted);flex-shrink:0">${Math.round(m.score*100)}%</span>
+          </div>`).join('')}
+        <div style="margin-top:10px;color:var(--muted);font-style:italic;font-size:.75rem">⏳ Pass 2 scraping in progress…</div>
+      </div>
+    </div>`);
+}
+
+function renderPass2Results(vendor, scraped){
+  const body = document.getElementById(`rb-body-${vendor.id}`);
+  const header = document.querySelector(`#rb-${vendor.id} .result-header`);
+  const total = scraped.filter(s=>s.pricing.length).length;
+  if(header) header.querySelector('.pages').textContent = `✓ ${total}/${scraped.length} ingredients priced`;
+
+  const tableRows = scraped.map(s => {
+    if(!s.pricing.length){
+      return `<tr><td><strong>${s.ingredient}</strong></td>
+        <td colspan="4"><a href="${s.url}" target="_blank" style="color:var(--accent);font-size:.7rem">${s.url}</a></td>
+        <td><span style="color:var(--muted);font-style:italic">No pricing found</span></td></tr>`;
+    }
+    const best = [...s.pricing].sort((a,b)=>a.price_per_oz-b.price_per_oz)[0];
+    return s.pricing.map((tier, i) => `
+      <tr${i===0&&s.pricing.length>1?' style="border-top:2px solid var(--border)"':''}>
+        ${i===0 ? `<td rowspan="${s.pricing.length}" style="vertical-align:top;padding-top:8px"><strong>${s.ingredient}</strong><br><a href="${s.url}" target="_blank" style="color:var(--accent);font-size:.68rem;word-break:break-all">${s.url.split('/').pop()}</a></td>` : ''}
+        <td>${tier.size||'?'}</td>
+        <td><span class="price-tag">$${(tier.price||0).toFixed(2)}</span></td>
+        <td style="font-weight:700;color:${tier===best?'var(--green)':'var(--text)'}">
+          ${tier.price_per_oz ? '$'+tier.price_per_oz.toFixed(4)+'/oz' : '–'}
+          ${tier===best&&s.pricing.length>1?' 🏆':''}
+        </td>
+      </tr>`).join('');
+  }).join('');
+
+  body.innerHTML = `
+    <table class="match-table">
+      <thead><tr><th>Ingredient</th><th>Size</th><th>Price</th><th>$/oz</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>`;
+}
+
+function renderNoResults(vendor, pages, msg){
+  document.getElementById('results-area').insertAdjacentHTML('beforeend', `
+    <div class="result-block">
+      <div class="result-header" style="background:var(--red)">${vendor.name} — No Results</div>
       <div class="result-body">
-        ${matchHtml}
-        ${pageListHtml}
-        <details style="margin-top:12px">
-          <summary style="cursor:pointer;font-size:.75rem;color:var(--muted);font-weight:700">🔍 Raw first page markdown</summary>
-          <pre>${escHtml((pages[0]?.markdown||pages[0]?.content||'(empty)').slice(0,2000))}</pre>
-        </details>
+        <p style="color:var(--muted);font-style:italic;margin-bottom:10px">${msg}</p>
+        <div class="match-title">Pages that were crawled (${pages.length})</div>
+        ${pages.map(p=>`<div style="font-size:.72rem;padding:2px 0;color:var(--muted)">
+          <a href="${p.metadata?.url||''}" target="_blank" style="color:var(--accent)">${p.metadata?.title||p.metadata?.url||'?'}</a>
+        </div>`).join('')}
       </div>
     </div>`);
 }
@@ -457,18 +575,13 @@ function renderError(vendor, msg){
 function setVendorStatus(id, cls, txt){
   const card = document.getElementById('vc-'+id);
   const st = document.getElementById('vs-'+id);
-  card.className = `vendor-card selected ${cls}`;
-  st.className = `v-status ${cls}`;
-  st.textContent = txt;
+  if(card) card.className = `vendor-card selected ${cls}`;
+  if(st){ st.className = `v-status ${cls}`; st.textContent = txt; }
 }
-
-function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ── Init ───────────────────────────────────────────────────────────────────
 renderVendors();
 loadIngredients();
-
-// Pre-fill key if passed in URL hash for convenience
 const hashKey = location.hash.slice(1);
 if(hashKey.startsWith('fc-')){ document.getElementById('api-key').value=hashKey; saveKey(); }
 </script>
