@@ -1919,6 +1919,71 @@ const App = {
       </div></div>`;
   },
 
+  // ── Calculate cost breakdown for a recipe using inventory cost data ──
+  _calcRecipeCost(r){
+    const ingredients = (r.ingredients||[]);
+    const breakdown = [];
+    const pkgBreakdown = [];
+    let total = 0;
+    let missing = 0;
+
+    ingredients.forEach(ing=>{
+      const isPkg = ing.phase==='pkg' || ing.phase==='Packaging';
+      const amt = parseFloat(ing.amount)||0;
+      const unit = (ing.unit||'oz').toLowerCase();
+
+      // Match inventory item by name (case-insensitive)
+      const invItem = (this.inventory||[]).find(iv=>
+        iv.name && ing.name &&
+        iv.name.trim().toLowerCase()===ing.name.trim().toLowerCase()
+      );
+
+      if(isPkg){
+        // Packaging: cost per unit = pkg cost / pkg_size quantity
+        let costPer = 0;
+        let found = false;
+        if(invItem && invItem.cost!==''&&invItem.cost!=null){
+          const pkgSize = parseFloat(invItem.pkgSize)||1;
+          costPer = parseFloat(invItem.cost) / pkgSize;
+          found = true;
+        } else {
+          missing++;
+        }
+        pkgBreakdown.push({ name: ing.name||'', found, costPer });
+      } else {
+        // Regular ingredient: cost per oz (or g converted to oz)
+        let lineCost = 0;
+        let found = false;
+        if(invItem && invItem.cost!==''&&invItem.cost!=null){
+          const invQty = parseFloat(invItem.quantity)||1;
+          const invUnit = (invItem.unit||'oz').toLowerCase();
+          // Convert ingredient amount to same unit as inventory if needed
+          let amtNorm = amt;
+          if(unit==='g' && (invUnit==='oz'||invUnit==='lb')){
+            amtNorm = amt / 28.3495;
+          } else if(unit==='oz' && invUnit==='lb'){
+            amtNorm = amt / 16;
+          } else if(unit==='lb' && invUnit==='oz'){
+            amtNorm = amt * 16;
+          } else if(unit==='g' && invUnit==='g'){
+            amtNorm = amt;
+          } else if(unit==='kg' && invUnit==='g'){
+            amtNorm = amt * 1000;
+          }
+          const costPerUnit = parseFloat(invItem.cost) / (invQty||1);
+          lineCost = costPerUnit * amtNorm;
+          found = true;
+          total += lineCost;
+        } else {
+          missing++;
+        }
+        breakdown.push({ name: ing.name||'', found, lineCost });
+      }
+    });
+
+    return { breakdown, pkgBreakdown, total, missing };
+  },
+
   // ── Shared cost section renderer used by both recipe and variant detail ──
   _buildCostSection(cost, numUnits, unitSzLabel){
     if(!cost.breakdown.length && !cost.pkgBreakdown.length) return '';
