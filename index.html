@@ -1075,7 +1075,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.24.26.77.00';
+    const _ver = 'V-5.24.26.78.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2023,48 +2023,58 @@ const App = {
         const isG = i.unit==='g';
         const oz  = isG ? g2oz(i.amount) : (parseFloat(i.amount)||0);
         const g   = isG ? (parseFloat(i.amount)||0) : oz2g(i.amount);
-        return '<div class="ing-row"><span class="ing-name">'+this.h(i.name)+'</span><span class="ing-amt">'+dispFmt(oz)+'<span style="color:var(--muted);font-size:.78rem;font-weight:400">'+(i.usage_rate!=null?i.usage_rate+'%':'')+'</span></span></div>';
+                return '<div class="ing-row"><span class="ing-name">'+this.h(i.name)+'</span><span class="ing-amt">'+dispFmt(oz)+'<span style="color:var(--muted);font-size:.78rem;font-weight:400;margin-left:4px">'+(i.usage_rate!=null?' / '+i.usage_rate+'%':'')+' </span></span></div>';
       }).join('');
       const total = byPhase[p].reduce((s,i)=>s+(i.unit==='g'?g2oz(i.amount):(parseFloat(i.amount)||0)),0);
       mbBatchTotalOz += total;
       return '<div style="margin-bottom:10px">'
         +'<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+color+';border-left:3px solid '+color+';padding-left:7px;margin-bottom:5px">'+(pLabels[p]||p)+'</div>'
         +rows
-        +'<div style="text-align:right;font-size:.78rem;font-weight:700;color:'+color+';padding-top:3px">Total: '+dispFmt(total)+' / '+oz2g(total).toFixed(1)+' g</div>'
+        +'<div style="text-align:right;font-size:.78rem;font-weight:700;color:'+color+';padding-top:3px">Total: '+dispFmt(total)+'</div>'
         +'</div>';
     }).join('') + (mbBatchTotalOz > 0
       ? '<div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--cream);border-radius:8px;margin-top:4px"><span style="font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Batch Total</span><span style="font-weight:700;color:var(--text)">'+dispFmt(mbBatchTotalOz)+'</span></div>'
       : '');
     const batchTotalRow = batchTotalOz > 0
-      ? '<div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--cream);border-radius:8px;margin-top:4px"><span style="font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Batch Total</span><span style="font-weight:700;color:var(--text)">'+batchTotalOz.toFixed(2)+' oz <span style="color:var(--muted);font-weight:400;font-size:.78rem">/ '+oz2g(batchTotalOz).toFixed(1)+' g</span></span></div>'
+      ? '<div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--cream);border-radius:8px;margin-top:4px"><span style="font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Batch Total</span><span style="font-weight:700;color:var(--text)">'+dispFmt(batchTotalOz)+'</span></div>'
       : '';
     const ings = ingHtml + batchTotalRow;
-    const tags=(r.tags||[]).map(t=>`<span class="tag">${this.h(t)}</span>`).join('');
-    const metas=[
-      r.batchSize?`<div class="meta-pill">Batch <span>${r.batchSize} ${r.batchUnit||'oz'}</span></div>`:'',
-      r.cureTime?`<div class="meta-pill">Cure <span>${this.h(r.cureTime)}</span></div>`:'',
-      r.superfat?`<div class="meta-pill">Superfat <span>${this.h(r.superfat)}</span></div>`:'',
-      r.refUrl?`<div class="meta-pill"><a href="${this.h(r.refUrl)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:700">📖 Recipe Book</a></div>`:'',
-      r.lye&&r.lye!=='None'?`<div class="meta-pill">Lye <span>${r.lye}</span></div>`:'',
-      r.scent?`<div class="meta-pill">Scent <span>${this.h(r.scent)}</span></div>`:'',
-      r.fragranceRate?`<div class="meta-pill">FO Rate <span>${this.h(r.fragranceRate)}</span></div>`:''
-    ].filter(Boolean).join('');
-    // Cost calculation
-    const cost = this._calcRecipeCost(r);
-    const isPkg = i => i.unit==='ea'||i.phase==='pkg'||i.phase==='Packaging';
-    const batchSizeOz = (r.ingredients||[]).filter(i=>!isPkg(i)).reduce((s,i)=>{
-      const isG = i.unit==='g';
-      const oz = isG ? Math.round((parseFloat(i.amount)||0)/28.3495*1000)/1000 : (parseFloat(i.amount)||0);
-      return s+oz;
-    },0) || parseFloat(r.batchSize)||0;
+
+    // ── Packaging section ──
+    const pkgHtml = _pkgIngItems.length ? (
+      '<div class="section"><div class="section-title">📦 Packaging</div>'+
+      _pkgIngItems.map(i=>{
+        const qty = parseFloat(i.amount)||1;
+        const inv = this.inventory.find(x=>x.name.toLowerCase()===i.name.toLowerCase()||x.name.toLowerCase().includes(i.name.toLowerCase())||i.name.toLowerCase().includes(x.name.toLowerCase()));
+        const costPer = inv?(parseFloat(inv.cost)||0):0;
+        const lineCost = costPer?'$'+(Math.round(qty*costPer*1000)/1000).toFixed(3):'no cost';
+        return '<div class="ing-row"><span class="ing-name">'+this.h(i.name)+'</span>'+
+          '<span class="ing-amt" style="color:#A8527A">1/unit · '+lineCost+'</span></div>';
+      }).join('')+
+      '</div>'
+    ) : '';
+
+    // ── Cost section ──
+    const batchSizeOz = (r.ingredients||[]).filter(i=>!(i.unit==='ea'||i.phase==='pkg'||i.phase==='Packaging')).reduce((s,i)=>{
+      const isG2 = i.unit==='g';
+      return s+(isG2?Math.round((parseFloat(i.amount)||0)/28.3495*1000)/1000:(parseFloat(i.amount)||0));
+    },0)||parseFloat(r.batchSize)||0;
     const unitSzOz = parseFloat(r.unitSize)||3.5;
     const numUnits = r.unitsPerBatch ? parseInt(r.unitsPerBatch) :
-                     (unitSzOz > 0 && batchSizeOz > 0 ? Math.floor(batchSizeOz / unitSzOz) : 0);
-    const costPerUnit = (numUnits > 0 && cost.total > 0) ? Math.round(cost.total / numUnits * 1000)/1000 : 0;
-    // Legacy aliases
-    const barWt = unitSzOz, numBars = numUnits, costPerBar = costPerUnit;
+      (unitSzOz>0&&batchSizeOz>0 ? Math.floor(batchSizeOz/unitSzOz) : 0);
+    const cost = this._calcRecipeCost(r);
     const unitSzLabel = unitSzOz ? unitSzOz+' '+(r.batchUnit||'oz') : '';
     const costSection = this._buildCostSection(cost, numUnits, unitSzLabel);
+
+    // ── Meta pills ──
+    const metas = [
+      r.batchSize?`<div class="meta-pill">Batch <span>${r.batchSize} ${r.batchUnit||'oz'}</span></div>`:'',
+      numUnits?`<div class="meta-pill">Units/Batch <span>${numUnits}${r.unitSize?' @ '+r.unitSize+' '+(r.batchUnit||'oz'):''}</span></div>`:'',
+      r.cureTime?`<div class="meta-pill">Cure <span>${this.h(r.cureTime)}</span></div>`:'',
+      r.lye&&r.lye!=='None'?`<div class="meta-pill">Lye <span>${r.lye}</span></div>`:'',
+      r.scent?`<div class="meta-pill">Scent <span>${this.h(r.scent)}</span></div>`:''
+    ].filter(Boolean).join('');
+    const tags = (r.tags||[]).map(t=>`<span class="tag">${this.h(t)}</span>`).join('');
 
     document.getElementById('view-recipe-detail').innerHTML=`
       <div class="detail">
@@ -2076,11 +2086,10 @@ const App = {
           ${tags?`<div class="meta-row" style="margin-top:8px">${tags}</div>`:''}
         </div>
         ${ings?`<div class="section"><div class="section-title">Ingredients</div>${ings}</div>`:''}
+        ${pkgHtml}
         ${costSection}
         ${r.instructions?`<div class="section"><div class="section-title">Instructions</div><div class="prose">${this.h(r.instructions)}</div></div>`:''}
         ${r.notes?`<div class="section"><div class="section-title">Notes</div><div class="prose-muted">${this.h(r.notes)}</div></div>`:''}
-        <div style="padding:0 14px 10px">
-        </div>
         <div style="padding:0 14px 10px">
           <button class="btn btn-primary btn-full" onclick="App.openMakeConfirm('${r.id}',null)">🧪 Make It</button>
         </div>
@@ -2088,10 +2097,9 @@ const App = {
           <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.openRecipeModal('${r.id}')">✏️ Edit</button>
           <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.showVersionHistory('${r.id}')">🕐 History</button>
           <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.openSplitCalc('${r.id}')">📐 % Split</button>
-          <button class="btn btn-danger" style="padding:8px 12px;font-size:1rem;flex-shrink:0" title="Delete recipe" onclick="App.delRecipe('${r.id}')">🗑</button>
+          <button class="btn btn-danger" style="padding:8px 12px;font-size:1rem;flex-shrink:0" title="Delete" onclick="App.delRecipe('${r.id}')">🗑</button>
         </div>
-        <!-- VARIANTS FAMILY TREE -->
-        <div id="recipe-variants-tree" style="margin-top:8px;padding:0 14px 14px">
+        <div style="padding:0 14px 14px">
           <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.6px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
             <span>🌿 Versions</span>
             <button onclick="App.openVariantForm(null,'${r.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:.72rem;font-weight:700;cursor:pointer">+ New Version</button>
@@ -2101,182 +2109,45 @@ const App = {
           </div>
         </div>
       </div>`;
-      // Load variants async
-      App._loadVariantTree(r.id);
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(vv=>vv.classList.remove('active'));
     document.getElementById('view-recipe-detail').classList.add('active');
     this._hdr();
+    App._loadVariantTree(r.id);
   },
-  delRecipe(id){
-    this._confirm('Delete Recipe','This recipe will be permanently removed.',async ()=>{
-      this.recipes=this.recipes.filter(x=>x.id!==id);
-      this._localSaveR(); this.renderRecipes(); this.populateCalcRecipes(); this.goBack(); this._toast('Recipe deleted');
-      try {
-        await fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/recipes?id=eq.'+id, {
-          method: 'DELETE',
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c'
-          }
-        });
-      } catch(e){ console.warn('Recipe delete cloud failed:', e.message); }
-    });
-  },
-
-  resetToSeedRecipes(){
-    this._confirm(
-      'Reset Recipes',
-      'This will replace ALL current recipes with the latest Sudsy Sisters recipes. Any custom recipes you added will be removed.',
-      ()=>{
-        this.recipes=JSON.parse(JSON.stringify(SEED_RECIPES));
-        this._localSaveR();
-        this._rCat='';
-        this._buildRecipeChips();
-        this.renderRecipes();
-        this.populateCalcRecipes();
-        this._toast('Recipes updated — ' + this.recipes.length + ' recipes loaded');
-      }
-    );
-  },
-
-  async manualSync(){
-    if(!this._unlocked){ this._showPasscode(); return; }
-    const btn = document.getElementById('header-sync');
-    btn.classList.add('spinning');
-    this._showSyncStatus('Syncing...');
-    try {
-      // Pull latest from Supabase
-      const rRes = await this._sbFetch('GET', 'recipes?select=id,data,updated_at&order=updated_at.desc');
-      if(!rRes.ok) throw new Error('HTTP ' + rRes.status);
-      const rRows = await rRes.json();
-
-      const iRes = await this._sbFetch('GET', 'inventory?select=id,data,updated_at&order=updated_at.desc');
-      if(!iRes.ok) throw new Error('HTTP ' + iRes.status);
-      const iRows = await iRes.json();
-
-      btn.classList.remove('spinning');
-
-      const rCount = rRows.length;
-      const iCount = iRows.length;
-
-      this._confirm(
-        'Sync with Supabase',
-        'Found ' + rCount + ' recipes and ' + iCount + ' inventory items in the database. Pull latest data now?',
-        ()=>{
-          if(rRows.length){
-            this.recipes = rRows.map(r => r.data);
-            this._localSaveR();
-            this._rCat = '';
-            this._buildRecipeChips();
-            this.renderRecipes();
-            this.populateCalcRecipes();
-          }
-          if(iRows.length){
-            this.inventory = iRows.map(i => i.data);
-            this._localSaveI();
-            this._buildSortRow();
-            this.renderInventory();
-            this.renderOrders();
-          }
-          this._showSyncStatus('Synced — ' + rCount + ' recipes · ' + iCount + ' items');
-        }
-      );
-      const okBtn = document.getElementById('confirm-ok');
-      if(okBtn){ okBtn.textContent = 'Sync Now'; okBtn.style.background = 'var(--brown)'; }
-    } catch(e){
-      btn.classList.remove('spinning');
-      this._showSyncStatus('Sync failed — check connection');
-    }
-  },
-
-  _calcRecipeCost(recipe){
-    let ingTotal=0, pkgTotal=0, missing=0;
-    const _isPkg = ing => ing.unit==='ea'||ing.phase==='pkg'||ing.phase==='Packaging'||ing.phase==='packaging';
-    const ingBreakdown = [];
-    const pkgBreakdown = [];
-
-    (recipe.ingredients||[]).forEach(ing=>{
-      if(!ing.name) return;
-      const nm = ing.name.toLowerCase();
-      const inv = this.inventory.find(i=>
-        i.name.toLowerCase()===nm||
-        i.name.toLowerCase().includes(nm)||
-        nm.includes(i.name.toLowerCase())
-      );
-      const costPer = inv?(parseFloat(inv.cost)||0):0;
-      const found = !!(inv&&costPer);
-
-      if(_isPkg(ing)){
-        // Packaging: qty × cost per unit = cost per batch
-        const qty = parseFloat(ing.amount)||1;
-        const lineCost = Math.round(qty*costPer*10000)/10000;
-        pkgTotal += lineCost;
-        if(!found) missing++;
-        pkgBreakdown.push({name:ing.name, qty, costPer, lineCost, found});
-      } else {
-        // Ingredient: oz × cost per oz
-        const oz = parseFloat(ing.amount)||0;
-        const lineCost = Math.round(oz*costPer*10000)/10000;
-        ingTotal += lineCost;
-        if(!found) missing++;
-        ingBreakdown.push({name:ing.name, amount:ing.amount, unit:ing.unit, costPer, lineCost, found});
-      }
-    });
-
-    const ingTotalRnd = Math.round(ingTotal*1000)/1000;
-    const pkgTotalRnd = Math.round(pkgTotal*1000)/1000;
-    // Legacy: total = ingredients only (packaging is per-unit, not per-batch)
-    return {
-      total: ingTotalRnd,
-      pkgTotal: pkgTotalRnd,
-      breakdown: ingBreakdown,      // ingredient lines only
-      pkgBreakdown: pkgBreakdown,   // packaging lines
-      missing
-    };
-  },
-
-  // RECIPE MODAL
 
   async _loadVariantTree(recipeId){
     const wrap = document.getElementById('variant-tree-list-'+recipeId);
     if(!wrap) return;
     try {
-      // Load standing variants for this recipe
-      const res = await fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/recipe_variants?base_recipe_id=eq.'+recipeId+'&order=updated_at.desc', {
-        headers: {'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c'}
-      });
+      const res = await fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/recipe_variants?base_recipe_id=eq.'+recipeId+'&order=updated_at.desc',
+        {headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c'}});
       const variants = res.ok ? await res.json() : [];
-
       if(!variants.length){
-        wrap.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:.82rem;font-style:italic">No saved versions yet — tap + New Version to create one</div>';
+        wrap.innerHTML='<div style="text-align:center;padding:12px;color:var(--muted);font-size:.82rem;font-style:italic">No saved versions yet — tap + New Version to create one</div>';
         return;
       }
-
       const r = this.recipes.find(x=>x.id===recipeId);
-      const clr = r ? (CAT_CLR[r.category]||'#A8527A') : '#A8527A';
-
+      const clr = r?(CAT_CLR[r.category]||'#A8527A'):'#A8527A';
       wrap.innerHTML = variants.map(v=>{
-        const date = v.made_at||v.updated_at ? new Date(v.made_at||v.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-        const tags = (v.added_ingredients||[]).filter(a=>a.name&&a.unit!=='ea'&&a.phase!=='pkg').map(a=>
-          '<span style="background:'+clr+'22;color:'+clr+';font-size:.68rem;padding:2px 7px;border-radius:10px;white-space:nowrap">'+this.h(a.name)+'</span>'
-        ).slice(0,4).join('');
+        const date = v.updated_at ? new Date(v.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+        const extras = (v.added_ingredients||[]).filter(a=>a.name&&a.unit!=='ea'&&a.phase!=='pkg');
+        const tagHtml = extras.map(a=>'<span style="background:'+clr+'22;color:'+clr+';font-size:.68rem;padding:2px 7px;border-radius:10px;white-space:nowrap">'+this.h(a.name)+'</span>').slice(0,4).join('');
         return '<div style="background:var(--cream);border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid '+clr+'">'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
             '<div style="font-weight:700;font-size:.9rem;color:var(--text)">'+this.h(v.name)+'</div>'+
-            '<div style="display:flex;gap:6px">'+
-              '<button onclick="App.openMakeConfirm(\''+r.id+'\',\''+v.id+'\')" style="background:var(--brown);color:#fff;border:none;border-radius:7px;padding:3px 8px;font-size:.72rem;font-weight:700;cursor:pointer">🧪 Make</button>'+
-              '<button onclick="App.openVariantDetail(\''+v.id+'\')" style="background:var(--cream);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.72rem;cursor:pointer;color:var(--text)">👁 View</button>'+
-              '<button onclick="App.openVariantForm(\''+v.id+'\',\''+recipeId+'\')" style="background:none;border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.72rem;cursor:pointer;color:var(--text)">✏️ Edit</button>'+
-              ''+
+            '<div style="display:flex;gap:5px">'+
+              '<button data-rid="'+recipeId+'" data-vid="'+v.id+'" onclick="App.openMakeConfirm(this.dataset.rid,this.dataset.vid)" style="background:var(--brown);color:#fff;border:none;border-radius:7px;padding:3px 8px;font-size:.72rem;font-weight:700;cursor:pointer">🧪</button>'+
+              '<button data-vid="'+v.id+'" onclick="App.openVariantDetail(this.dataset.vid)" style="background:var(--cream);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.72rem;cursor:pointer;color:var(--text)">👁 View</button>'+
+              '<button data-vid="'+v.id+'" data-rid="'+recipeId+'" onclick="App.openVariantForm(this.dataset.vid,this.dataset.rid)" style="background:none;border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.72rem;cursor:pointer;color:var(--text)">✏️ Edit</button>'+
             '</div>'+
           '</div>'+
-          (tags ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">'+tags+'</div>' : '')+
-          (v.notes ? '<div style="font-size:.78rem;color:var(--muted);margin-top:5px;font-style:italic">'+this.h(v.notes.slice(0,80))+(v.notes.length>80?'…':'')+'</div>' : '')+
-          (date ? '<div style="font-size:.7rem;color:var(--muted);margin-top:4px">'+date+'</div>' : '')+
+          (tagHtml?'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">'+tagHtml+'</div>':'')+
+          (v.notes?'<div style="font-size:.78rem;color:var(--muted);margin-top:5px;font-style:italic">'+this.h((v.notes||'').slice(0,80))+((v.notes||'').length>80?'…':'')+'</div>':'')+
+          (date?'<div style="font-size:.7rem;color:var(--muted);margin-top:4px">'+date+'</div>':'')+
         '</div>';
       }).join('');
     } catch(e){
-      if(wrap) wrap.innerHTML = '<div style="color:var(--muted);font-size:.8rem;padding:8px">Could not load versions</div>';
+      if(wrap) wrap.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:8px">Could not load versions</div>';
     }
   },
 
@@ -5444,18 +5315,18 @@ const App = {
           const isG = i.unit==='g';
           const oz  = isG ? g2oz(i.amount) : (parseFloat(i.amount)||0);
           const g   = isG ? (parseFloat(i.amount)||0) : oz2g(i.amount);
-          return '<div class="ing-row"><span class="ing-name">'+this.h(i.name)+'</span><span class="ing-amt">'+oz.toFixed(2)+' oz <span style="color:var(--muted);font-size:.78rem;font-weight:400">/ '+g.toFixed(1)+' g'+(i.usage_rate!=null?' / '+i.usage_rate+'%':'')+'</span></span></div>';
+          return '<div class="ing-row"><span class="ing-name">'+this.h(i.name)+'</span><span class="ing-amt">'+dispFmt(oz)+'<span style="color:var(--muted);font-size:.78rem;font-weight:400;margin-left:4px">'+(i.usage_rate!=null?' / '+i.usage_rate+'%':'')+' </span></span></div>';
         }).join('');
         const total = byPhase[p].reduce((s,i)=>s+(i.unit==='g'?g2oz(i.amount):(parseFloat(i.amount)||0)),0);
         batchTotalOz += total;
         return '<div style="margin-bottom:10px">'
           +'<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+color+';border-left:3px solid '+color+';padding-left:7px;margin-bottom:5px">'+(pLabels[p]||p)+'</div>'
           +rows
-          +'<div style="text-align:right;font-size:.78rem;font-weight:700;color:'+color+';padding-top:3px">Total: '+total.toFixed(2)+' oz / '+oz2g(total).toFixed(1)+' g</div>'
+          +'<div style="text-align:right;font-size:.78rem;font-weight:700;color:'+color+';padding-top:3px">Total: '+dispFmt(total)+'</div>'
           +'</div>';
       }).join('');
       const batchTotalRow = batchTotalOz > 0
-        ? '<div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--cream);border-radius:8px;margin-top:4px"><span style="font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Batch Total</span><span style="font-weight:700;color:var(--text)">'+batchTotalOz.toFixed(2)+' oz <span style="color:var(--muted);font-weight:400;font-size:.78rem">/ '+oz2g(batchTotalOz).toFixed(1)+' g</span></span></div>'
+        ? '<div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--cream);border-radius:8px;margin-top:4px"><span style="font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Batch Total</span><span style="font-weight:700;color:var(--text)">'+dispFmt(batchTotalOz)+'</span></div>'
         : '';
       const ings = ingHtml + batchTotalRow;
 
