@@ -1075,7 +1075,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.30.26.82.00';
+    const _ver = 'V-5.30.26.83.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -5847,7 +5847,13 @@ const App = {
       // 1. NAME
       '<div class="form-group"><label>Variant Name *</label><input id="vf-name" value="'+this.h(v.name)+'" placeholder="e.g. Lavender Honey" style="font-size:16px"/></div>'+
       // 2. DESCRIPTION/THEME
-      '<div class="form-group"><label>Notes / Theme</label><textarea id="vf-notes" rows="2" style="font-size:16px">'+this.h(v.notes||'')+ '</textarea></div>'+
+      '<div class="form-group"><label>Notes / Theme</label>'+
+        '<textarea id="vf-notes" rows="2" style="font-size:16px">'+this.h(v.notes||'')+'</textarea>'+
+        '<button type="button" onclick="App.openSplitCalc(App._editVariant&&App._editVariant.base_recipe_id)" '+
+          'style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;color:var(--brown-d);cursor:pointer">'+
+          '📐 Open Split Calculator'+
+        '</button>'+
+      '</div>'+
       // 3. BASE RECIPE INFO
       '<div style="background:var(--cream);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;color:var(--muted)">'+
         '💡 <strong>Base recipe:</strong> '+this.h(baseName)+' ('+this.h(baseSize)+'). Inherits all base ingredients — add extras below.'+
