@@ -1075,7 +1075,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.30.26.83.00';
+    const _ver = 'V-5.30.26.84.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2470,7 +2470,9 @@ const App = {
         </div>
       </div>
       <!-- 5. NOTES -->
-      <div class="form-group"><label>Notes</label><textarea id="fno" placeholder="Tips, warnings…">${this.h(r.notes)}</textarea></div>
+      <div class="form-group"><label>Notes</label><textarea id="fno" placeholder="Tips, warnings…">${this.h(r.notes)}</textarea>
+      <button type="button" onclick="App._openSplitFromRecipe()" style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;color:var(--brown-d);cursor:pointer">📐 Open Split Calculator</button>
+      </div>
       <!-- 6. BATCH SETTINGS -->
       <div style="background:var(--cream);border-radius:12px;padding:12px 14px;margin-top:4px">
         <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.6px;margin-bottom:10px">⚖️ Batch Settings</div>
@@ -4986,8 +4988,8 @@ const App = {
       lines.push(r.lbl+' ('+r.pct+'%): Total '+totalOz+' oz / Oils '+oilOz+' oz / Lye+Milk '+lyeOz+' oz');
     });
     const splitText = lines.join('\n');
-    // Paste directly into open batch log notes OR variant form notes if available
-    const notesEl = document.getElementById('bl-notes') || document.getElementById('vf-notes');
+    // Paste directly into open batch log notes OR variant form notes OR recipe form notes if available
+    const notesEl = document.getElementById('bl-notes') || document.getElementById('vf-notes') || document.getElementById('fno');
     if(notesEl){
       notesEl.value = (notesEl.value ? notesEl.value+'\n\n' : '')+splitText;
       this._toast('Split added to batch notes!');
@@ -5746,6 +5748,16 @@ const App = {
 
   // ── RECIPE VARIANTS ──────────────────────────────────────────
   _editVariant: null,
+  _openSplitFromVariant(){
+    const id = this._editVariant && this._editVariant.base_recipe_id;
+    if(!id){ this._toast('No base recipe found'); return; }
+    this.openSplitCalc(id);
+  },
+  _openSplitFromRecipe(){
+    const id = this.editR && this.editR.id;
+    if(!id){ this._toast('Save the recipe first to use the split calculator'); return; }
+    this.openSplitCalc(id);
+  },
   _variantRecipeId: null,
 
   async openVariantsModal(recipeId){
@@ -5849,7 +5861,7 @@ const App = {
       // 2. DESCRIPTION/THEME
       '<div class="form-group"><label>Notes / Theme</label>'+
         '<textarea id="vf-notes" rows="2" style="font-size:16px">'+this.h(v.notes||'')+'</textarea>'+
-        '<button type="button" onclick="App.openSplitCalc(App._editVariant&&App._editVariant.base_recipe_id)" '+
+        '<button type="button" onclick="App._openSplitFromVariant()" '+
           'style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;color:var(--brown-d);cursor:pointer">'+
           '📐 Open Split Calculator'+
         '</button>'+
