@@ -1075,7 +1075,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.24.26.78.00';
+    const _ver = 'V-5.24.26.79.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1256,7 +1256,7 @@ const App = {
       this._setOnline(true);
       this.renderRecipes(); this.renderInventory(); this.populateCalcRecipes();
       if(this.tab==='fragrances') this.renderFragrances();
-      if(this.tab==='batches') this.renderVariantsTab();
+      // batches tab removed
       this._replayPending();
     } catch(e){
       console.warn('Cloud sync failed, using local:',e);
@@ -1989,6 +1989,7 @@ const App = {
   openRecipeDetail(id){
     this.selRId=id; this.subview='recipe-detail';
     const r=this.recipes.find(x=>x.id===id);
+    if(!r){ this._toast('Recipe not found'); return; }
     const clr=CAT_CLR[r.category]||'#8B7355';
     const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
     const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
@@ -5218,7 +5219,6 @@ const App = {
   _setVarCat(val){
     this._varCat = val;
     this._buildVarChips();
-    this.renderVariantsTab();
   },
 
   // Legacy stubs kept for any remaining references
@@ -5434,7 +5434,7 @@ const App = {
         }
       });
       try { this.closeModal('modal-variants'); } catch(e2){}
-      try { this.renderVariantsTab(); } catch(e2){}
+
       this._toast('Variant deleted');
     } catch(e){ this._toast('Delete failed: '+e.message); }
   },
@@ -5938,7 +5938,7 @@ const App = {
       this._showSyncStatus('Saved \u2713');
       try { this.closeModal('modal-variant-form'); } catch(e2){}
       try { await this.openVariantDetail(v.id); } catch(e2){}
-      try { if(this.tab==='batches'||this.tab==='batches') setTimeout(()=>this.renderVariantsTab(),300); } catch(e2){}
+      try { if(this._varSelBaseId) App._loadVariantTree(this._varSelBaseId); } catch(e2){}
       this._toast('Variant saved!');
     } catch(e){
       this._toast('\u26A0\uFE0F Variant save failed: '+e.message.slice(0,60));
