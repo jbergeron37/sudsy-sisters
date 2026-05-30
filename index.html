@@ -47,7 +47,7 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
   /* Hide everything EXCEPT the order report modal */
   #nav,#header-add,#header-back,#header-sync,#header-gsearch,#header-settings,
   .search-bar,.chips,.sort-row,.btn,.copy-btn,.print-btn,
-  #view-recipes,#view-inventory,#view-calc,#view-batches,#view-fragrances,
+  #view-recipes,#view-inventory,#view-calc,#view-fragrances,
   #view-recipe-detail,#view-inv-detail,#view-batch-detail,#view-frag-detail,
   .settings-overlay,.gsearch-overlay,.passcode-overlay,
   .modal-overlay:not(#modal-order-report),
@@ -585,24 +585,6 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     <!-- INVENTORY DETAIL -->
     <div id="view-inv-detail" class="view"></div>
     <!-- BATCHES -->
-    <div id="view-batches" class="view">
-      <div class="search-bar">
-        <div class="search-inner">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="bh-search" type="search" placeholder="Search batch history..." oninput="App.renderBatchHistory()" style="font-size:16px"/>
-          <button class="s-clear" id="bh-clear" onclick="App.clrSearch('bh-search','bh-clear',App.renderBatchHistory.bind(App))" style="display:none">x</button>
-        </div>
-      </div>
-      <div id="bh-list" style="padding:8px 14px">
-        <div style="text-align:center;padding:40px 20px">
-          <div style="font-size:2rem;margin-bottom:8px">📋</div>
-          <div style="font-weight:700;color:var(--text);margin-bottom:6px">No batches yet</div>
-          <div style="font-size:.83rem;color:var(--muted)">Complete a batch from any recipe to see history here.</div>
-        </div>
-      </div>
-    </div>
-    <!-- BATCH DETAIL -->
-    <div id="view-batch-detail" class="view"></div>
     <!-- FRAGRANCES -->
     <div id="view-fragrances" class="view">
       <div class="search-bar">
@@ -682,10 +664,6 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       Recipes
     </button>
-    <button class="nav-btn" id="nav-batches" onclick="App.setTab('batches')">
-      <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 0-2-2V5a2 2 0 0 0 2-2h11"/></svg>
-      Batches
-    </button>
     <button class="nav-btn" id="nav-inventory" onclick="App.setTab('inventory')">
       <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       Inventory
@@ -735,44 +713,9 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     </div>
   </div>
 </div>
-<!-- BATCH CONFIRM MODAL -->
-<div class="modal-overlay" id="modal-make-batch" style="align-items:flex-end">
-  <div class="modal-sheet" style="max-height:96vh;display:flex;flex-direction:column">
-    <div class="modal-handle"></div>
-    <div class="modal-hdr" style="flex-shrink:0">
-      <div>
-        <div style="font-family:'Great Vibes',cursive;font-size:1.7rem;color:var(--brown-d);line-height:1.1">Let's Make Something!</div>
-        <div class="modal-title" id="mb-title" style="font-size:.85rem;margin-top:2px;color:var(--muted)">Make Batch</div>
-      </div>
-      <button oncli<button class="modal-close" onclick="App.closeMakeBatch()">×</button>
-    </div>
-    <div class="modal-body" id="mb-body" style="flex:1;overflow-y:auto;padding:0"></div>
-    <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0">
-      <button class="btn btn-outline" style="flex:1" onclick="App.saveBatchProgress()">💾 Save Progress</button>
-      <button class="btn btn-primary" style="flex:2" onclick="App.completeBatch()">✅ Complete Batch</button>
-      <button class="btn btn-danger" style="flex-shrink:0;padding:8px 12px" title="Cancel &amp; discard this batch" onclick="App._cancelBatch()">🗑</button>
-    </div>
-  </div>
-</div>
-<!-- COMPLETE BATCH CONFIRM -->
-<div class="confirm-overlay" id="modal-complete-batch">
-  <div class="confirm-box" style="max-width:380px">
-    <h3>Complete Batch?</h3>
-    <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">Ingredients will be deducted from inventory.</p>
-    <div style="background:var(--cream);border-radius:10px;padding:10px 12px;margin-bottom:14px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:10px">
-        <input type="checkbox" id="cb-save-variant" onchange="document.getElementById('cb-variant-name-row').style.display=this.checked?'flex':'none'" style="width:16px;height:16px;accent-color:var(--accent)"/>
-        <span style="font-size:.88rem;font-weight:700;color:var(--text)">Save as Variant — enter version name</span>
-      </label>
-      <div id="cb-variant-name-row" style="display:none;flex-direction:column;gap:4px">
-        <label style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Version Name</label>
-        <input id="cb-variant-name" placeholder="e.g. Lavender Honey Spring 2026" style="background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:Lato,sans-serif;font-size:.88rem;color:var(--text);outline:none;width:100%"/>
-      </div>
-    </div>
-    <div class="confirm-btns">
-      <button class="cbtn-cancel" onclick="App.closeModal('modal-complete-batch')">Cancel</button>
-      <button class="cbtn-make" onclick="App._confirmCompleteBatch()">Complete</button>
-    </div>
+
+
+    
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -1121,7 +1064,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.24.26.70.00';
+    const _ver = 'V-5.24.26.71.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1598,14 +1541,13 @@ const App = {
     this.tab=t; this.subview=null;
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-    const vmap={recipes:'view-recipes',inventory:'view-inventory',batches:'view-batches',fragrances:'view-fragrances',pricing:'view-pricing',calc:'view-calc',orders:'view-orders'};
-    const navId = t==='variants' ? 'nav-batches' : 'nav-'+t;
+    const vmap={recipes:'view-recipes',inventory:'view-inventory',fragrances:'view-fragrances',pricing:'view-pricing',calc:'view-calc',orders:'view-orders'};
+    const navId = 'nav-'+t;
     const navEl = document.getElementById(navId);
     if(navEl) navEl.classList.add('active');
     const viewEl = document.getElementById(vmap[t]);
     if(viewEl) viewEl.classList.add('active');
     if(t==='orders') this.renderOrders();
-    if(t==='batches') this.renderBatchHistory();
     if(t==='fragrances') this.renderFragrances();
     if(t==='pricing') this.renderPricing();
     this._hdr();
@@ -1613,7 +1555,7 @@ const App = {
   goBack(){
     this.subview=null;
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-    const vmap={recipes:'view-recipes',inventory:'view-inventory',batches:'view-batches',fragrances:'view-fragrances'};
+    const vmap={recipes:'view-recipes',inventory:'view-inventory',fragrances:'view-fragrances'};
     document.getElementById(vmap[this.tab]||'view-recipes').classList.add('active');
     this._hdr();
   },
@@ -1621,7 +1563,6 @@ const App = {
     if(this.tab==='recipes') this._showAddOptions();
     else if(this.tab==='inventory') this.openInvModal(null);
     else if(this.tab==='fragrances') this.openFragModal(null);
-    else if(this.tab==='batches') this.openBatchLogModal(null);
   },
 
   _showAddOptions(){
@@ -2131,7 +2072,6 @@ const App = {
         ${r.instructions?`<div class="section"><div class="section-title">Instructions</div><div class="prose">${this.h(r.instructions)}</div></div>`:''}
         ${r.notes?`<div class="section"><div class="section-title">Notes</div><div class="prose-muted">${this.h(r.notes)}</div></div>`:''}
         <div style="padding:0 14px 10px">
-          <button class="btn btn-primary btn-full" onclick="App.makeBatch('${r.id}')">🧼 Make This Batch</button>
         </div>
         <div class="detail-actions" style="flex-wrap:wrap;gap:6px">
           <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.openRecipeModal('${r.id}')">✏️ Edit</button>
@@ -2314,7 +2254,7 @@ const App = {
             '<div style="font-weight:700;font-size:.9rem;color:var(--text)">'+this.h(v.name)+'</div>'+
             '<div style="display:flex;gap:6px">'+
               '<button onclick="App.openVariantForm(\''+v.id+'\',\''+recipeId+'\')" style="background:none;border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.72rem;cursor:pointer;color:var(--text)">✏️ Edit</button>'+
-              '<button onclick="App.makeBatch(\''+recipeId+'\',null,\''+v.id+'\')" style="background:'+clr+';color:#fff;border:none;border-radius:7px;padding:3px 8px;font-size:.72rem;font-weight:700;cursor:pointer">▶ Make</button>'+
+              ''+
             '</div>'+
           '</div>'+
           (tags ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">'+tags+'</div>' : '')+
@@ -3110,24 +3050,7 @@ const App = {
   _mbRecipe: null,      // base recipe
   _mbSession: null,     // current session data {additives, fragrances, notes, batchSize, splitData, batchId}
 
-  makeBatch(recipeId, recipeOverride){
-    const r = recipeOverride || this.recipes.find(x=>x.id===recipeId);
-    if(!r){ this._toast('Recipe not found'); return; }
-    this._mbRecipe = r;
-    this._mbSession = {
-      batchId: this.uid(),
-      recipeId: r.id,
-      recipeName: r.name,
-      batchSize: r.batchSize || '',
-      batchUnit: r.batchUnit || 'oz',
-      additives: [],
-      fragrances: [],
-      notes: '',
-      splitData: null,
-      status: 'in_progress'
-    };
-    this._openMakeBatch();
-  },
+
 
   async continueBatch(batchId){
     const b = this.batches.find(x=>x.id===batchId);
@@ -3151,15 +3074,7 @@ const App = {
     this._openMakeBatch();
   },
 
-  async _openMakeBatch(){
-    // Ensure fragrances are loaded before rendering
-    if(!this.fragrances||!this.fragrances.length) await this._loadFragrances();
-    const r = this._mbRecipe;
-    const s = this._mbSession;
-    document.getElementById('mb-title').textContent = '🧼 ' + r.name;
-    document.getElementById('modal-make-batch').classList.add('open');
-    this._renderMakeBatch();
-  },
+
 
   _mbUpdatePkg(ix, field, val){
     const s = this._mbSession;
@@ -3238,166 +3153,13 @@ const App = {
         }
       } catch(e){ console.warn('Could not delete draft:', e); }
     }
-    this.closeMakeBatch();
+    
     this._toast('Batch cancelled.');
   },
 
-  closeMakeBatch(){
-    if(this._mbRecipe) this._mbRecipe._origIngredients = null;
-    if(this._mbSession){ this._mbSession._origFragrances = null; this._mbSession._origAdditives = null; }
-    document.getElementById('modal-make-batch').classList.remove('open');
-    this._mbRecipe = null;
-    this._mbSession = null;
-  },
 
-  _renderMakeBatch(){
-    const r = this._mbRecipe;
-    const s = this._mbSession;
-    const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
 
-    // Phase grouping
-    const LYE=/lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
-    const FRAG=/fragrance|scent|\beo\b|essential oil|colorant|pigment|mica|oxide|dye/i;
-    const pL={'1':'Phase 1 — Goat Milk & Lye','2':'Phase 2 — Oils & Butters','3':'Phase 3 — Fragrance & Color','':'Ingredients'};
-    const pC={'1':'#5C35C2','2':'#A8527A','3':'#2E7D32','':'#666'};
-    const byPhase={};
-    (r.ingredients||[]).forEach(i=>{
-      const p=i.phase||(LYE.test(i.name)?'1':FRAG.test(i.name)?'3':'2');
-      if(!byPhase[p]) byPhase[p]=[];
-      byPhase[p].push(i);
-    });
 
-    let mbTotal = 0;
-        const ingHtml = (Object.keys(byPhase).sort((a,b)=>{const o={'1':0,'2':1,'3':2,'':99};return (o[a]!=null?o[a]:50)-(o[b]!=null?o[b]:50);})).map(p=>{
-      if(!byPhase[p]||!byPhase[p].length) return '';
-      const color = pC[p];
-      const rows = byPhase[p].map(i=>{
-        const oz = parseFloat(i.amount)||0;
-        const g = oz2g(oz);
-        return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0e0ea;font-size:.85rem">'+
-          '<span>'+this.h(i.name)+'</span>'+
-          '<span style="font-weight:700;white-space:nowrap">'+oz.toFixed(2)+' oz <span style="color:#888;font-weight:400;font-size:.78rem">/ '+g+' g'+(i.usage_rate!=null?' / '+i.usage_rate+'%':'')+'</span></span>'+
-          '</div>';
-      }).join('');
-      const total = byPhase[p].reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
-      mbTotal += total;
-      return '<div style="margin-bottom:12px">'+
-        '<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+color+';border-left:3px solid '+color+';padding-left:7px;margin-bottom:5px">'+(pL[p]||p)+'</div>'+
-        rows+
-        '<div style="text-align:right;font-size:.78rem;font-weight:700;color:'+color+';padding-top:3px">Total: '+total.toFixed(2)+' oz / '+oz2g(total)+' g</div>'+
-        '</div>';
-    }).join('') + (mbTotal > 0
-      ? '<div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--cream);border-radius:8px;margin-top:4px"><span style="font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Batch Total</span><span style="font-weight:700;color:var(--text)">'+mbTotal.toFixed(2)+' oz <span style="color:var(--muted);font-weight:400;font-size:.78rem">/ '+oz2g(mbTotal)+' g</span></span></div>'
-      : '');
-
-    // Additives rows
-    const addRowHtml = s.additives.map((a,i)=>this._mbAdditiveRow(i,a)).join('');
-
-    // Fragrance rows
-    const fragRowHtml = s.fragrances.map((fr,i)=>this._mbFragRow(i,fr)).join('');
-
-    // Split calc section
-    const splitResultHtml = s.splitData ? this._mbSplitResultHtml(s.splitData) : '';
-
-    document.getElementById('mb-body').innerHTML =
-      // ── RECIPE SUMMARY ──
-      '<div style="padding:14px 14px 0">'+
-        (r.description?'<div style="font-size:.83rem;color:var(--muted);line-height:1.5;margin-bottom:10px;font-style:italic">'+this.h(r.description)+'</div>':'')+
-        '<div style="display:flex;gap:8px;margin-bottom:12px">'+
-          (r.cureTime?'<div style="flex:1;background:var(--cream);border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--muted)">Cure Time</div><div style="font-weight:700;color:var(--text)">'+this.h(r.cureTime)+'</div></div>':'')+(r.fragranceRate?'<div style="flex:1;background:var(--cream);border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--muted)">FO Rate</div><div style="font-weight:700;color:var(--text)">'+this.h(r.fragranceRate)+'</div></div>':'')+
-        '</div>'+
-        ingHtml+
-        // ── PACKAGING in Make Batch ──────────────────────────
-        (()=>{
-          const pkgs = (r.ingredients||[]).filter(i=>i.unit==='ea'||i.phase==='pkg');
-          if(!pkgs.length) return '';
-          const rows = pkgs.map((i,ix)=>{
-            const invItem = this.inventory.find(x=>x.name.toLowerCase()===i.name.toLowerCase()||x.name.toLowerCase().includes(i.name.toLowerCase())||i.name.toLowerCase().includes(x.name.toLowerCase()));
-            const dlId='mb-pkg-dl-'+ix;
-            const dlOpts=this.inventory.sort((a,b)=>a.name.localeCompare(b.name)).map(n=>'<option value="'+this.h(n.name)+'">').join('');
-            const qty = parseFloat(i.amount)||1;
-            const costPer = invItem?(parseFloat(invItem.cost)||0):0;
-            const lineCost = costPer?'$'+(Math.round(qty*costPer*1000)/1000).toFixed(3):'no cost';
-            return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0e0ea;font-size:.85rem">'+
-              '<datalist id="'+dlId+'">'+dlOpts+'</datalist>'+
-              '<span style="font-size:.7rem">📦</span>'+
-              '<input value="'+this.h(i.name)+'" list="'+dlId+'" placeholder="Packaging item" '+
-                'style="flex:2;font-size:15px;background:transparent;border:none;border-bottom:1.5px solid var(--border);outline:none" '+
-                'oninput="App._mbUpdatePkg('+ix+',\'name\',this.value)"/>'+
-              '<input type="number" min="1" step="1" value="'+qty+'" '+
-                'style="width:52px;font-size:15px;background:transparent;border:none;border-bottom:1.5px solid var(--border);outline:none;text-align:center" '+
-                'oninput="App._mbUpdatePkg('+ix+',\'amount\',this.value)"/>'+
-              '<span style="font-size:.75rem;color:#A8527A;white-space:nowrap" id="mb-pkg-cost-'+ix+'">'+lineCost+'</span>'+
-              '</div>';
-          }).join('');
-          return '<div style="background:var(--card);border-radius:10px;padding:10px 12px;margin-top:10px">'+
-            '<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#A8527A;letter-spacing:.6px;margin-bottom:6px;border-left:3px solid #A8527A;padding-left:8px">📦 PACKAGING</div>'+
-            rows+
-          '</div>';
-        })()+
-        '<div style="display:flex;gap:8px;margin-top:8px">'+
-          '<div style="flex:1;background:var(--cream);border-radius:10px;padding:8px 10px;text-align:center">'+
-            '<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--muted)">Total Batter Weight</div>'+
-            '<div style="font-weight:700;color:var(--text)">'+
-              '<input id="mb-batch-size" type="number" step="any" value="'+(s.batchSize||'')+'" placeholder="'+(r.batchSize||'?')+'" '+
-              'oninput="App._mbOnWeightChange(this.value)" '+
-              'style="width:70px;background:transparent;border:none;border-bottom:1.5px solid var(--border);font-family:Lato,sans-serif;font-size:.92rem;font-weight:700;color:var(--text);text-align:center;outline:none"/>'+
-              ' '+(r.batchUnit||'oz')+
-            '</div>'+
-          '</div>'+
-          (r.unitsPerBatch?'<div style="flex:1;background:var(--cream);border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--muted)">Units</div><div style="font-weight:700;color:var(--text)">'+r.unitsPerBatch+(r.unitSize?' @ '+r.unitSize+' oz':'')+' </div></div>':'')+
-        '</div>'+
-      '</div>'+
-
-      // ── INSTRUCTIONS ──
-      (r.instructions?
-        '<div style="background:var(--card);border-top:1px solid var(--border);padding:12px 14px">'+
-          '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">📋 Instructions</div>'+
-          '<div style="font-size:.85rem;line-height:1.6;color:var(--text);white-space:pre-wrap">'+this.h(r.instructions)+'</div>'+
-        '</div>'
-      :'')+
-
-      // ── RECIPE NOTES ──
-      (r.notes?
-        '<div style="background:var(--card);border-top:1px solid var(--border);padding:12px 14px">'+
-          '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">📌 Recipe Notes</div>'+
-          '<div style="font-size:.83rem;line-height:1.5;color:var(--muted);white-space:pre-wrap;font-style:italic">'+this.h(r.notes)+'</div>'+
-        '</div>'
-      :'')+
-
-      // ── ADDITIVES / ADJUSTMENTS ──
-      '<div style="background:var(--card);border-top:1px solid var(--border);padding:12px 14px">'+
-        '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">➕ Extra Additives <span style="font-weight:400">(batch-specific)</span></div>'+
-        '<div id="mb-additive-rows">'+addRowHtml+'</div>'+
-        '<button onclick="App._mbAddAdditiveRow()" style="background:none;border:1px dashed var(--border);border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;width:100%;margin-top:4px">+ Add Additive</button>'+
-      '</div>'+
-
-      // ── FRAGRANCES ──
-      '<div style="background:var(--card);border-top:1px solid var(--border);padding:12px 14px">'+
-        '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">🌸 Fragrances Used</div>'+
-        '<div id="mb-frag-rows">'+fragRowHtml+'</div>'+
-        '<button onclick="App._mbAddFragRow()" style="background:none;border:1px dashed var(--border);border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;width:100%;margin-top:4px">+ Add Fragrance</button>'+
-      '</div>'+
-
-      // ── % SPLIT CALCULATOR ──
-      '<div style="background:var(--card);border-top:1px solid var(--border);padding:12px 14px">'+
-        '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">📐 Color / Layer Split</div>'+
-        '<div id="mb-split-inputs" style="margin-bottom:8px"></div>'+
-        '<button onclick="App._mbCalcSplit()" style="background:var(--accent-l,#EDE0FF);border:none;border-radius:8px;padding:7px 14px;font-family:Lato,sans-serif;font-size:.8rem;font-weight:700;color:var(--accent);cursor:pointer;width:100%">📐 Calculate Split</button>'+
-        '<div id="mb-split-result" style="margin-top:8px">'+splitResultHtml+'</div>'+
-      '</div>'+
-
-      // ── NOTES ──
-      '<div style="padding:12px 14px 4px">'+
-        '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">📝 Batch Notes</div>'+
-        '<textarea id="mb-notes" rows="5" placeholder="Process notes, observations, adjustments…" '+
-          'oninput="App._mbSession.notes=this.value" '+
-          'style="width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:10px;font-family:Lato,sans-serif;font-size:.88rem;color:var(--text);outline:none;resize:none;line-height:1.5">'+this.h(s.notes)+'</textarea>'+
-      '</div>';
-
-    // Init split input rows
-    this._mbRenderSplitInputs();
-  },
 
   _mbAdditiveRow(i, a){
     const gval = a.unit==='g'?a.amount:(a.amount?Math.round(parseFloat(a.amount)*28.3495*100)/100:'');
@@ -3642,48 +3404,7 @@ const App = {
     }).catch(e=>this._toast('Failed to load draft: '+e.message));
   },
 
-  async saveBatchProgress(){
-    const s=this._mbSession; if(!s) return;
-    // Sync notes and batch size from UI
-    const ta=document.getElementById('mb-notes');
-    if(ta) s.notes=ta.value;
-    const bsEl=document.getElementById('mb-batch-size');
-    if(bsEl) s.batchSize=bsEl.value;
 
-    // Save as a draft variant in recipe_variants (status: draft)
-    const draft={
-      id: s.batchId,
-      recipe_id: s.recipeId,
-      recipe_name: s.recipeName||'',
-      status: 'in_progress',
-      name: '[In Progress] '+(s.recipeName||'Batch'),
-      notes: s.notes,
-      batch_size: s.batchSize||null,
-      batch_unit: s.batchUnit||'oz',
-      made_by: typeof this._currentUser==='object' ? (this._currentUser.display_name||this._currentUser.username||'') : (this._currentUser||''),
-      updated_at: new Date().toISOString(),
-      draft_session: {
-        batchId: s.batchId,
-        recipeId: s.recipeId,
-        recipeName: s.recipeName,
-        batchSize: s.batchSize,
-        batchUnit: s.batchUnit,
-        notes: s.notes,
-        additives: s.additives,
-        fragrances: s.fragrances,
-        splitData: s.splitData,
-        savedAt: new Date().toISOString()
-      }
-    };
-    try {
-      await fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/batch_history?on_conflict=id', {
-        method:'POST',
-        headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-        body:JSON.stringify(draft)
-      });
-      this._toast('Progress saved!');
-    } catch(e){ this._toast('Save failed: '+e.message); }
-  },
 
   completeBatch(){
     const s=this._mbSession; if(!s) return;
@@ -3698,125 +3419,10 @@ const App = {
     if(vr) vr.style.display='none';
     const vn=document.getElementById('cb-variant-name');
     if(vn) vn.value='';
-    document.getElementById('modal-complete-batch').classList.add('open');
+    
   },
 
-  async _confirmCompleteBatch(){
-    const s=this._mbSession; if(!s) return;
-    const variantNameEl = document.getElementById('cb-variant-name');
-    const batchLabel = (variantNameEl?.value?.trim()) || null;
 
-    // 1. Deduct inventory
-    const r=this._mbRecipe;
-    let changed=0;
-    (r.ingredients||[]).forEach(ing=>{
-      if(ing.unit==='ea'||ing.phase==='pkg') return;
-      const nm=ing.name.toLowerCase();
-      const inv=this.inventory.find(i=>i.name.toLowerCase()===nm||i.name.toLowerCase().includes(nm)||nm.includes(i.name.toLowerCase()));
-      if(inv){
-        const oz=ing.unit==='g'?parseFloat(ing.amount)/28.3495:parseFloat(ing.amount)||0;
-        inv.quantity=Math.round(Math.max(0,inv.quantity-oz)*1000)/1000;
-        inv.updated_at=new Date().toISOString();
-        changed++;
-      }
-    });
-    (s.additives||[]).forEach(a=>{
-      const nm=a.name.toLowerCase();
-      const inv=this.inventory.find(i=>i.name.toLowerCase()===nm||i.name.toLowerCase().includes(nm));
-      if(inv&&a.amount){
-        const oz=a.unit==='g'?parseFloat(a.amount)/28.3495:parseFloat(a.amount)||0;
-        inv.quantity=Math.round(Math.max(0,inv.quantity-oz)*1000)/1000;
-        inv.updated_at=new Date().toISOString();
-        changed++;
-      }
-    });
-    (s.fragrances||[]).forEach(fr=>{
-      if(!fr.id||!fr.amount) return;
-      const frag=this.fragrances.find(x=>x.id===fr.id);
-      if(frag){
-        frag.quantity=Math.round(Math.max(0,(frag.quantity||0)-parseFloat(fr.amount))*1000)/1000;
-        frag.updated_at=new Date().toISOString();
-        this._saveFrag(frag);
-        changed++;
-      }
-    });
-    this._localSaveI(); this.renderInventory(); this.renderOrders();
-    for(const item of this.inventory.filter(i=>i.updated_at&&new Date(i.updated_at)>new Date(Date.now()-5000)))
-      await this._pushRecord('inventory',item);
-
-    // 2. Always save completed batch to batch_history
-    const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
-    const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
-
-    const baseIngs = (r.ingredients||[]).map(i=>{
-      if(i.unit==='ea'||i.phase==='pkg') return {name:i.name,qty:parseFloat(i.amount)||1,oz:0,g:0,phase:'pkg',unit:'ea'};
-      const oz=i.unit==='g'?g2oz(i.amount):(parseFloat(i.amount)||0);
-      return {name:i.name,oz,g:oz2g(oz),phase:i.phase||'',usage_rate:i.usage_rate??null};
-    });
-    const addIngs = (s.additives||[]).filter(a=>a.name).map(a=>{
-      if(a.unit==='ea'||a.phase==='pkg') return {name:a.name,qty:parseFloat(a.amount)||1,oz:0,g:0,phase:'pkg',unit:'ea'};
-      const oz=a.unit==='g'?g2oz(a.amount):(parseFloat(a.amount)||0);
-      return {name:a.name,oz,g:oz2g(oz),phase:'additive'};
-    });
-    const fragIngs = (s.fragrances||[]).filter(f=>f.id&&f.amount).map(f=>{
-      const frag=(this.fragrances||[]).find(x=>x.id===f.id);
-      const oz=parseFloat(f.amount)||0;
-      return {name:frag?frag.name:'Fragrance',oz,g:oz2g(oz),phase:'3',frag_id:f.id};
-    });
-
-    const batchRecord = {
-      id: s._batchHistoryId || this.uid(),
-      recipe_id: s.recipeId,
-      variant_id: s.variantId||null,
-      recipe_name: r.name||'',
-      variant_name: batchLabel || s.variantName || null,
-      status: 'completed',
-      batch_size: parseFloat(s.batchSize)||null,
-      batch_unit: s.batchUnit||'oz',
-      unit_size: parseFloat(r.unitSize)||null,
-      units_made: (parseFloat(s.batchSize)&&parseFloat(r.unitSize))
-        ? Math.round(parseFloat(s.batchSize)/parseFloat(r.unitSize)*100)/100 : null,
-      notes: s.notes||null,
-      made_at: new Date().toISOString(),
-      made_by: this._currentUser&&typeof this._currentUser==='object'
-        ? (this._currentUser.display_name||this._currentUser.username||'')
-        : (this._currentUser||''),
-      updated_at: new Date().toISOString(),
-      ingredients_snapshot: [...baseIngs,...fragIngs,...addIngs],
-      fragrances_used: s.fragrances||[]
-    };
-
-    try {
-      const saveRes = await fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/batch_history?on_conflict=id',{
-        method:'POST',
-        headers:{
-          'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c',
-          'Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c',
-          'Content-Type':'application/json',
-          'Prefer':'resolution=merge-duplicates,return=minimal'
-        },
-        body:JSON.stringify(batchRecord)
-      });
-      if(!saveRes.ok){ const err=await saveRes.text(); this._toast('Save failed: '+saveRes.status+' '+err.slice(0,60)); return; }
-    } catch(e){ this._toast('Save error: '+e.message); return; }
-
-    // 3. Delete the in-progress draft from batch_history
-    const draftId = s.batchId || s._batchHistoryId;
-    if(draftId && draftId !== batchRecord.id){
-      try {
-        await fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/batch_history?id=eq.'+draftId,{
-          method:'DELETE',
-          headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c'}
-        });
-      } catch(e){ console.warn('Draft cleanup failed:',e.message); }
-    }
-
-    this.closeModal('modal-complete-batch');
-    this.closeMakeBatch();
-    this._toast('✅ Batch completed! '+changed+' inventory item'+(changed!==1?'s':'')+' updated.');
-    this.setTab('batches');
-    await this.renderBatchHistory();
-  },
 
   // ── LEGACY compat ────────────────────────────────────────────────────────────
   _batchConfirmFrags: [],
@@ -5348,28 +4954,7 @@ const App = {
     try { await fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/batches?id=eq.'+id,{method:'DELETE',headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c'}}).catch(e=>{}); } catch(e){}
   },
 
-  openBatchLogModal(recipe, existing){
-    const r = recipe || {};
-    this._editBatch = existing ? JSON.parse(JSON.stringify(existing)) : {
-      id: this.uid(),
-      recipe_id: r.id||'',
-      recipe_name: r.name||'',
-      recipe_version: r.version||'v1',
-      batch_size: r.batchSize||'',
-      batch_unit: r.batchUnit||'oz',
-      cost_estimate: '',
-      made_by: '',
-      made_at: new Date().toISOString(),
-      status: 'Curing',
-      notes: '',
-      photos: []
-    };
-    document.getElementById('modal-batch-log-title').textContent = existing ? 'Edit Batch Log' : 'Log This Batch';
-    this._batchFrags = (existing && existing.fragrances_used) ? JSON.parse(JSON.stringify(existing.fragrances_used)) : [];
-    document.getElementById('modal-batch-log-body').innerHTML = this._batchLogForm(this._editBatch);
-    this._renderBatchFragRows();
-    document.getElementById('modal-batch-log').classList.add('open');
-  },
+
 
   _batchLogForm(b){
     const so=(a,v)=>a.map(o=>'<option'+(o===v?' selected':'')+'>'+o+'</option>').join('');
@@ -5461,27 +5046,7 @@ const App = {
   // ── VARIANTS TAB ─────────────────────────────────────────────
   _varCat: '',
 
-  _buildVarChips(){
-    const chips=[
-      {label:'All',val:''},
-      {label:'Bar Soap',val:'Bar Soap'},
-      {label:'Lotion & Butter',val:'lotion_butter'},
-      {label:'Body Oil',val:'Body Oil'},
-      {label:'Hair',val:'hair'},
-      {label:'Scrub',val:'Scrub'},
-      {label:'Other',val:'Other'},
-    ];
-    const el=document.getElementById('var-chips');
-    if(!el) return;
-    el.innerHTML='';
-    chips.forEach(ch=>{
-      const btn=document.createElement('button');
-      btn.className='chip'+(ch.val===this._varCat?' on':'');
-      btn.textContent=ch.label;
-      btn.onclick=()=>App._setVarCat(ch.val);
-      el.appendChild(btn);
-    });
-  },
+
 
   _setVarCat(val){
     this._varCat = val;
@@ -5495,190 +5060,14 @@ const App = {
   _setVarFilter(val){ this._setVarCat(val==='All'?'':val); },
   clearVariantFilter(){ this._setVarCat(''); },
 
-    async renderVariantsTab(){
-    const list = document.getElementById('variants-tab-list');
-    if(!list) return;
-    this._buildVarChips();
-    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Loading...</div>';
-    try {
-      // Fetch variants directly from Supabase - no dependency on local state
-      const res = await this._sbFetch('GET','recipe_variants?order=created_at.desc');
-      let variants = await res.json();
-      if(!Array.isArray(variants)) variants = [];
-      // Apply search filter
-      const q = ((document.getElementById('var-search')||{}).value||'').toLowerCase();
-      if(q) variants = variants.filter(v=>(v.name||'').toLowerCase().includes(q)||(v.batch_notes||v.notes||'').toLowerCase().includes(q));
-      // Apply category filter
-      if(this._varCat){
-        const cat=this._varCat;
-        const isLotion=cat==='lotion_butter';
-        const isHair=cat==='hair';
-        variants=variants.filter(v=>{
-          const base=(this.recipes||[]).find(x=>x.id===v.base_recipe_id);
-          const bc=(base&&base.category)||'';
-          if(isLotion) return bc==='Lotion'||bc==='Body Butter'||bc==='Lotion & Butter';
-          if(isHair)   return bc==='Hair'||bc==='Hair Care';
-          return bc===cat;
-        });
-      }
-      if(!variants.length){
-        list.innerHTML = '<div style="text-align:center;padding:40px 20px"><div style="font-size:2rem;margin-bottom:8px">&#x1F9F4;</div><div style="font-weight:700;color:var(--text);margin-bottom:6px">No variants yet</div><div style="font-size:.83rem;color:var(--muted)">Complete a batch and save as a variant to see it here.</div></div>';
-        return;
-      }
-      // Ensure fragrances loaded for display
-      if(!this.fragrances||!this.fragrances.length) await this._loadFragrances();
-      const varCards = variants.map(v=>{
-        const base = (this.recipes||[]).find(x=>x.id===v.base_recipe_id);
-        const baseName = base ? base.name : 'Unknown Recipe';
-        const clr = (CAT_CLR&&base&&CAT_CLR[base.category])||'#A8527A';
-      const _dUnit = ((base&&base.batchUnit)||'oz').toLowerCase();
-      const dispFmt = oz => {
-        const n = parseFloat(oz)||0;
-        if(_dUnit==='g')  return (Math.round(n*28.3495*10)/10).toFixed(1)+' g';
-        if(_dUnit==='lb') return (Math.round(n/16*1000)/1000).toFixed(3)+' lb';
-        return (Math.round(n*1000)/1000).toFixed(2)+' oz';
-      };
-        const batchSize = v.batch_size||(base&&base.batchSize)||'';
-        const batchUnit = v.batch_unit||(base&&base.batchUnit)||'oz';
-        const yield_ = batchSize ? batchSize+' '+batchUnit : '';
-        const dateStr = v.made_at ? new Date(v.made_at).toLocaleDateString() : (v.created_at ? new Date(v.created_at).toLocaleDateString() : '');
-        const frags = (v.fragrances_used||[]).filter(f=>f&&f.id).map(f=>{
-          const frag=(this.fragrances||[]).find(x=>x.id===f.id);
-          return frag?'<span class="tag">'+this.h(frag.name)+'</span>':'';
-        }).join('');
-        const adds = (v.added_ingredients||[]).filter(x=>x&&x.name).slice(0,3).map(x=>'<span class="tag">'+this.h(x.name)+'</span>').join('');
-        const isDraft = v.draft_session && v.name && v.name.startsWith('[Draft]');
-        const continueBtn = isDraft
-          ? '<div style="margin-top:8px"><button onclick="event.stopPropagation();App.continueDraft(\''+v.id+'\');" style="width:100%;padding:7px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer">&#x1F9C4; Continue Making</button></div>'
-          : '';
-        return '<div class="r-card"'+(isDraft?'':' onclick="App.openVariantDetail(\''+v.id+'\')"')+'>'+
-          '<div class="r-card-stripe" style="background:'+(isDraft?'#E65100':clr)+'"></div>'+
-          '<div class="r-card-body">'+
-            '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
-              '<div style="flex:1;min-width:0">'+
-                (isDraft?'<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#E65100;margin-bottom:2px">In Progress</div>':'')+
-                '<div class="r-card-name">'+this.h(v.name.replace(/^\[Draft\]\s*/,''))+'</div>'+
-                '<div class="r-card-cat">'+this.h(baseName)+(yield_?' · '+yield_:'')+' · '+dateStr+'</div>'+
-              '</div>'+
-            '</div>'+
-            '<div class="r-card-tags" style="margin-top:6px">'+frags+adds+'</div>'+
-            continueBtn+
-          '</div>'+
-        '</div>';
-      }).join('');
-      list.innerHTML = '<div class="r-grid">'+varCards+'</div>';
-    } catch(e){
-      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red)">Failed to load variants: '+this.h(e.message)+'</div>';
-    }
-  },
+  
 
   // ── BATCH HISTORY TAB ─────────────────────────────────────────
-  async renderBatchHistory(){
-    const wrap = document.getElementById('bh-list');
-    if(!wrap) return;
-    wrap.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div>';
 
-    try {
-      const q = (document.getElementById('bh-search')||{}).value||'';
-      document.getElementById('bh-clear').style.display = q ? 'flex' : 'none';
 
-      // Fetch from batch_history
-      let url = 'https://brxtdstcvaudxneikazg.supabase.co/rest/v1/batch_history?order=made_at.desc&limit=100';
-      const res = await fetch(url, {
-        headers: {'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c'}
-      });
-      const rows = res.ok ? await res.json() : [];
 
-      let list = rows.filter(b => {
-        if(!q) return true;
-        const txt = [b.recipe_name, b.variant_name, b.notes, b.made_by].join(' ').toLowerCase();
-        return txt.includes(q.toLowerCase());
-      });
 
-      if(!list.length){
-        wrap.innerHTML = '<div style="text-align:center;padding:40px 20px"><div style="font-size:2rem;margin-bottom:8px">📋</div>'+
-          '<div style="font-weight:700;color:var(--text);margin-bottom:6px">No batches yet</div>'+
-          '<div style="font-size:.83rem;color:var(--muted)">Complete a batch from any recipe to see history here.</div></div>';
-        return;
-      }
 
-      // Separate in-progress from completed
-      const inProgress = list.filter(b => b.status === 'in_progress');
-      const completed  = list.filter(b => b.status !== 'in_progress');
-
-      const mkCard = b => {
-        const date = b.made_at ? new Date(b.made_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-        const isIP = b.status === 'in_progress';
-        const borderClr = isIP ? '#E65100' : 'var(--border)';
-        const recipe = this.recipes.find(r=>r.id===b.recipe_id);
-        const catClr = recipe ? (CAT_CLR[recipe.category]||'#8B7355') : '#8B7355';
-        const bid = b.id;
-        return '<div style="background:var(--card);border-radius:12px;border:1px solid '+borderClr+';padding:12px 14px;margin-bottom:10px;cursor:pointer" '+
-          'onclick="App.openBatchHistoryDetail(\'' + bid + '\')">' +
-          (isIP ? '<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#E65100;letter-spacing:.6px;margin-bottom:4px">⏳ IN PROGRESS</div>' : '') +
-          '<div style="font-weight:700;font-size:1rem;color:var(--text)">'+this.h(b.recipe_name||'Unknown Recipe')+'</div>'+
-          (b.variant_name ? '<div style="font-size:.8rem;color:var(--muted);margin-top:2px">'+this.h(b.variant_name)+'</div>' : '')+
-          '<div style="font-size:.75rem;color:var(--muted);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap">'+
-            (date ? '<span>📅 '+date+'</span>' : '')+
-            (b.made_by ? '<span>👤 '+this.h(b.made_by)+'</span>' : '')+
-            (b.batch_size ? '<span>⚖️ '+b.batch_size+' '+(b.batch_unit||'oz')+'</span>' : '')+
-            (b.units_made ? '<span>📦 '+b.units_made+' units</span>' : '')+
-            (b.cost_per_unit ? '<span>💰 $'+parseFloat(b.cost_per_unit).toFixed(2)+'/unit</span>' : '')+
-          '</div>'+
-          (isIP ? '<button class="btn btn-primary" style="margin-top:10px;width:100%;font-size:.85rem" onclick="event.stopPropagation();App.continueBatchHistory(\'' + bid + '\')">▶ Continue Making</button>' : '')+
-        '</div>';
-      };
-      let html = '';
-      if(inProgress.length){
-        html += '<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#E65100;letter-spacing:.6px;margin-bottom:8px;margin-top:4px">In Progress ('+inProgress.length+')</div>';
-        html += inProgress.map(mkCard).join('');
-        html += '<div style="height:1px;background:var(--border);margin:14px 0"></div>';
-      }
-      html += '<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.6px;margin-bottom:8px">Completed ('+completed.length+')</div>';
-      html += completed.length ? completed.map(mkCard).join('') :
-        '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.85rem">No completed batches yet</div>';
-
-      wrap.innerHTML = html;
-    } catch(e){
-      wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">Failed to load: '+e.message+'</div>';
-    }
-  },
-
-  openBatchHistoryDetail(id){
-    // Navigate to the recipe and show this batch's details
-    // For now show a simple detail view
-    this._toast('Batch detail coming soon');
-  },
-
-  async continueBatchHistory(id){
-    try {
-      const res = await fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/batch_history?id=eq.'+id, {
-        headers: {'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c'}
-      });
-      const rows = await res.json();
-      if(!rows||!rows[0]) { this._toast('Batch not found'); return; }
-      const b = rows[0];
-      const ds = b.draft_session;
-      if(!ds) { this._toast('No session data'); return; }
-      const base = this.recipes.find(x=>x.id===b.recipe_id||x.id===ds.recipeId);
-      if(!base) { this._toast('Recipe not found'); return; }
-      this._mbRecipe = base;
-      this._mbSession = {
-        batchId: b.id,
-        recipeId: ds.recipeId||b.recipe_id,
-        recipeName: ds.recipeName||b.recipe_name||base.name,
-        batchSize: ds.batchSize||b.batch_size||base.batchSize||'',
-        batchUnit: ds.batchUnit||b.batch_unit||base.batchUnit||'oz',
-        additives: ds.additives||[],
-        fragrances: ds.fragrances||[],
-        notes: ds.notes||b.notes||'',
-        splitData: ds.splitData||null,
-        status: 'in_progress',
-        _batchHistoryId: b.id
-      };
-      this._openMakeBatch();
-    } catch(e){ this._toast('Failed: '+e.message); }
-  },
 
   async openVariantDetail(variantId){
     try {
@@ -5846,7 +5235,6 @@ const App = {
           ${(fr&&fr.recipe_notes)||(base&&base.notes) ? '<div class="section"><div class="section-title">Recipe Notes</div><div class="prose-muted">'+this.h((fr&&fr.recipe_notes)||(base&&base.notes))+'</div></div>' : ''}
           ${r.notes ? '<div class="section"><div class="section-title">Batch Notes</div><div class="prose-muted">'+this.h(r.notes)+'</div></div>' : ''}
           <div style="padding:0 14px 10px">
-            <button class="btn btn-primary btn-full" onclick="App.makeBatch('${v.base_recipe_id}')">🧼 Make This Batch</button>
           </div>
           <div class="detail-actions" style="flex-wrap:wrap;gap:6px">
             <button class="btn btn-outline" style="padding:8px 12px;font-size:.8rem" onclick="App.openVariantForm('${v.id}','${v.base_recipe_id}')">✏️ Edit</button>
@@ -6157,7 +5545,6 @@ const App = {
             '<div style="display:flex;gap:6px;margin-left:8px">'+
               '<button onclick="App.openVariantForm(\''+v.id+'\',\''+rid+'\')" style="background:none;border:1px solid var(--accent);border-radius:8px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;color:var(--accent);cursor:pointer">Edit</button>'+
               '<button onclick="App.printVariantPDF(\''+v.id+'\',\''+rid+'\')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;color:var(--text);cursor:pointer" title="Print variant recipe">🖨</button>'+
-              '<button onclick="App.makeBatchFromVariant(\''+v.id+'\')" style="background:var(--accent);border:none;border-radius:8px;padding:5px 10px;font-family:Lato,sans-serif;font-size:.72rem;color:#fff;cursor:pointer;font-weight:700">Make Batch</button>'+
             '</div>'+
           '</div>'+
         '</div>';
@@ -6388,31 +5775,7 @@ const App = {
     }
   },
 
-  async makeBatchFromVariant(variantId){
-    try {
-      const res = await this._sbFetch('GET','recipe_variants?id=eq.'+variantId);
-      const rows = await res.json();
-      if(!rows||!rows[0]) return;
-      const v = rows[0];
-      const baseR = this.recipes.find(x=>x.id===v.base_recipe_id);
-      if(!baseR) return;
-      this._mbRecipe = baseR;
-      this._mbSession = {
-        batchId: this.uid(),
-        recipeId: baseR.id,
-        recipeName: baseR.name+' - '+v.name,
-        batchSize: v.batch_size || baseR.batchSize || '',
-        batchUnit: v.batch_unit || baseR.batchUnit || 'oz',
-        additives: v.added_ingredients || [],
-        fragrances: v.fragrance_id ? [{id:v.fragrance_id, amount:v.fragrance_amount||''}] : [],
-        notes: v.notes||'',
-        splitData: null,
-        status: 'in_progress'
-      };
-      this.closeModal('modal-variants');
-      this._openMakeBatch();
-    } catch(e){ this._toast('Failed to load variant'); }
-  },
+
 
   // ── RECIPE VERSIONS ──────────────────────────────────────────
   async showVersionHistory(recipeId, variantsOnly){
