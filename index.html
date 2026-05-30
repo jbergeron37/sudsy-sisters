@@ -1064,7 +1064,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.24.26.72.00';
+    const _ver = 'V-5.24.26.73.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1936,11 +1936,9 @@ const App = {
         '<span style="font-size:.85rem;font-weight:700;color:var(--brown)">$'+ingPerUnit.toFixed(3)+' / unit</span>'+
       '</div>' : '';
 
-    // Container lines (one per pkg item, shown as per-unit cost)
+    // Container lines — full cost per container = full cost per unit (1 container per unit)
     const pkgLines = cost.pkgBreakdown.map(p=>{
-      const perUnit = numUnits > 0 && p.found
-        ? Math.round(p.lineCost / numUnits * 10000) / 10000
-        : (p.found ? p.costPer : 0);
+      const perUnit = p.found ? Math.round(p.costPer * 10000) / 10000 : 0;
       return '<div style="display:flex;justify-content:space-between;padding:3px 0">'+
         '<span style="font-size:.82rem;color:#A8527A">+ '+this.h(p.name)+'</span>'+
         '<span style="font-size:.85rem;font-weight:700;color:#A8527A">'+
@@ -1950,8 +1948,7 @@ const App = {
     }).join('');
 
     const pkgPerUnitTotal = cost.pkgBreakdown.reduce((s,p)=>{
-      const pu = numUnits>0&&p.found ? p.lineCost/numUnits : (p.found?p.costPer:0);
-      return s + pu;
+      return s + (p.found ? p.costPer : 0);
     }, 0);
 
     const totalPerUnit = Math.round((ingPerUnit + pkgPerUnitTotal) * 10000) / 10000;
