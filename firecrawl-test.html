@@ -332,26 +332,32 @@ async function runVendorTwoPass(vendor){
 function discoverProductUrls(pages, vendor){
   const seen = new Set();
   const results = [];
-  const oilKeywords = ['oil','butter','tallow','fat','castor','avocado','coconut','olive','almond','shea','cocoa','jojoba','palm','sunflower','lard','beef'];
+  const oilKeywords = ['oil','butter','tallow','fat','castor','avocado','coconut','olive','almond','shea','cocoa','jojoba','palm','sunflower','lard','beef','argan','hemp','neem','rice','bran','canola','soybean','vegetable'];
 
   pages.forEach(page => {
-    const pageUrl = page.metadata?.url || page.url || '';
     const content = page.markdown || '';
     const links = page.links || page.metadata?.links || [];
 
-    // Collect all URLs — from links array and from markdown href patterns
+    // Collect all URLs from links array AND markdown href patterns
     const allUrls = [...links];
     const mdLinks = [...content.matchAll(/\(https?:\/\/[^\s)]+\)/g)].map(m => m[0].slice(1,-1));
     allUrls.push(...mdLinks);
+    // Also collect crawled page URLs themselves
+    const pageUrl = page.metadata?.url || page.url || '';
+    if(pageUrl) allUrls.push(pageUrl);
 
-    allUrls.forEach(url => {
-      if(seen.has(url)) return;
+    allUrls.forEach(rawUrl => {
+      // ── Strip fragments (#...) — they're not real pages ──
+      const url = rawUrl.split('#')[0];
+      if(!url || seen.has(url)) return;
       if(!url.startsWith('http')) return;
       if(!url.includes(vendor.baseUrl.replace('https://','').replace('http://',''))) return;
 
       // Skip nav/utility pages
-      const skip = ['account','cart','checkout','login','register','blog','contact','about','faq','search','category','wishlist','compare','review'];
+      const skip = ['account','cart','checkout','login','register','blog','contact','about','faq','search','wishlist','compare','review','mwdownload','customer','policy'];
       if(skip.some(s => url.toLowerCase().includes(s))) return;
+      // Skip the exact crawl start URL (category page)
+      if(url === vendor.crawlUrl.split('#')[0]) return;
 
       const urlLower = url.toLowerCase();
       const isProductUrl = oilKeywords.some(k => urlLower.includes(k));
@@ -362,7 +368,9 @@ function discoverProductUrls(pages, vendor){
     });
   });
 
-  return results.slice(0, 20); // cap at 20 product pages per vendor
+  const final = results.slice(0, 20);
+  log('info', `Candidate product URLs:\n  ${final.join('\n  ')}`);
+  return final;
 }
 
 // ── Match discovered URLs to your ingredient list ──────────────────────────
@@ -370,14 +378,38 @@ function matchUrlsToIngredients(urls, vendor){
   const matched = [];
   const used = new Set();
 
-  ingredients.forEach(ing => {
-    const ingWords = ing.toLowerCase().split(' ').filter(w => w.length > 2);
-    let bestUrl = null, bestScore = 0;
+  // Synonym map for common ingredient name variations in URLs
+  const synonyms = {
+    'coconut oil': ['coconut'],
+    'olive oil':   ['olive'],
+    'castor oil':  ['castor'],
+    'avocado oil': ['avocado'],
+    'almond oil':  ['almond','sweet-almond'],
+    'palm oil':    ['palm'],
+    'shea butter': ['shea'],
+    'cocoa butter':['cocoa','cacao'],
+    'sunflower oil':['sunflower'],
+    'beef tallow': ['tallow','beef'],
+    'lard':        ['lard'],
+    'jojoba oil':  ['jojoba'],
+  };
 
+  ingredients.forEach(ing => {
+    const ingLower = ing.toLowerCase();
+    const ingWords = ingLower.split(' ').filter(w => w.length > 2);
+    // Build full keyword set: ingredient words + synonyms
+    const allKeywords = [...ingWords];
+    Object.entries(synonyms).forEach(([key, syns]) => {
+      if(ingLower.includes(key.split(' ')[0])) allKeywords.push(...syns);
+    });
+
+    let bestUrl = null, bestScore = 0;
     urls.forEach(url => {
       const urlLower = url.toLowerCase();
-      const score = ingWords.filter(w => urlLower.includes(w)).length / ingWords.length;
-      if(score > bestScore && score >= 0.5){
+      // Score = fraction of keywords found in URL
+      const hits = allKeywords.filter(k => urlLower.includes(k)).length;
+      const score = hits / Math.max(ingWords.length, 1);
+      if(score > bestScore && score > 0){ // any match qualifies
         bestScore = score;
         bestUrl = url;
       }
@@ -386,6 +418,7 @@ function matchUrlsToIngredients(urls, vendor){
     if(bestUrl && !used.has(bestUrl)){
       used.add(bestUrl);
       matched.push({ ingredient: ing, url: bestUrl, score: bestScore });
+      log('info', `  Matched: ${ing} → ${bestUrl} (score ${bestScore.toFixed(2)})`);
     }
   });
 
