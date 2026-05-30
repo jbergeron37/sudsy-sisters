@@ -1075,7 +1075,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.24.26.81.00';
+    const _ver = 'V-5.30.26.82.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -3031,6 +3031,15 @@ const App = {
       } catch(e){ console.warn('Inventory delete cloud failed:', e.message); }
     });
   },
+  delRecipe(id){
+    this._confirm('Delete Recipe','This recipe will be permanently removed. This cannot be undone.',async ()=>{
+      this.recipes=this.recipes.filter(x=>x.id!==id);
+      this._localSave(); this.renderRecipes(); this.goBack(); this._toast('Recipe deleted');
+      try {
+        await this._sbFetch('DELETE','recipes?id=eq.'+id);
+      } catch(e){ console.warn('Recipe delete cloud failed:', e.message); }
+    });
+  },
   openInvModal(id){
     const item=id?this.inventory.find(x=>x.id===id):null;
     this.editI=item?JSON.parse(JSON.stringify(item)):{id:this.uid(),name:'',category:'Oils',quantity:0,unit:'oz',reorderAt:8,supplier:'',vendorUrl:'',cost:'',pkgSize:'',notes:''};
@@ -4977,8 +4986,8 @@ const App = {
       lines.push(r.lbl+' ('+r.pct+'%): Total '+totalOz+' oz / Oils '+oilOz+' oz / Lye+Milk '+lyeOz+' oz');
     });
     const splitText = lines.join('\n');
-    // Paste directly into open batch log notes if available
-    const notesEl = document.getElementById('bl-notes');
+    // Paste directly into open batch log notes OR variant form notes if available
+    const notesEl = document.getElementById('bl-notes') || document.getElementById('vf-notes');
     if(notesEl){
       notesEl.value = (notesEl.value ? notesEl.value+'\n\n' : '')+splitText;
       this._toast('Split added to batch notes!');
@@ -5364,6 +5373,13 @@ const App = {
       // ── Identical ingredient rendering to openRecipeDetail ──
       const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
       const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
+      const dUnit = (r.batchUnit||'oz').toLowerCase();
+      const toDisp = oz => {
+        if(dUnit==='g')  return Math.round((parseFloat(oz)||0)*28.3495*10)/10;
+        if(dUnit==='lb') return Math.round((parseFloat(oz)||0)/16*1000)/1000;
+        return Math.round((parseFloat(oz)||0)*100)/100;
+      };
+      const dispFmt = oz => toDisp(oz).toFixed(dUnit==='g'?1:2)+' '+dUnit;
       const pLabels = {'1':'Phase 1 — Goat Milk & Lye','2':'Phase 2 — Oils & Butters','3':'Phase 3 — Fragrance & Color','additive':'Extra Additives','':'Ingredients'};
       const pColors = {'1':'#5C35C2','2':'#A8527A','3':'#2E7D32','additive':'#E65100','':'#666'};
       const byPhase = {};
