@@ -1075,7 +1075,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.30.26.84.00';
+    const _ver = 'V-5.30.26.85.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -4667,7 +4667,7 @@ const App = {
 
   // ── TASK 4: % SPLIT CALCULATOR ──────────────────────────────
   openSplitCalc(recipeId){
-    const r = this.recipes.find(x=>x.id===recipeId);
+    const r = this.recipes.find(x=>x.id==recipeId);
     if(!r){ this._toast('Recipe not found'); return; }
     const LYE_RE = /lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
     const lyeIngs = (r.ingredients||[]).filter(i=>LYE_RE.test(i.name));
@@ -5749,7 +5749,7 @@ const App = {
   // ── RECIPE VARIANTS ──────────────────────────────────────────
   _editVariant: null,
   _openSplitFromVariant(){
-    const id = this._editVariant && this._editVariant.base_recipe_id;
+    const id = this._variantRecipeId || (this._editVariant && this._editVariant.base_recipe_id);
     if(!id){ this._toast('No base recipe found'); return; }
     this.openSplitCalc(id);
   },
