@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Firecrawl Vendor Test — Sudsy Sisters</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Playfair+Display:wght@700&display=swap');
+  :root {
+    --pink: #FCBFCE; --blush: #FEF2F6; --brown: #7a4a5a; --accent: #c0627a;
+    --text: #2a1a22; --muted: #9a7a88; --border: #f0d5de; --green: #4caf7d;
+    --red: #e05c6a; --bg: #FEF2F6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Lato, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+  h1 { font-family: 'Playfair Display', serif; color: var(--brown); font-size: 1.5rem; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: .85rem; margin-bottom: 20px; }
+  .vendor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  @media(max-width:600px){ .vendor-grid { grid-template-columns: 1fr; } }
+  .vendor-card {
+    background: #fff; border: 2px solid var(--border); border-radius: 12px; padding: 14px;
+    cursor: pointer; transition: border-color .2s, box-shadow .2s; position: relative;
+  }
+  .vendor-card:hover { border-color: var(--accent); box-shadow: 0 2px 12px #c0627a22; }
+  .vendor-card.selected { border-color: var(--accent); background: #fff5f8; }
+  .vendor-card.running { border-color: var(--pink); }
+  .vendor-card.done { border-color: var(--green); }
+  .vendor-card.error { border-color: var(--red); }
+  .v-name { font-weight: 700; font-size: .95rem; color: var(--brown); }
+  .v-url { font-size: .72rem; color: var(--muted); margin-top: 2px; word-break: break-all; }
+  .v-status { font-size: .72rem; margin-top: 6px; font-weight: 700; }
+  .v-status.idle { color: var(--muted); }
+  .v-status.running { color: var(--accent); }
+  .v-status.done { color: var(--green); }
+  .v-status.error { color: var(--red); }
+  .v-check { position: absolute; top: 10px; right: 10px; width: 18px; height: 18px;
+    border: 2px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; }
+  .vendor-card.selected .v-check { background: var(--accent); border-color: var(--accent); }
+  .vendor-card.selected .v-check::after { content: '✓'; color: #fff; font-size: .7rem;
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+
+  .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  button { font-family: Lato, sans-serif; font-weight: 700; font-size: .85rem;
+    border: none; border-radius: 8px; padding: 10px 18px; cursor: pointer; transition: opacity .2s; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-outline { background: #fff; color: var(--brown); border: 2px solid var(--border); }
+  .btn-danger { background: #ffeef0; color: var(--red); border: 2px solid #ffd0d5; }
+
+  .ingredients-box { background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; margin-bottom: 20px; }
+  .ing-title { font-weight: 700; color: var(--brown); font-size: .85rem; margin-bottom: 8px; }
+  .ing-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: var(--blush); color: var(--brown); border-radius: 20px;
+    padding: 3px 10px; font-size: .75rem; font-weight: 700; }
+
+  .results-area { display: flex; flex-direction: column; gap: 16px; }
+  .result-block { background: #fff; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .result-header { background: var(--brown); color: #fff; padding: 10px 14px;
+    font-weight: 700; font-size: .88rem; display: flex; justify-content: space-between; align-items: center; }
+  .result-header .pages { font-size: .72rem; opacity: .8; }
+  .result-body { padding: 14px; max-height: 400px; overflow-y: auto; font-size: .78rem; line-height: 1.6; }
+  .result-body pre { white-space: pre-wrap; word-break: break-word; font-family: monospace;
+    background: var(--blush); padding: 10px; border-radius: 6px; font-size: .72rem; }
+
+  .match-section { margin-top: 8px; }
+  .match-title { font-weight: 700; color: var(--accent); font-size: .8rem; margin-bottom: 6px; }
+  .match-table { width: 100%; border-collapse: collapse; font-size: .75rem; }
+  .match-table th { background: var(--blush); color: var(--brown); padding: 5px 8px; text-align: left; }
+  .match-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .match-table tr:last-child td { border-bottom: none; }
+  .conf-high { color: var(--green); font-weight: 700; }
+  .conf-med { color: #f59e0b; font-weight: 700; }
+  .conf-low { color: var(--red); font-weight: 700; }
+  .price-tag { background: #e8f8ef; color: #2d7a52; border-radius: 5px; padding: 2px 6px;
+    font-weight: 700; font-size: .72rem; }
+  .no-match { color: var(--muted); font-style: italic; }
+
+  .log { background: #1a0e14; color: #f0c0d0; border-radius: 10px; padding: 14px;
+    font-family: monospace; font-size: .72rem; line-height: 1.7; max-height: 200px;
+    overflow-y: auto; margin-bottom: 20px; }
+  .log .ts { color: #9a7080; }
+  .log .ok { color: #4caf7d; }
+  .log .err { color: #e05c6a; }
+  .log .info { color: #fcbfce; }
+
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid #fff4;
+    border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .api-row { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+  .api-row input { flex: 1; min-width: 200px; padding: 9px 12px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-family: Lato, sans-serif; font-size: .82rem; background: #fff; }
+  .api-row input:focus { outline: none; border-color: var(--accent); }
+  .api-status { font-size: .75rem; font-weight: 700; }
+  .api-status.ok { color: var(--green); }
+  .api-status.err { color: var(--red); }
+</style>
+</head>
+<body>
+
+<h1>🔬 Vendor Price Crawl — Test</h1>
+<p class="subtitle">Oils & Butters · Sudsy Sisters ingredient matching test</p>
+
+<div class="api-row">
+  <input type="password" id="api-key" placeholder="Firecrawl API key (fc-…)" autocomplete="off">
+  <button class="btn-outline" onclick="saveKey()">Set Key</button>
+  <span class="api-status" id="api-status"></span>
+</div>
+
+<div class="ingredients-box">
+  <div class="ing-title">🧴 Ingredients to match (from your DB)</div>
+  <div class="ing-chips" id="ing-chips">Loading…</div>
+</div>
+
+<div class="vendor-grid" id="vendor-grid"></div>
+
+<div class="controls">
+  <button class="btn-primary" id="run-btn" onclick="runSelected()" disabled>▶ Run Crawl on Selected</button>
+  <button class="btn-outline" onclick="selectAll()">Select All</button>
+  <button class="btn-outline" onclick="clearAll()">Clear</button>
+  <button class="btn-danger" onclick="clearResults()">Clear Results</button>
+</div>
+
+<div class="log" id="log"><span class="info">Ready. Select vendors and click Run Crawl.</span></div>
+
+<div class="results-area" id="results-area"></div>
+
+<script>
+const VENDORS = [
+  {
+    id: 'wsp',
+    name: 'Wholesale Supplies Plus',
+    baseUrl: 'https://www.wholesalesuppliesplus.com',
+    crawlUrl: 'https://www.wholesalesuppliesplus.com/bath-body-supplies/butters-base-oils-lye/base-specialty-oils.aspx',
+    include: ['oil','butter','tallow','fat','wax','avocado','castor','coconut','olive','lard'],
+    exclude: ['blog','recipe','tutorial','account','cart','checkout','login','register','review']
+  },
+  {
+    id: 'ba',
+    name: 'Bulk Apothecary',
+    baseUrl: 'https://www.bulkapothecary.com',
+    crawlUrl: 'https://www.bulkapothecary.com/categories/oils-butters-waxes.html',
+    include: ['oil','butter','tallow','fat','avocado','castor','coconut','olive'],
+    exclude: ['blog','recipe','account','cart','checkout','login','essential-oil-blends','fragrance']
+  },
+  {
+    id: 'jedwards',
+    name: 'JEdwards International',
+    baseUrl: 'https://bulknaturaloils.com',
+    crawlUrl: 'https://bulknaturaloils.com/oils.html',
+    include: ['oil','butter','tallow','fat','avocado','castor','coconut','olive'],
+    exclude: ['blog','account','cart','checkout','login']
+  },
+  {
+    id: 'sams',
+    name: "Sam's Club",
+    baseUrl: 'https://www.samsclub.com',
+    crawlUrl: 'https://www.samsclub.com/s/coconut%20oil',
+    include: ['oil','butter','olive','coconut','avocado','cooking'],
+    exclude: ['blog','account','cart','checkout','login','electronics','clothing','auto']
+  }
+];
+
+// Oils & Butters ingredients — will be loaded from Supabase or use fallback
+const FALLBACK_INGREDIENTS = [
+  'Coconut Oil','Beef Tallow','Avocado Oil','Castor Oil','Olive Oil',
+  'Shea Butter','Cocoa Butter','Palm Oil','Sweet Almond Oil','Jojoba Oil',
+  'Sunflower Oil','Lard'
+];
+
+let ingredients = [...FALLBACK_INGREDIENTS];
+let apiKey = '';
+let selected = new Set();
+let running = false;
+
+// ── Load Supabase ingredients ──────────────────────────────────────────────
+const SB_URL = 'https://brxtdstcvaudxneikazg.supabase.co';
+async function loadIngredients(){
+  try {
+    const res = await fetch(SB_URL+'/rest/v1/inventory?category=eq.Oils&select=name&order=name.asc', {
+      headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1NzYxMDUsImV4cCI6MjA2MjE1MjEwNX0.bBJorSkCMH49QBHxTUOBODLFApIwYkCYFTSRFkFkfWA', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1NzYxMDUsImV4cCI6MjA2MjE1MjEwNX0.bBJorSkCMH49QBHxTUOBODLFApIwYkCYFTSRFkFkfWA' }
+    });
+    if(res.ok){
+      const rows = await res.json();
+      if(rows && rows.length){
+        ingredients = rows.map(r=>r.name);
+        log('info', `Loaded ${ingredients.length} Oil/Butter ingredients from your DB`);
+      }
+    }
+  } catch(e){ log('info','Using fallback ingredient list'); }
+  renderIngChips();
+}
+
+function renderIngChips(){
+  document.getElementById('ing-chips').innerHTML = ingredients.map(i=>
+    `<span class="chip">${i}</span>`).join('');
+}
+
+// ── Vendor cards ───────────────────────────────────────────────────────────
+function renderVendors(){
+  document.getElementById('vendor-grid').innerHTML = VENDORS.map(v=>`
+    <div class="vendor-card" id="vc-${v.id}" onclick="toggleVendor('${v.id}')">
+      <div class="v-check" id="chk-${v.id}"></div>
+      <div class="v-name">${v.name}</div>
+      <div class="v-url">${v.crawlUrl}</div>
+      <div class="v-status idle" id="vs-${v.id}">idle</div>
+    </div>`).join('');
+}
+
+function toggleVendor(id){
+  if(selected.has(id)) selected.delete(id);
+  else selected.add(id);
+  document.getElementById('vc-'+id).classList.toggle('selected', selected.has(id));
+  document.getElementById('run-btn').disabled = selected.size === 0 || !apiKey;
+}
+function selectAll(){ VENDORS.forEach(v=>{ selected.add(v.id); document.getElementById('vc-'+v.id).classList.add('selected'); }); document.getElementById('run-btn').disabled = !apiKey; }
+function clearAll(){ VENDORS.forEach(v=>{ selected.delete(v.id); document.getElementById('vc-'+v.id).classList.remove('selected'); }); document.getElementById('run-btn').disabled = true; }
+function clearResults(){ document.getElementById('results-area').innerHTML=''; }
+
+// ── API key ────────────────────────────────────────────────────────────────
+function saveKey(){
+  apiKey = document.getElementById('api-key').value.trim();
+  const st = document.getElementById('api-status');
+  if(apiKey.startsWith('fc-')){ st.textContent='✓ Key set'; st.className='api-status ok'; document.getElementById('run-btn').disabled = selected.size===0; }
+  else { st.textContent='Key should start with fc-'; st.className='api-status err'; apiKey=''; }
+}
+
+// ── Logging ────────────────────────────────────────────────────────────────
+function log(type, msg){
+  const el = document.getElementById('log');
+  const ts = new Date().toLocaleTimeString();
+  el.innerHTML += `\n<span class="ts">[${ts}]</span> <span class="${type}">${msg}</span>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── Main crawl ─────────────────────────────────────────────────────────────
+async function runSelected(){
+  if(running) return;
+  running = true;
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('run-btn').innerHTML = '<span class="spinner"></span>Running…';
+
+  for(const vid of selected){
+    const vendor = VENDORS.find(v=>v.id===vid);
+    await crawlVendor(vendor);
+  }
+
+  running = false;
+  document.getElementById('run-btn').disabled = false;
+  document.getElementById('run-btn').textContent = '▶ Run Crawl on Selected';
+  log('ok','All crawls complete.');
+}
+
+async function crawlVendor(vendor){
+  setVendorStatus(vendor.id, 'running', '⏳ Crawling…');
+  log('info', `Starting crawl: ${vendor.name}`);
+
+  try {
+    // Start crawl job
+    const startRes = await fetch('https://api.firecrawl.dev/v1/crawl', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: vendor.crawlUrl,
+        limit: 25,
+        scrapeOptions: { formats: ['markdown'], onlyMainContent: true },
+        excludePaths: vendor.exclude.map(e=>`.*${e}.*`)
+      })
+    });
+
+    if(!startRes.ok){
+      const err = await startRes.text();
+      throw new Error(`HTTP ${startRes.status}: ${err}`);
+    }
+
+    const { id: jobId, success } = await startRes.json();
+    if(!jobId) throw new Error('No job ID returned');
+    log('ok', `${vendor.name} job started: ${jobId}`);
+
+    // Poll for completion
+    const pages = await pollCrawl(jobId, vendor.name);
+    log('ok', `${vendor.name}: got ${pages.length} pages`);
+    setVendorStatus(vendor.id, 'done', `✓ ${pages.length} pages crawled`);
+
+    // Extract and match
+    const matches = extractAndMatch(pages, vendor);
+    renderResults(vendor, pages, matches);
+
+  } catch(e){
+    log('err', `${vendor.name} failed: ${e.message}`);
+    setVendorStatus(vendor.id, 'error', `✗ ${e.message.slice(0,40)}`);
+    renderError(vendor, e.message);
+  }
+}
+
+async function pollCrawl(jobId, vendorName){
+  const maxAttempts = 30;
+  for(let i=0; i<maxAttempts; i++){
+    await sleep(3000);
+    const res = await fetch(`https://api.firecrawl.dev/v1/crawl/${jobId}`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` }
+    });
+    if(!res.ok) throw new Error(`Poll failed: HTTP ${res.status}`);
+    const data = await res.json();
+    log('info', `${vendorName} poll ${i+1}: status=${data.status} pages=${(data.data||[]).length}`);
+
+    if(data.status === 'completed') return data.data || [];
+    if(data.status === 'failed') throw new Error('Crawl job failed on server');
+    // If still crawling but we have some pages, accept after 10+ polls with data
+    if(i >= 10 && (data.data||[]).length > 0) {
+      log('info', `${vendorName}: accepting partial results (${data.data.length} pages)`);
+      return data.data;
+    }
+  }
+  throw new Error('Timed out waiting for crawl');
+}
+
+// ── Extract prices and match to ingredients ────────────────────────────────
+function extractAndMatch(pages, vendor){
+  const results = [];
+
+  // Flatten all page content
+  const allText = pages.map(p => ({
+    url: p.metadata?.url || p.url || '',
+    title: p.metadata?.title || '',
+    content: p.markdown || p.content || ''
+  }));
+
+  ingredients.forEach(ing => {
+    const ingLower = ing.toLowerCase();
+    const matches = [];
+
+    allText.forEach(page => {
+      const combined = (page.title + ' ' + page.content).toLowerCase();
+      // Fuzzy keyword match — check if page is relevant to this ingredient
+      const keywords = ingLower.split(' ').filter(w=>w.length>3);
+      const relevance = keywords.filter(kw => combined.includes(kw)).length / keywords.length;
+
+      if(relevance >= 0.5){
+        // Extract price patterns from the page
+        const prices = extractPrices(page.content, page.url, page.title);
+        if(prices.length) matches.push(...prices);
+      }
+    });
+
+    if(matches.length){
+      results.push({ ingredient: ing, matches: matches.slice(0,5) });
+    }
+  });
+
+  return results;
+}
+
+function extractPrices(content, url, title){
+  const prices = [];
+  // Match patterns like: $12.99, $12.99/lb, $12.99 for 16 oz, etc.
+  const priceRe = /\$\s*(\d+\.?\d*)\s*(?:\/?\s*(oz|lb|g|kg|pound|ounce|gallon|gal))?\s*(?:for\s+(\d+\.?\d*)\s*(oz|lb|g|kg|pound|ounce|gallon|gal))?/gi;
+  const sizeRe = /(\d+\.?\d*)\s*(oz|lb|g|kg|gallon|gal|pound|ounce)\b/gi;
+
+  let m;
+  const priceMatches = [];
+  while((m = priceRe.exec(content)) !== null){
+    priceMatches.push({ price: parseFloat(m[1]), unit: m[2]||'', forQty: m[3]||'', forUnit: m[4]||'', idx: m.index });
+  }
+
+  // Get context around each price match
+  priceMatches.slice(0,3).forEach(pm => {
+    const snippet = content.slice(Math.max(0,pm.idx-80), pm.idx+80).replace(/\n/g,' ').trim();
+    let pricePerOz = null;
+    if(pm.price){
+      if(pm.forQty && pm.forUnit){
+        const oz = toOz(parseFloat(pm.forQty), pm.forUnit);
+        if(oz) pricePerOz = pm.price/oz;
+      } else if(pm.unit){
+        const oz = toOz(1, pm.unit);
+        if(oz) pricePerOz = pm.price/oz;
+      }
+    }
+    prices.push({ price: pm.price, unit: pm.unit, snippet: snippet.slice(0,120), url, title, pricePerOz });
+  });
+
+  return prices;
+}
+
+function toOz(qty, unit){
+  const u = (unit||'').toLowerCase();
+  if(u==='oz'||u==='ounce') return qty;
+  if(u==='lb'||u==='pound') return qty*16;
+  if(u==='g') return qty/28.3495;
+  if(u==='kg') return qty*35.274;
+  if(u==='gal'||u==='gallon') return qty*128;
+  return null;
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ── Render results ─────────────────────────────────────────────────────────
+function renderResults(vendor, pages, matches){
+  const area = document.getElementById('results-area');
+  const hasMatches = matches.length > 0;
+
+  const matchHtml = hasMatches ? `
+    <div class="match-section">
+      <div class="match-title">🎯 Ingredient Matches Found (${matches.length})</div>
+      <table class="match-table">
+        <thead><tr><th>Your Ingredient</th><th>Page / Title</th><th>Price</th><th>$/oz</th><th>Snippet</th></tr></thead>
+        <tbody>
+          ${matches.map(m => m.matches.map(p=>`
+            <tr>
+              <td><strong>${m.ingredient}</strong></td>
+              <td><a href="${p.url}" target="_blank" style="color:var(--accent);font-size:.7rem">${(p.title||p.url).slice(0,40)}</a></td>
+              <td>${p.price ? `<span class="price-tag">$${p.price.toFixed(2)}</span>` : '<span class="no-match">?</span>'}</td>
+              <td>${p.pricePerOz ? `<strong>$${p.pricePerOz.toFixed(3)}</strong>` : '–'}</td>
+              <td style="color:var(--muted);font-size:.7rem">${p.snippet}</td>
+            </tr>`).join('')).join('')}
+        </tbody>
+      </table>
+    </div>` : `<div style="color:var(--muted);padding:10px;font-style:italic">No ingredient matches found in ${pages.length} pages. See raw page list below.</div>`;
+
+  // Show page list regardless
+  const pageListHtml = `
+    <div style="margin-top:12px">
+      <div class="match-title">📄 Pages Crawled (${pages.length})</div>
+      <div style="max-height:180px;overflow-y:auto">
+        ${pages.map(p=>`<div style="font-size:.72rem;padding:3px 0;border-bottom:1px solid var(--border);color:var(--muted)">
+          <a href="${p.metadata?.url||p.url||''}" target="_blank" style="color:var(--accent)">${p.metadata?.title||p.metadata?.url||p.url||'(no title)'}</a>
+        </div>`).join('')}
+      </div>
+    </div>`;
+
+  area.insertAdjacentHTML('beforeend', `
+    <div class="result-block">
+      <div class="result-header">
+        <span>${vendor.name}</span>
+        <span class="pages">${pages.length} pages · ${matches.length} ingredient matches</span>
+      </div>
+      <div class="result-body">
+        ${matchHtml}
+        ${pageListHtml}
+        <details style="margin-top:12px">
+          <summary style="cursor:pointer;font-size:.75rem;color:var(--muted);font-weight:700">🔍 Raw first page markdown</summary>
+          <pre>${escHtml((pages[0]?.markdown||pages[0]?.content||'(empty)').slice(0,2000))}</pre>
+        </details>
+      </div>
+    </div>`);
+}
+
+function renderError(vendor, msg){
+  document.getElementById('results-area').insertAdjacentHTML('beforeend', `
+    <div class="result-block">
+      <div class="result-header" style="background:var(--red)">${vendor.name} — Error</div>
+      <div class="result-body"><pre>${escHtml(msg)}</pre></div>
+    </div>`);
+}
+
+function setVendorStatus(id, cls, txt){
+  const card = document.getElementById('vc-'+id);
+  const st = document.getElementById('vs-'+id);
+  card.className = `vendor-card selected ${cls}`;
+  st.className = `v-status ${cls}`;
+  st.textContent = txt;
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Init ───────────────────────────────────────────────────────────────────
+renderVendors();
+loadIngredients();
+
+// Pre-fill key if passed in URL hash for convenience
+const hashKey = location.hash.slice(1);
+if(hashKey.startsWith('fc-')){ document.getElementById('api-key').value=hashKey; saveKey(); }
+</script>
+</body>
+</html>
