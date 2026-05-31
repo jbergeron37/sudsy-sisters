@@ -1160,7 +1160,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.89.00';
+    const _ver = 'V-5.31.26.90.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2213,34 +2213,40 @@ const App = {
   _printStandaloneSplit(){
     const d = this._lastStandaloneSplit;
     if(!d || !d.rows.length){ this._toast('Enter batch totals and percentages first'); return; }
-    const oz2g = v=>Math.round(v*28.3495*10)/10;
+    const oz2g = v => Math.round(v*28.3495*10)/10;
     const name = d.name || 'Split Calculator';
-    const w = window.open('','_blank','width=700,height=900');
-    const rows = d.rows.map(r=>{
-      const tOz=Math.round(d.total*(r.pct/100)*100)/100;
-      const oOz=Math.round(d.oils*(r.pct/100)*100)/100;
-      const lOz=Math.round(d.lyeTotal*(r.pct/100)*100)/100;
-      return `<div style="border:1px solid #e0c8d0;border-radius:10px;padding:14px 16px;margin-bottom:12px;background:#fff">
-        <div style="font-weight:700;font-size:1rem;color:#7a4a5a;margin-bottom:8px">${r.lbl} — ${r.pct}%</div>
-        <table style="width:100%;border-collapse:collapse;font-size:.88rem">
-          <tr style="background:#fef2f6"><th style="padding:7px 12px;text-align:left;color:#9a7a88;font-weight:700;text-transform:uppercase;font-size:.72rem">Component</th><th style="padding:7px 12px;text-align:right;color:#9a7a88;font-weight:700;text-transform:uppercase;font-size:.72rem">Oz</th><th style="padding:7px 12px;text-align:right;color:#9a7a88;font-weight:700;text-transform:uppercase;font-size:.72rem">Grams</th></tr>
-          <tr><td style="padding:7px 12px;border-bottom:1px solid #fde8f0">Lye + Liquid</td><td style="padding:7px 12px;text-align:right;font-weight:700;border-bottom:1px solid #fde8f0">${lOz} oz</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #fde8f0">${oz2g(lOz)} g</td></tr>
-          <tr><td style="padding:7px 12px;border-bottom:1px solid #fde8f0">Oils & Butters</td><td style="padding:7px 12px;text-align:right;font-weight:700;border-bottom:1px solid #fde8f0">${oOz} oz</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #fde8f0">${oz2g(oOz)} g</td></tr>
-          <tr style="background:#fef2f6"><td style="padding:7px 12px;font-weight:700">Total</td><td style="padding:7px 12px;text-align:right;font-weight:700">${tOz} oz</td><td style="padding:7px 12px;text-align:right;font-weight:700">${oz2g(tOz)} g</td></tr>
-        </table>
-      </div>`;
+
+    const rowHtml = d.rows.map(r=>{
+      const tOz = Math.round(d.total*(r.pct/100)*100)/100;
+      const oOz = Math.round(d.oils*(r.pct/100)*100)/100;
+      const lOz = Math.round(d.lyeTotal*(r.pct/100)*100)/100;
+      return '<tr>'+
+        '<td style="font-weight:700">'+this.h(r.lbl)+'</td>'+
+        '<td style="text-align:center">'+r.pct+'%</td>'+
+        '<td style="text-align:center;color:#5C35C2">'+lOz+' oz<br><span style="font-size:9px;color:#666">'+oz2g(lOz)+' g</span></td>'+
+        '<td style="text-align:center;color:#A8527A">'+oOz+' oz<br><span style="font-size:9px;color:#666">'+oz2g(oOz)+' g</span></td>'+
+        '<td style="text-align:center">'+tOz+' oz<br><span style="font-size:9px;color:#666">'+oz2g(tOz)+' g</span></td>'+
+      '</tr>';
     }).join('');
-    w.document.write(`<!DOCTYPE html><html><head><title>${name}</title>
-      <style>body{font-family:Arial,sans-serif;padding:30px;max-width:620px;margin:0 auto;color:#2a1a22}h1{color:#7a4a5a;font-size:1.3rem;margin-bottom:4px}@media print{body{padding:15px}}</style>
-    </head><body>
-      <h1>📐 ${name}</h1>
-      <p style="color:#9a7a88;font-size:.85rem;margin-bottom:16px">Total: ${d.total.toFixed(2)} oz &nbsp;|&nbsp; Oils: ${d.oils.toFixed(2)} oz &nbsp;|&nbsp; Lye+Liquid: ${d.lyeTotal.toFixed(2)} oz</p>
-      ${rows}
-      <p style="font-size:.72rem;color:#ccc;margin-top:20px">Sudsy Sisters Goat Milk Soapery · Printed ${new Date().toLocaleDateString()}</p>
-    </body></html>`);
-    w.document.close();
-    w.focus();
-    setTimeout(()=>w.print(), 400);
+
+    const body =
+      '<h1>'+this.h(name)+' — Color &amp; Layer Split</h1>'+
+      '<div class="meta">'+
+        '<div class="mi"><strong>Total Batch</strong><span>'+d.total.toFixed(2)+' oz ('+oz2g(d.total)+' g)</span></div>'+
+        '<div class="mi"><strong>Oils &amp; Butters</strong><span>'+d.oils.toFixed(2)+' oz</span></div>'+
+        '<div class="mi"><strong>Lye + Liquid</strong><span>'+d.lyeTotal.toFixed(2)+' oz</span></div>'+
+      '</div>'+
+      '<table>'+
+        '<thead><tr style="background:#FCBFCE">'+
+          '<th>Color / Layer</th><th style="text-align:center">%</th>'+
+          '<th style="text-align:center;color:#5C35C2">Lye + Liquid</th>'+
+          '<th style="text-align:center;color:#A8527A">Oils</th>'+
+          '<th style="text-align:center">Total</th>'+
+        '</tr></thead>'+
+        '<tbody>'+rowHtml+'</tbody>'+
+      '</table>';
+
+    this._bOpenPrint(body, name+' Split');
   },
   _buildCostSection(cost, numUnits, unitSzLabel){
     if(!cost.breakdown.length && !cost.pkgBreakdown.length) return '';
@@ -5051,7 +5057,7 @@ const App = {
   // ── BLOB PRINT UTILITIES ─────────────────────────────────────
   _bPrintCSS: "*{box-sizing:border-box;margin:0;padding:0}html,body{font-family:Lato,sans-serif;font-size:11px;line-height:1.45;color:#111;background:#fff}@page{margin:1in .5in;size:letter portrait}@media print{html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}.hdr{display:flex;align-items:center;gap:14px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}.brand{font-family:'Great Vibes',cursive;font-size:2rem;color:#D4789A;line-height:1}.brand-sub{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:#111;margin-bottom:8px}h3{font-family:'Playfair Display',serif;font-size:.85rem;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.4px}.meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}.mi{font-size:10px}.mi strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.4px;font-weight:700}.mi span{font-weight:700;color:#111}.two-col{display:grid;grid-template-columns:52% 46%;gap:2%}table{width:100%;border-collapse:collapse;margin-bottom:10px}th{padding:4px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px}td{padding:3px 8px;border-bottom:1px solid #f0e0ea;font-size:11px}.tr td{font-weight:700;color:#A8527A;border-top:1.5px solid #FCBFCE;background:#FEF2F6}.notes{font-size:10px;line-height:1.5;white-space:pre-wrap}.footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}.section{margin-bottom:14px;page-break-inside:avoid}.sec-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;border-bottom:1px solid #FCBFCE;padding-bottom:3px;margin-bottom:6px}.row-card{padding:8px 10px;border:1px solid #f0e0ea;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:flex-start}.row-name{font-size:11px;font-weight:700}.row-detail{font-size:9.5px;color:#555}",
 
-  _bOpenPrint(body, title, existingWin){
+  _bOpenPrint(body, title, existingWin, autoPrint=true){
     const logo = (document.getElementById('header-logo')||{}).src||'';
     const logoTag = logo ? '<img style="width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0" src="'+logo+'" alt=""/>' : '';
     const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+this.h(title||'Sudsy Sisters')+'</title>'+
@@ -5060,11 +5066,13 @@ const App = {
       '<div class="hdr">'+logoTag+'<div><div class="brand">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div></div>'+
       body+
       '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; Printed '+new Date().toLocaleDateString()+'</div>'+
+      (autoPrint ? '<script>window.onload=function(){setTimeout(function(){window.print();},400);}<\/script>' : '')+
       '</body></html>';
     const win = existingWin || window.open('', '_blank');
     if(win){
       win.document.write(doc);
       win.document.close();
+      win.focus();
     } else {
       this._showPrintOverlay(doc, title);
     }
