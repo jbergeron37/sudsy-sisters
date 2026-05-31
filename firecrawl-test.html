@@ -99,7 +99,7 @@
 </head>
 <body>
 
-<h1>🔬 Vendor Price Crawl — Test <span style="font-size:.7rem;color:var(--muted);font-weight:400">v6</span></h1>
+<h1>🔬 Vendor Price Crawl — Test <span style="font-size:.7rem;color:var(--muted);font-weight:400">v7</span></h1>
 <p class="subtitle">Oils & Butters · Sudsy Sisters ingredient matching test</p>
 
 <div id="cors-warning" style="background:#fff3cd;border:1.5px solid #f59e0b;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.82rem;color:#7a4a00">
@@ -258,29 +258,23 @@ async function runVendorTwoPass(vendor){
   log('info', `[${vendor.name}] Pass 1: crawling ${vendor.crawlUrl}`);
 
   try {
-    // ── PASS 1: crawl category page via Edge Function proxy ────────────────
-    const startRes = await fetch('https://brxtdstcvaudxneikazg.supabase.co/functions/v1/vendor-scrape', {
+    // ── PASS 1: single call — Edge Function handles crawl + polling ────────
+    setVendorStatus(vendor.id, 'running', '⏳ Crawling… (may take ~60s)');
+    log('info', `[${vendor.name}] Crawling ${vendor.crawlUrl} — server-side polling, please wait…`);
+    const crawlRes = await fetch('https://brxtdstcvaudxneikazg.supabase.co/functions/v1/vendor-scrape', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SB_ANON },
       body: JSON.stringify({
-        action: 'crawl_start',
+        action: 'crawl',
         url: vendor.crawlUrl,
         limit: 30,
         excludePaths: vendor.exclude.map(e => `.*${e}.*`)
       })
     });
-    if(!startRes.ok){
-      const json = await startRes.json().catch(()=>({}));
-      throw new Error(`Crawl failed: ${json.error || startRes.status}`);
-    }
-    const startJson = await startRes.json();
-    if(startJson.error) throw new Error(`Crawl error: ${startJson.error}`);
-    const { id: jobId } = startJson;
-    if(!jobId) throw new Error('No job ID returned');
-    log('ok', `[${vendor.name}] Job ${jobId} started`);
-
-    const pages = await pollCrawl(jobId, vendor.name);
-    log('ok', `[${vendor.name}] Pass 1 complete: ${pages.length} pages`);
+    const crawlJson = await crawlRes.json();
+    if(crawlJson.error) throw new Error(crawlJson.error);
+    const pages = crawlJson.pages || [];
+    log('ok', `[${vendor.name}] Pass 1 complete: ${pages.length} pages${crawlJson.partial?' (partial)':''}`);
 
     // ── Filter to likely product pages ──────────────────────────────────────
     const productUrls = discoverProductUrls(pages, vendor);
@@ -492,26 +486,6 @@ Rules:
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-async function pollCrawl(jobId, vendorName){
-  for(let i=0; i<35; i++){
-    await sleep(3000);
-    const res = await fetch('https://brxtdstcvaudxneikazg.supabase.co/functions/v1/vendor-scrape', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SB_ANON },
-      body: JSON.stringify({ action: 'crawl_status', jobId })
-    });
-    if(!res.ok) throw new Error(`Poll HTTP ${res.status}`);
-    const data = await res.json();
-    if(data.error) throw new Error(`Poll error: ${data.error}`);
-    const n = (data.data||[]).length;
-    log('info', `[Poll ${i+1}] status=${data.status} pages=${n}`);
-    if(data.status==='completed') return data.data||[];
-    if(data.status==='failed') throw new Error('Crawl job failed');
-    if(i>=8 && n>0){ log('info','Accepting partial results'); return data.data; }
-  }
-  throw new Error('Timed out');
-}
-
 function toOz(qty, unit){
   const u=(unit||'').toLowerCase();
   if(u==='oz'||u==='ounce') return qty;
