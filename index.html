@@ -1160,7 +1160,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.88.00';
+    const _ver = 'V-5.31.26.89.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2106,7 +2106,7 @@ const App = {
     document.getElementById('ss-totals').style.display='none';
     document.getElementById('ss-result').innerHTML='';
     this._renderSSRows();
-    this.openModal('modal-split-standalone');
+    document.getElementById('modal-split-standalone').classList.add('open');
   },
   _renderSSRows(){
     const wrap = document.getElementById('ss-rows');
