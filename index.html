@@ -1178,7 +1178,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.102.00';
+    const _ver = 'V-5.31.26.103.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2742,17 +2742,15 @@ const App = {
       <div class="rf-section">
         <div class="form-group"><label>Recipe Name *</label><input id="fn" value="${this.h(r.name)}" placeholder="e.g. Classic Goat Milk Bar"/></div>
 
-        <!-- Row 1: Category | Lye Type | Superfat -->
         <div class="form-row">
           <div class="form-group"><label>Category</label><select id="fc">${so(R_CATS,r.category)}</select></div>
           <div class="form-group"><label>Lye Type</label><select id="fly">${so(LYE_T,r.lye)}</select></div>
           <div class="form-group"><label>Superfat</label><input id="fsf" value="${this.h(r.superfat)}" placeholder="5%"/></div>
         </div>
 
-        <!-- Row 2: Units/Batch | Unit Wt | Batch Wt (auto) | oz/g toggle -->
         <div class="form-row" style="align-items:flex-end">
           <div class="form-group">
-            <label>Units/Batch <span class="rf-auto-lbl">(auto)</span></label>
+            <label>Units/Batch</label>
             <input id="fupb" type="number" step="0.01" value="${this.h(r.unitsPerBatch)}" placeholder="auto" oninput="App._calcOzPerUnit()" style="background:var(--card)"/>
           </div>
           <div class="form-group">
@@ -2760,7 +2758,7 @@ const App = {
             <input id="fusz" type="number" step="any" value="${this.h(r.unitSize)}" placeholder="e.g. 3.5" oninput="App._calcBatchSize()"/>
           </div>
           <div class="form-group">
-            <label>Batch Wt <span class="rf-auto-lbl">(auto)</span></label>
+            <label>Batch Wt</label>
             <div id="fbs-display" class="rf-auto-val">—</div>
             <input type="hidden" id="fbs" value="${this.h(r.batchSize)}"/>
           </div>
@@ -2774,11 +2772,9 @@ const App = {
           </div>
         </div>
 
-        <!-- Row 3: Cure Time | Fragrance Rate | URL -->
         <div class="form-row">
-          <div class="form-group"><label>Cure Time</label><input id="fct" value="${this.h(r.cureTime)}" placeholder="4–6 weeks"/></div>
           <div class="form-group"><label>Fragrance Rate</label><input id="ffrate" value="${this.h(r.fragranceRate||'')}" placeholder="e.g. 6%" oninput="App._calcFragWeights()"/></div>
-          <div class="form-group"><label>Recipe URL <span class="rf-auto-lbl">(optional)</span></label><input id="furl" type="url" value="${this.h(r.refUrl||'')}" placeholder="https://…"/></div>
+          <input type="hidden" id="fct" value="${this.h(r.cureTime)}"/>
         </div>
 
         <div class="form-group"><label>Tags</label>
@@ -2823,6 +2819,7 @@ const App = {
       <div class="rf-section">
         <div class="rf-section-title">Instructions & Notes</div>
         <div class="form-group"><label>Instructions</label><textarea id="fin" placeholder="Step-by-step…">${this.h(r.instructions)}</textarea></div>
+        <div class="form-group"><label>Recipe URL</label><input id="furl" type="url" value="${this.h(r.refUrl||'')}" placeholder="https://…"/></div>
         <div class="form-group"><label>Notes</label><textarea id="fno" placeholder="Tips, warnings…">${this.h(r.notes)}</textarea>
           <button type="button" onclick="App._openSplitFromRecipe()" class="rf-link-btn">📐 Open Split Calculator</button>
         </div>
