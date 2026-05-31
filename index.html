@@ -1160,7 +1160,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.92.00';
+    const _ver = 'V-5.31.26.93.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -5112,6 +5112,7 @@ const App = {
   printRecipePDF(id, recipeOverride, existingWin){
     const r = recipeOverride || this.recipes.find(x=>x.id===id); if(!r) return;
     const cost = this._calcRecipeCost(r);
+    const costPerUnit = (cost.total && r.unitsPerBatch) ? cost.total / parseFloat(r.unitsPerBatch) : 0;
     const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
     const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
     const ingRow = (i, shade) => {
