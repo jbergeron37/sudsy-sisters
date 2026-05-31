@@ -449,6 +449,24 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .ing-del{background:none;border:none;cursor:pointer;color:var(--red);font-size:1.4rem;padding:2px 4px;line-height:1;flex-shrink:0}
 .add-row-btn{background:none;border:1.5px dashed var(--border);border-radius:10px;padding:9px;width:100%;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s;margin-top:2px}
 .add-row-btn:active{background:var(--white)}
+/* Recipe / Variant form shared styles */
+.rf-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+.rf-section:last-child{border-bottom:none}
+.rf-section-title{font-family:'Playfair Display',serif;font-size:.95rem;font-weight:700;color:var(--brown-d);margin-bottom:12px}
+.rf-section-sub{font-family:Lato,sans-serif;font-size:.72rem;font-weight:400;color:var(--muted)}
+.rf-auto-lbl{font-size:.7rem;color:var(--muted);font-weight:400}
+.rf-auto-val{padding:8px 10px;background:var(--card);border-radius:8px;font-weight:700;color:var(--text);min-height:38px;font-size:.9rem}
+.rf-info-banner{background:var(--cream);border-radius:10px;padding:10px 12px;font-size:.82rem;color:var(--muted);margin-top:4px}
+.rf-fo-banner{background:#e8f8ef;border:1px solid #b2dfdb;border-radius:8px;padding:8px 10px;font-size:.82rem;color:#2e7d32}
+.rf-col-hdr{display:flex;gap:6px;padding:0 0 6px;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.rf-link-btn{margin-top:6px;display:inline-flex;align-items:center;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;color:var(--brown-d);cursor:pointer}
+/* Add buttons — ingredient style (dashed, neutral) */
+.rf-add-btn{display:flex;align-items:center;justify-content:center;gap:6px;border-radius:10px;padding:10px 12px;width:100%;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s;text-align:center}
+.rf-add-ing{background:none;border:1.5px dashed var(--border);color:var(--muted)}
+.rf-add-ing:active{background:var(--cream)}
+.rf-add-pkg{background:none;border:1.5px dashed #A8527A;color:#A8527A}
+.rf-add-pkg:active{background:#FDF0F5}
+.rf-add-auto{background:var(--accent-l,#EDE0FF);border:1.5px dashed var(--accent);color:var(--accent)}
 .tag-wrap{display:flex;flex-wrap:wrap;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;min-height:42px;cursor:text}
 .tag-wrap:focus-within{border-color:var(--brown-l)}
 .tag-pill{background:var(--brown);color:#fff;border-radius:7px;padding:2px 8px;font-size:.75rem;display:flex;align-items:center;gap:4px;font-weight:700}
@@ -707,7 +725,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <div class="modal-title" id="modal-recipe-title">New Recipe</div>
       <button class="modal-close" onclick="App.closeModal('modal-recipe')">×</button>
     </div>
-    <div class="modal-body" id="modal-recipe-body"></div>
+    <div class="modal-body" id="modal-recipe-body" style="padding:0"></div>
     <div class="modal-foot">
       <button class="btn btn-primary btn-full" onclick="App.saveRecipe()">Save Recipe</button>
     </div>
@@ -969,7 +987,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <div id="variant-form-title" class="modal-title">New Variant</div>
       <button class="modal-close" onclick="App.closeModal('modal-variant-form')">×</button>
     </div>
-    <div class="modal-body" id="variant-form-body" style="flex:1;overflow-y:auto"></div>
+    <div class="modal-body" id="variant-form-body" style="flex:1;overflow-y:auto;padding:0"></div>
     <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
       <button class="btn btn-outline" style="flex:1" onclick="App.closeModal('modal-variant-form')">Cancel</button>
       <button class="btn btn-primary" style="flex:2" onclick="App.saveVariant()">Save Variant</button>
@@ -1160,7 +1178,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.96.00';
+    const _ver = 'V-5.31.26.98.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2699,35 +2717,41 @@ const App = {
     const ings=(r.ingredients||[]).map((g,i)=>g.unit==='ea'?this._pkgRow(i,g):this._iRow(i,g)).join('');
     const unitLbl = (r.batchUnit||'oz')==='g' ? 'Grams per Unit' : 'Oz per Unit';
     return `
-      <!-- 1. NAME / TITLE CARD -->
-      <div class="form-group"><label>Recipe Name *</label><input id="fn" value="${this.h(r.name)}" placeholder="e.g. Classic Goat Milk Bar"/></div>
-      <div class="form-row">
-        <div class="form-group"><label>Category</label><select id="fc">${so(R_CATS,r.category)}</select></div>
-        <div class="form-group"><label>Difficulty</label><select id="fd">${so(DIFF,r.difficulty)}</select></div>
+      <div class="rf-section">
+        <div class="form-group"><label>Recipe Name *</label><input id="fn" value="${this.h(r.name)}" placeholder="e.g. Classic Goat Milk Bar"/></div>
+        <div class="form-row">
+          <div class="form-group"><label>Category</label><select id="fc">${so(R_CATS,r.category)}</select></div>
+          <div class="form-group"><label>Difficulty</label><select id="fd">${so(DIFF,r.difficulty)}</select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Lye Type</label><select id="fly">${so(LYE_T,r.lye)}</select></div>
+          <div class="form-group"><label>Scent</label><input id="fsc" value="${this.h(r.scent)}" placeholder="Lavender"/></div>
+        </div>
+        <div class="form-group"><label>Tags</label>
+          <div class="tag-wrap" id="rtags-wrap"><input class="tag-input" id="rtags-inp" placeholder="Add tag…"/></div>
+          <input type="hidden" id="rtags"/>
+        </div>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label>Lye Type</label><select id="fly">${so(LYE_T,r.lye)}</select></div>
-        <div class="form-group"><label>Scent</label><input id="fsc" value="${this.h(r.scent)}" placeholder="Lavender"/></div>
+
+      <div class="rf-section">
+        <div class="rf-section-title">Description & Notes</div>
+        <div class="form-group"><label>Description</label><textarea id="fde" placeholder="Brief description…">${this.h(r.description)}</textarea></div>
+        <div class="form-group"><label>Instructions</label><textarea id="fin" rows="5" placeholder="Step-by-step…">${this.h(r.instructions)}</textarea></div>
+        <div class="form-group"><label>Notes</label><textarea id="fno" placeholder="Tips, warnings…">${this.h(r.notes)}</textarea>
+          <button type="button" onclick="App._openSplitFromRecipe()" class="rf-link-btn">📐 Open Split Calculator</button>
+        </div>
       </div>
-      <div class="form-group"><label>Tags (Enter or comma to add)</label>
-        <div class="tag-wrap" id="rtags-wrap"><input class="tag-input" id="rtags-inp" placeholder="Add tag…"/></div>
-        <input type="hidden" id="rtags"/>
-      </div>
-      <!-- 2. DESCRIPTION -->
-      <div class="form-group"><label>Description</label><textarea id="fde" placeholder="Brief description…">${this.h(r.description)}</textarea></div>
-      <!-- 3. INSTRUCTIONS -->
-      <div class="form-group"><label>Instructions</label><textarea id="fin" rows="5" placeholder="Step-by-step…">${this.h(r.instructions)}</textarea></div>
-      <!-- 4. INGREDIENTS -->
-      <div class="form-group"><label>Ingredients <span style="font-size:.72rem;color:var(--muted);font-weight:400">— grouped by phase</span></label>
-        <div style="display:flex;gap:6px;padding:0 0 4px;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">
+
+      <div class="rf-section">
+        <div class="rf-section-title">⚗️ Ingredients</div>
+        <div class="rf-col-hdr">
           <div style="width:60px">Phase</div>
           <div style="flex:2">Ingredient</div>
-          <div style="flex:1;text-align:center">oz</div>
-          <div style="flex:1;text-align:center">g</div>
+          <div style="width:64px;text-align:center">oz</div>
+          <div style="width:64px;text-align:center">g</div>
           <div style="width:24px"></div>
         </div>
         <div id="ing-rows">${ings}</div>
-        <!-- FO weight summary + split panel — shown when phase-3 ingredients exist -->
         <div id="fo-panel" style="display:none;background:linear-gradient(135deg,#f0faf4,#e8f8ef);border:1.5px solid #b2dfdb;border-radius:12px;padding:12px 14px;margin-top:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#2e7d32">🧴 Fragrance Oils</div>
@@ -2736,23 +2760,29 @@ const App = {
           <div id="fo-split-rows" style="display:none"></div>
           <div id="fo-split-warning" style="display:none;font-size:.75rem;color:#c62828;margin-top:6px;font-weight:700"></div>
         </div>
-        <div style="display:flex;gap:8px">
-          <button class="add-row-btn" onclick="App.addIngRow()" style="flex:2">+ Add Ingredient</button>
-          <button class="add-row-btn" onclick="App.addPkgRow()" style="flex:1;color:#A8527A;border-color:#A8527A">📦 Packaging</button>
-          <button class="add-row-btn" onclick="App.autoAssignPhases()" style="flex:1;background:var(--accent-l,#EDE0FF);color:var(--accent)">✨ Auto-phase</button>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="rf-add-btn rf-add-ing" onclick="App.addIngRow()">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Ingredient
+          </button>
+          <button class="rf-add-btn rf-add-pkg" onclick="App.addPkgRow()">
+            📦 Add Packaging
+          </button>
+          <button class="rf-add-btn rf-add-auto" onclick="App.autoAssignPhases()">
+            ✨ Auto-phase
+          </button>
         </div>
       </div>
-      <!-- 5. NOTES -->
-      <div class="form-group"><label>Notes</label><textarea id="fno" placeholder="Tips, warnings…">${this.h(r.notes)}</textarea>
-      <button type="button" onclick="App._openSplitFromRecipe()" style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;color:var(--brown-d);cursor:pointer">📐 Open Split Calculator</button>
-      </div>
-      <!-- 6. BATCH SETTINGS -->
-      <div style="background:var(--cream);border-radius:12px;padding:12px 14px;margin-top:4px">
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.6px;margin-bottom:10px">⚖️ Batch Settings</div>
+
+      <div class="rf-section">
+        <div class="rf-section-title">⚖️ Batch Settings</div>
         <div class="form-row">
-          <div class="form-group"><label>Batch Size <span style="font-size:.7rem;color:var(--muted)">(auto)</span></label><div id="fbs-display" style="padding:8px 10px;background:var(--card);border-radius:8px;font-weight:700;color:var(--text);min-height:38px">calculating...</div><input type="hidden" id="fbs" value="${this.h(r.batchSize)}"/></div>
+          <div class="form-group"><label>Batch Size <span class="rf-auto-lbl">(auto)</span></label>
+            <div id="fbs-display" class="rf-auto-val">calculating...</div>
+            <input type="hidden" id="fbs" value="${this.h(r.batchSize)}"/>
+          </div>
           <div class="form-group"><label>Unit</label>
-            <div style="display:flex;align-items:center;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:3px;gap:0;width:fit-content">
+            <div style="display:flex;align-items:center;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:3px;width:fit-content">
               <button type="button" id="fbu-oz" onclick="App._setUnitToggle('oz')" style="padding:6px 14px;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'transparent':'var(--accent)'};color:${r.batchUnit==='g'?'var(--muted)':'#fff'}">oz</button>
               <button type="button" id="fbu-g"  onclick="App._setUnitToggle('g')"  style="padding:6px 14px;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'var(--accent)':'transparent'};color:${r.batchUnit==='g'?'#fff':'var(--muted)'}">g</button>
             </div>
@@ -2760,15 +2790,19 @@ const App = {
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Units per Batch <span style="font-size:.7rem;color:var(--muted)">(auto)</span></label><input id="fupb" type="number" step="0.01" value="${this.h(r.unitsPerBatch)}" placeholder="auto" oninput="App._calcOzPerUnit()" style="background:var(--card)"/></div>
-          <div class="form-group"><label id="fusz-label">${unitLbl}</label><input id="fusz" type="number" step="any" value="${this.h(r.unitSize)}" placeholder="e.g. 3.5" oninput="App._calcBatchSize()"/></div>
+          <div class="form-group"><label>Units per Batch <span class="rf-auto-lbl">(auto)</span></label>
+            <input id="fupb" type="number" step="0.01" value="${this.h(r.unitsPerBatch)}" placeholder="auto" oninput="App._calcOzPerUnit()" style="background:var(--card)"/>
+          </div>
+          <div class="form-group"><label id="fusz-label">${unitLbl}</label>
+            <input id="fusz" type="number" step="any" value="${this.h(r.unitSize)}" placeholder="e.g. 3.5" oninput="App._calcBatchSize()"/>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group"><label>Cure Time</label><input id="fct" value="${this.h(r.cureTime)}" placeholder="4–6 weeks"/></div>
           <div class="form-group"><label>Superfat</label><input id="fsf" value="${this.h(r.superfat)}" placeholder="5%"/></div>
           <div class="form-group"><label>Fragrance Rate</label><input id="ffrate" value="${this.h(r.fragranceRate||'')}" placeholder="e.g. 6%" oninput="App._calcFragWeights()"/></div>
         </div>
-        <div class="form-group"><label>Recipe / Instruction Book URL <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+        <div class="form-group"><label>Recipe / Instruction URL <span class="rf-auto-lbl">(optional)</span></label>
           <input id="furl" type="url" value="${this.h(r.refUrl||'')}" placeholder="https://…"/>
         </div>
       </div>`;
@@ -6083,18 +6117,163 @@ const App = {
     this._calcFragWeights();
   },
 
+  // ── VARIANT FORM FO HELPERS ──────────────────────────────────────────────
+  _vfFrags: [], // [{id, name, pct}]
+
+  _vfFragRowsHtml(v, r){
+    // Seed from existing variant fragrance if present
+    const fragList = this.fragrances||[];
+    const initial = v.fragrance_id
+      ? [{id: v.fragrance_id, name: (fragList.find(f=>f.id===v.fragrance_id)||{}).name||'', pct: 100}]
+      : [{id:'', name:'', pct:100}];
+    this._vfFrags = JSON.parse(JSON.stringify(initial));
+    this._vfSplitPcts = [100];
+    return this._vfFrags.map((_,i) => this._vfFragRow(i)).join('');
+  },
+
+  _vfFragRow(i){
+    const frag = this._vfFrags[i]||{id:'',name:''};
+    const fragOpts = (this.fragrances||[]).map(f =>
+      '<option value="'+f.id+'"'+(f.id===frag.id?' selected':'')+'>'+this.h(f.name)+'</option>'
+    ).join('');
+    return '<div class="ing-form-row" id="vf-fr'+i+'" style="margin-bottom:6px">'+
+      '<select id="vf-fr-sel-'+i+'" style="flex:2;font-size:15px" onchange="App._vfSyncFrag('+i+',this.value)">'+
+        '<option value="">— Select fragrance —</option>'+fragOpts+
+      '</select>'+
+      '<span id="vf-fr-oz-'+i+'" style="font-size:.82rem;font-weight:700;color:#2e7d32;min-width:60px;text-align:right;align-self:center"></span>'+
+      '<span id="vf-fr-g-'+i+'"  style="font-size:.78rem;color:var(--muted);min-width:50px;text-align:right;align-self:center"></span>'+
+      '<button class="ing-del" onclick="App._vfRemoveFragRow('+i+')">−</button>'+
+    '</div>';
+  },
+
+  _vfSyncFrag(i, fragId){
+    if(!this._vfFrags[i]) return;
+    const frag = (this.fragrances||[]).find(f=>f.id===fragId)||{};
+    this._vfFrags[i].id   = fragId;
+    this._vfFrags[i].name = frag.name||'';
+    this._vfCalcFragWeights();
+  },
+
+  _vfAddFragRow(){
+    if(!this._vfFrags) this._vfFrags = [];
+    this._vfFrags.push({id:'', name:'', pct: 0});
+    // Redistribute evenly
+    const even = Math.round(100/this._vfFrags.length * 10)/10;
+    this._vfSplitPcts = this._vfFrags.map((_,i) =>
+      i===this._vfFrags.length-1 ? Math.round((100-even*(this._vfFrags.length-1))*10)/10 : even
+    );
+    const wrap = document.getElementById('vf-frag-rows');
+    if(wrap) wrap.innerHTML = this._vfFrags.map((_,i)=>this._vfFragRow(i)).join('');
+    this._vfCalcFragWeights();
+  },
+
+  _vfRemoveFragRow(i){
+    if(!this._vfFrags || this._vfFrags.length <= 1) return;
+    this._vfFrags.splice(i,1);
+    if(this._vfSplitPcts) this._vfSplitPcts.splice(i,1);
+    const wrap = document.getElementById('vf-frag-rows');
+    if(wrap) wrap.innerHTML = this._vfFrags.map((_,idx)=>this._vfFragRow(idx)).join('');
+    this._vfCalcFragWeights();
+  },
+
+  _vfSplitChange(i, val){
+    if(!this._vfSplitPcts) return;
+    this._vfSplitPcts[i] = parseFloat(val)||0;
+    this._vfCalcFragWeights();
+  },
+
+  _vfCalcFragWeights(){
+    const panel    = document.getElementById('vf-fo-panel');
+    const splitWrap= document.getElementById('vf-fo-split-rows');
+    const totalLbl = document.getElementById('vf-fo-total');
+    const warning  = document.getElementById('vf-fo-warning');
+    if(!panel || !this._vfFrags) return;
+
+    const r = this._editVariant
+      ? this.recipes.find(x=>x.id===this._editVariant.base_recipe_id)
+      : null;
+    if(!r || !r.fragranceRate){ panel.style.display='none'; return; }
+
+    const rate = parseFloat(String(r.fragranceRate).replace('%',''))/100;
+    if(!rate || isNaN(rate)){ panel.style.display='none'; return; }
+
+    // Oils-only total from base recipe ingredients
+    const LYE_RE  = /lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
+    const FRAG_RE = /fragrance|scent|\beo\b|essential oil/i;
+    const g2oz = g => (parseFloat(g)||0)/28.3495;
+    let oilsOz = 0;
+    (r.ingredients||[]).forEach(ing => {
+      if(ing.unit==='ea'||ing.phase==='pkg'||ing.phase==='Packaging') return;
+      if(LYE_RE.test(ing.name)) return;
+      if(FRAG_RE.test(ing.name) && !(/colorant|pigment|mica|oxide|dye/i.test(ing.name))) return;
+      const oz = ing.unit==='g' ? g2oz(ing.amount) : parseFloat(ing.amount)||0;
+      oilsOz += oz;
+    });
+    if(oilsOz<=0){ panel.style.display='none'; return; }
+
+    const totalFOoz = Math.round(oilsOz*rate*10000)/10000;
+    const oz2g = oz => Math.round(oz*28.3495*100)/100;
+    const rateStr = String(r.fragranceRate).replace('%','');
+
+    if(totalLbl) totalLbl.textContent = totalFOoz.toFixed(3)+' oz ('+oz2g(totalFOoz)+' g) @ '+rateStr+'%';
+
+    const n = this._vfFrags.length;
+    if(!this._vfSplitPcts || this._vfSplitPcts.length !== n){
+      const even = Math.round(100/n*10)/10;
+      this._vfSplitPcts = this._vfFrags.map((_,i)=>i===n-1?Math.round((100-even*(n-1))*10)/10:even);
+    }
+
+    // Single frag — just show weight, hide split
+    if(n===1){
+      panel.style.display='none';
+      const ozEl = document.getElementById('vf-fr-oz-0');
+      const gEl  = document.getElementById('vf-fr-g-0');
+      if(ozEl) ozEl.textContent = totalFOoz.toFixed(3)+' oz';
+      if(gEl)  gEl.textContent  = oz2g(totalFOoz)+' g';
+      return;
+    }
+
+    // Multi frag — show split panel
+    panel.style.display='block';
+    const sumPct = this._vfSplitPcts.reduce((s,p)=>s+p,0);
+    const diff = Math.round((sumPct-100)*10)/10;
+
+    splitWrap.innerHTML = this._vfFrags.map((frag,i)=>{
+      const pct = this._vfSplitPcts[i]||0;
+      const oz  = Math.round(totalFOoz*(pct/100)*10000)/10000;
+      // Update row display
+      const ozEl = document.getElementById('vf-fr-oz-'+i);
+      const gEl  = document.getElementById('vf-fr-g-'+i);
+      if(ozEl) ozEl.textContent = oz.toFixed(3)+' oz';
+      if(gEl)  gEl.textContent  = oz2g(oz)+' g';
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'+
+        '<span style="flex:1;font-size:.8rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+this.h(frag.name||'Fragrance '+(i+1))+'</span>'+
+        '<input type="number" min="0" max="100" step="0.1" value="'+pct+'" oninput="App._vfSplitChange('+i+',this.value)" '+
+          'style="width:60px;background:var(--card);border:1.5px solid #b2dfdb;border-radius:8px;padding:5px 6px;font-family:Lato,sans-serif;font-size:.82rem;text-align:right;outline:none"/>'+
+        '<span style="font-size:.8rem;color:var(--muted)">%</span>'+
+        '<span style="font-size:.8rem;font-weight:700;color:#2e7d32;width:70px;text-align:right">'+oz.toFixed(3)+' oz</span>'+
+      '</div>';
+    }).join('');
+
+    if(warning){
+      if(Math.abs(diff)<0.01){ warning.style.display='none'; }
+      else { warning.style.display='block'; warning.textContent='⚠ Split totals '+sumPct.toFixed(1)+'% — must equal 100%'; }
+    }
+  },
+
   _setUnitToggle(unit){
     const hidden = document.getElementById('fbu');
     if(!hidden) return;
     hidden.value = unit;
-    // Update toggle button styles
     const ozBtn = document.getElementById('fbu-oz');
     const gBtn  = document.getElementById('fbu-g');
-    if(ozBtn && gBtn){
-      const activeStyle = 'background:var(--accent);color:#fff';
-      const inactiveStyle = 'background:transparent;color:var(--muted)';
-      ozBtn.style.cssText = ozBtn.style.cssText.replace(/background:[^;]+;color:[^;]+/, unit==='oz' ? activeStyle : inactiveStyle);
-      gBtn.style.cssText  = gBtn.style.cssText.replace(/background:[^;]+;color:[^;]+/, unit==='g'  ? activeStyle : inactiveStyle);
+    if(ozBtn){
+      ozBtn.style.background = unit==='oz' ? 'var(--accent)' : 'transparent';
+      ozBtn.style.color      = unit==='oz' ? '#fff' : 'var(--muted)';
+    }
+    if(gBtn){
+      gBtn.style.background  = unit==='g' ? 'var(--accent)' : 'transparent';
+      gBtn.style.color       = unit==='g' ? '#fff' : 'var(--muted)';
     }
     this._onUnitChange();
   },
@@ -6274,58 +6453,70 @@ const App = {
     const pkgHtml = this._editVariant._pkgItems.map((p,i)=>this._variantPkgRow(i,p)).join('');
 
     document.getElementById('variant-form-body').innerHTML =
-      '<div style="padding:14px 16px">'+
-      // 1. NAME
-      '<div class="form-group"><label>Variant Name *</label><input id="vf-name" value="'+this.h(v.name)+'" placeholder="e.g. Lavender Honey" style="font-size:16px"/></div>'+
-      // 2. DESCRIPTION/THEME
-      '<div class="form-group"><label>Notes / Theme</label>'+
-        '<textarea id="vf-notes" rows="2" style="font-size:16px">'+this.h(v.notes||'')+'</textarea>'+
-        '<button type="button" onclick="App._openSplitFromVariant()" '+
-          'style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;color:var(--brown-d);cursor:pointer">'+
-          '📐 Open Split Calculator'+
-        '</button>'+
+      '<div class="rf-section">'+
+        '<div class="form-group"><label>Variant Name *</label><input id="vf-name" value="'+this.h(v.name)+'" placeholder="e.g. Lavender Honey"/></div>'+
+        '<div class="form-group"><label>Notes / Theme</label>'+
+          '<textarea id="vf-notes" rows="2">'+this.h(v.notes||'')+'</textarea>'+
+          '<button type="button" onclick="App._openSplitFromVariant()" class="rf-link-btn">📐 Open Split Calculator</button>'+
+        '</div>'+
+        '<div class="rf-info-banner">💡 <strong>Base recipe:</strong> '+this.h(baseName)+' ('+this.h(baseSize)+'). Inherits all base ingredients — add extras below.</div>'+
       '</div>'+
-      // 3. BASE RECIPE INFO
-      '<div style="background:var(--cream);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;color:var(--muted)">'+
-        '💡 <strong>Base recipe:</strong> '+this.h(baseName)+' ('+this.h(baseSize)+'). Inherits all base ingredients — add extras below.'+
-      '</div>'+
-      // 4. EXTRA ADDITIVES
-      '<div class="form-group"><label>Extra Additives <span style="font-weight:400;color:var(--muted)">(unique to this variant)</span></label>'+
-        '<div style="display:flex;gap:6px;padding:0 0 4px;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase">'+
-          '<div style="flex:2">Ingredient</div><div style="flex:1;text-align:center">oz</div><div style="flex:1;text-align:center">g</div><div style="width:24px"></div>'+
+
+      '<div class="rf-section">'+
+        '<div class="rf-section-title">⚗️ Extra Additives <span class="rf-section-sub">(unique to this variant)</span></div>'+
+        '<div class="rf-col-hdr">'+
+          '<div style="flex:2">Ingredient</div>'+
+          '<div style="width:64px;text-align:center">oz</div>'+
+          '<div style="width:64px;text-align:center">g</div>'+
+          '<div style="width:24px"></div>'+
         '</div>'+
         '<div id="vf-added-ings">'+addedIngsHtml+'</div>'+
-        '<button class="add-row-btn" onclick="App._addVariantIngRow()">+ Add Additive</button>'+
+        '<button class="rf-add-btn rf-add-ing" onclick="App._addVariantIngRow()" style="margin-top:8px">'+
+          '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
+          ' Add Additive'+
+        '</button>'+
       '</div>'+
-      // 5. PACKAGING
-      '<div class="form-group" style="margin-top:4px">'+
-        '<label>📦 Packaging <span style="font-weight:400;color:var(--muted)">(units used per batch)</span></label>'+
-        '<div style="display:flex;gap:6px;padding:0 0 4px;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase">'+
-          '<div style="flex:2">Item</div><div style="width:80px;text-align:center">Qty</div><div style="width:24px"></div>'+
+
+      '<div class="rf-section">'+
+        '<div class="rf-section-title">📦 Packaging <span class="rf-section-sub">(units used per batch)</span></div>'+
+        '<div class="rf-col-hdr">'+
+          '<div style="flex:2">Item</div>'+
+          '<div style="width:80px;text-align:center">Qty</div>'+
+          '<div style="width:24px"></div>'+
         '</div>'+
         '<div id="vf-pkg-rows">'+pkgHtml+'</div>'+
-        '<button class="add-row-btn" onclick="App._addVariantPkgRow()" style="color:#A8527A;border-color:#A8527A">📦 Add Packaging</button>'+
+        '<button class="rf-add-btn rf-add-pkg" onclick="App._addVariantPkgRow()" style="margin-top:8px">📦 Add Packaging</button>'+
       '</div>'+
-      // 6. FRAGRANCE & COLOR
-      '<div style="background:var(--cream);border-radius:12px;padding:12px 14px;margin-top:8px">'+
-        '<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.6px;margin-bottom:10px">🌸 Fragrance & Color</div>'+
-        '<div class="form-row">'+
-          '<div class="form-group"><label>Fragrance</label>'+
-            '<select id="vf-frag" style="font-size:16px"><option value="">— Base recipe FO —</option>'+fragOpts+'</select>'+
-          '</div>'+
-          '<div class="form-group"><label>Amount</label>'+
-            '<div style="display:flex;gap:6px">'+
-            '<input id="vf-frag-amt" type="number" step="any" value="'+this.h(v.fragrance_amount||'')+'" placeholder="oz" oninput="var g=document.getElementById(\'vf-frag-amt-g\');if(g)g.value=this.value?Math.round(parseFloat(this.value)*28.3495*100)/100:\'\';" style="font-size:16px;flex:1"/>'+
-            '<input id="vf-frag-amt-g" type="number" step="any" value="'+( v.fragrance_amount?Math.round(parseFloat(v.fragrance_amount)*28.3495*100)/100:'')+'" placeholder="g" oninput="var o=document.getElementById(\'vf-frag-amt\');if(o)o.value=this.value?Math.round(parseFloat(this.value)/28.3495*100)/100:\'\';" style="font-size:16px;flex:1"/>'+
-            '</div>'+
-          '</div>'+
+
+      '<div class="rf-section">'+
+        '<div class="rf-section-title">🌸 Fragrance & Color</div>'+
+        (r&&r.fragranceRate ?
+          '<div class="rf-fo-banner">🧴 Base FO rate: <strong>'+this.h(r.fragranceRate)+'</strong> — weights calculated automatically</div>' : '')+
+        '<div class="rf-col-hdr" style="margin-top:8px">'+
+          '<div style="flex:2">Fragrance</div>'+
+          '<div style="width:70px;text-align:right">oz</div>'+
+          '<div style="width:60px;text-align:right">g</div>'+
+          '<div style="width:24px"></div>'+
         '</div>'+
-        '<div class="form-group"><label>Colorant</label>'+
-          '<input id="vf-colorant" value="'+this.h(v.colorant||'')+ '" placeholder="e.g. Rose clay, ultramarine blue mica…" style="font-size:16px"/>'+
+        '<div id="vf-frag-rows">'+this._vfFragRowsHtml(v,r)+'</div>'+
+        '<button class="rf-add-btn rf-add-ing" onclick="App._vfAddFragRow()" style="margin-top:8px">'+
+          '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
+          ' Add Fragrance'+
+        '</button>'+
+        '<div id="vf-fo-panel" style="display:none;background:linear-gradient(135deg,#f0faf4,#e8f8ef);border:1.5px solid #b2dfdb;border-radius:10px;padding:10px 12px;margin-top:10px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+            '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#2e7d32">FO Split</div>'+
+            '<div id="vf-fo-total" style="font-size:.82rem;font-weight:700;color:#2e7d32"></div>'+
+          '</div>'+
+          '<div id="vf-fo-split-rows"></div>'+
+          '<div id="vf-fo-warning" style="display:none;font-size:.75rem;color:#c62828;font-weight:700;margin-top:4px"></div>'+
         '</div>'+
-      '</div>'+
+        '<div class="form-group" style="margin-top:12px"><label>Colorant</label>'+
+          '<input id="vf-colorant" value="'+this.h(v.colorant||'')+'" placeholder="e.g. Rose clay, ultramarine blue mica…"/>'+
+        '</div>'+
       '</div>';
     document.getElementById('modal-variant-form').classList.add('open');
+    requestAnimationFrame(()=>{ this._vfCalcFragWeights(); });
   },
 
   _variantPkgRow(i, p){
@@ -6405,8 +6596,24 @@ const App = {
         notes:(document.getElementById('vf-notes')||{}).value||'',
         mold_type:(document.getElementById('vf-mold')||{}).value||'loaf',
         batch_size:parseFloat((document.getElementById('vf-batch')||{}).value)||null,
-        fragrance_id:(document.getElementById('vf-frag')||{}).value||null,
-        fragrance_amount:parseFloat((document.getElementById('vf-frag-amt')||{}).value)||null,
+        fragrance_id: (this._vfFrags&&this._vfFrags.length===1&&this._vfFrags[0].id) ? this._vfFrags[0].id : null,
+        fragrance_amount: (()=>{
+          // Calculate FO amount from rate + base recipe oils
+          const baseR2 = this.recipes.find(x=>x.id===(this._editVariant?.base_recipe_id));
+          if(!baseR2||!baseR2.fragranceRate) return null;
+          const rate2 = parseFloat(String(baseR2.fragranceRate).replace('%',''))/100;
+          if(!rate2) return null;
+          const LYE2=/lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
+          const FRAG2=/fragrance|scent|\beo\b|essential oil/i;
+          let oils2=0;
+          (baseR2.ingredients||[]).forEach(ing=>{
+            if(ing.unit==='ea'||ing.phase==='pkg'||ing.phase==='Packaging') return;
+            if(LYE2.test(ing.name)) return;
+            if(FRAG2.test(ing.name)&&!(/colorant|pigment|mica|oxide|dye/i.test(ing.name))) return;
+            oils2 += ing.unit==='g' ? (parseFloat(ing.amount)||0)/28.3495 : (parseFloat(ing.amount)||0);
+          });
+          return oils2>0 ? Math.round(oils2*rate2*10000)/10000 : null;
+        })(),
         colorant:(document.getElementById('vf-colorant')||{}).value||'',
         updated_at:new Date().toISOString()
       });
@@ -6434,11 +6641,23 @@ const App = {
           const oz = isG ? g2oz(a.amount) : (parseFloat(a.amount)||0);
           return {name:a.name, oz, g:oz2g(oz), phase:'additive'};
         });
-        const fragIngs = v.fragrance_id && v.fragrance_amount ? (()=>{
-          const frag = (this.fragrances||[]).find(x=>x.id===v.fragrance_id);
-          const oz = parseFloat(v.fragrance_amount)||0;
-          return [{name:frag?frag.name:'Fragrance', oz, g:oz2g(oz), phase:'3', frag_id:v.fragrance_id}];
-        })() : [];
+        const fragIngs = (this._vfFrags||[]).filter(f=>f.id).map((frag,fi)=>{
+          const foRate = parseFloat(String(baseR.fragranceRate||'0').replace('%',''))/100;
+          const LYE3=/lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
+          const FRAG3=/fragrance|scent|\beo\b|essential oil/i;
+          let oilsOz3=0;
+          (baseR.ingredients||[]).forEach(ing=>{
+            if(ing.unit==='ea'||ing.phase==='pkg'||ing.phase==='Packaging') return;
+            if(LYE3.test(ing.name)) return;
+            if(FRAG3.test(ing.name)&&!(/colorant|pigment|mica|oxide|dye/i.test(ing.name))) return;
+            oilsOz3 += ing.unit==='g' ? (parseFloat(ing.amount)||0)/28.3495 : (parseFloat(ing.amount)||0);
+          });
+          const totalFO = oilsOz3*foRate;
+          const pct = (this._vfSplitPcts&&this._vfSplitPcts[fi]!=null) ? this._vfSplitPcts[fi]/100 : 1/((this._vfFrags||[]).length||1);
+          const oz = Math.round(totalFO*pct*10000)/10000;
+          const fragObj = (this.fragrances||[]).find(x=>x.id===frag.id);
+          return {name:fragObj?fragObj.name:frag.name||'Fragrance', oz, g:oz2g(oz), phase:'3', frag_id:frag.id};
+        });
         v.full_recipe = Object.assign({}, v.full_recipe||{}, {
           ingredients: [...baseIngs, ...fragIngs, ...addIngs]
         });
