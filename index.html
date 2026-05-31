@@ -1160,7 +1160,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.94.00';
+    const _ver = 'V-5.31.26.96.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2688,6 +2688,7 @@ const App = {
     document.getElementById('modal-recipe-title').textContent=r?'Edit Recipe':'New Recipe';
     document.getElementById('modal-recipe-body').innerHTML=this._rForm(this.editR);
     this._initTags('rtags',this.editR.tags);
+    this._foSplitPcts = null;
     document.getElementById('modal-recipe').classList.add('open');
     // Calculate batch size immediately from current ingredient data
     requestAnimationFrame(()=>{ this._calcBatchSize(); });
@@ -2726,6 +2727,15 @@ const App = {
           <div style="width:24px"></div>
         </div>
         <div id="ing-rows">${ings}</div>
+        <!-- FO weight summary + split panel — shown when phase-3 ingredients exist -->
+        <div id="fo-panel" style="display:none;background:linear-gradient(135deg,#f0faf4,#e8f8ef);border:1.5px solid #b2dfdb;border-radius:12px;padding:12px 14px;margin-top:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#2e7d32">🧴 Fragrance Oils</div>
+            <div id="fo-total-label" style="font-size:.82rem;font-weight:700;color:#2e7d32"></div>
+          </div>
+          <div id="fo-split-rows" style="display:none"></div>
+          <div id="fo-split-warning" style="display:none;font-size:.75rem;color:#c62828;margin-top:6px;font-weight:700"></div>
+        </div>
         <div style="display:flex;gap:8px">
           <button class="add-row-btn" onclick="App.addIngRow()" style="flex:2">+ Add Ingredient</button>
           <button class="add-row-btn" onclick="App.addPkgRow()" style="flex:1;color:#A8527A;border-color:#A8527A">📦 Packaging</button>
@@ -2741,7 +2751,13 @@ const App = {
         <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.6px;margin-bottom:10px">⚖️ Batch Settings</div>
         <div class="form-row">
           <div class="form-group"><label>Batch Size <span style="font-size:.7rem;color:var(--muted)">(auto)</span></label><div id="fbs-display" style="padding:8px 10px;background:var(--card);border-radius:8px;font-weight:700;color:var(--text);min-height:38px">calculating...</div><input type="hidden" id="fbs" value="${this.h(r.batchSize)}"/></div>
-          <div class="form-group"><label>Unit</label><select id="fbu" onchange="App._onUnitChange()">${uOpts}</select></div>
+          <div class="form-group"><label>Unit</label>
+            <div style="display:flex;align-items:center;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:3px;gap:0;width:fit-content">
+              <button type="button" id="fbu-oz" onclick="App._setUnitToggle('oz')" style="padding:6px 14px;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'transparent':'var(--accent)'};color:${r.batchUnit==='g'?'var(--muted)':'#fff'}">oz</button>
+              <button type="button" id="fbu-g"  onclick="App._setUnitToggle('g')"  style="padding:6px 14px;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'var(--accent)':'transparent'};color:${r.batchUnit==='g'?'#fff':'var(--muted)'}">g</button>
+            </div>
+            <input type="hidden" id="fbu" value="${this.h(r.batchUnit||'oz')}">
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group"><label>Units per Batch <span style="font-size:.7rem;color:var(--muted)">(auto)</span></label><input id="fupb" type="number" step="0.01" value="${this.h(r.unitsPerBatch)}" placeholder="auto" oninput="App._calcOzPerUnit()" style="background:var(--card)"/></div>
@@ -2750,7 +2766,7 @@ const App = {
         <div class="form-row">
           <div class="form-group"><label>Cure Time</label><input id="fct" value="${this.h(r.cureTime)}" placeholder="4–6 weeks"/></div>
           <div class="form-group"><label>Superfat</label><input id="fsf" value="${this.h(r.superfat)}" placeholder="5%"/></div>
-          <div class="form-group"><label>Fragrance Rate</label><input id="ffrate" value="${this.h(r.fragranceRate||'')}" placeholder="e.g. 6%"/></div>
+          <div class="form-group"><label>Fragrance Rate</label><input id="ffrate" value="${this.h(r.fragranceRate||'')}" placeholder="e.g. 6%" oninput="App._calcFragWeights()"/></div>
         </div>
         <div class="form-group"><label>Recipe / Instruction Book URL <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
           <input id="furl" type="url" value="${this.h(r.refUrl||'')}" placeholder="https://…"/>
@@ -5944,9 +5960,144 @@ const App = {
       upb.value = units;
       if(this.editR) this.editR.unitsPerBatch = String(units);
     }
+    this._calcFragWeights();
   },
   _calcUnits(){ this._calcBatchSize(); },
 
+  _calcFragWeights(){
+    if(!this.editR) return;
+    const panel = document.getElementById('fo-panel');
+    const splitRows = document.getElementById('fo-split-rows');
+    const totalLabel = document.getElementById('fo-total-label');
+    const warning = document.getElementById('fo-split-warning');
+    if(!panel) return;
+
+    const FRAG_RE = /fragrance|scent|\beo\b|essential oil/i;
+    const LYE_RE  = /lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
+
+    // Identify fragrance rows (phase 3 or FRAG name match, exclude colorants/mica)
+    const fragIdxs = (this.editR.ingredients||[]).reduce((acc, ing, i) => {
+      const isPhase3 = String(ing.phase) === '3';
+      const isFrag = FRAG_RE.test(ing.name) && !(/colorant|pigment|mica|oxide|dye/i.test(ing.name));
+      if(isPhase3 || isFrag) acc.push(i);
+      return acc;
+    }, []);
+
+    if(!fragIdxs.length){ panel.style.display='none'; return; }
+
+    // Get fragrance rate (strip % sign, parse as number)
+    const rateRaw = (document.getElementById('ffrate')?.value || this.editR.fragranceRate || '').replace('%','').trim();
+    const rate = parseFloat(rateRaw) / 100;
+    if(!rate || isNaN(rate)){ panel.style.display='none'; return; }
+
+    // Sum oils-only total (phase 2 and unphased non-lye non-frag) in oz
+    const g2oz = g => (parseFloat(g)||0) / 28.3495;
+    let oilsOz = 0;
+    (this.editR.ingredients||[]).forEach((ing, i) => {
+      if(ing.unit==='ea' || ing.phase==='pkg' || ing.phase==='Packaging') return;
+      if(LYE_RE.test(ing.name)) return;
+      if(fragIdxs.includes(i)) return; // exclude the FO rows themselves
+      const ozEl = document.getElementById('ing-oz-'+i);
+      const gEl  = document.getElementById('ing-g-'+i);
+      let oz = 0;
+      if(ozEl?.value.trim()) oz = parseFloat(ozEl.value)||0;
+      else if(gEl?.value.trim()) oz = g2oz(gEl.value);
+      else oz = ing.unit==='g' ? g2oz(ing.amount) : parseFloat(ing.amount)||0;
+      oilsOz += oz;
+    });
+
+    if(oilsOz <= 0){ panel.style.display='none'; return; }
+
+    const totalFOoz = Math.round(oilsOz * rate * 10000) / 10000;
+    const oz2g = oz => Math.round(oz * 28.3495 * 100) / 100;
+    const displayUnit = (document.getElementById('fbu')?.value || this.editR.batchUnit || 'oz').toLowerCase();
+    const totalDisplay = displayUnit==='g'
+      ? oz2g(totalFOoz)+' g'
+      : totalFOoz.toFixed(3)+' oz';
+
+    panel.style.display = 'block';
+    totalLabel.textContent = totalDisplay + ' total FO @ '+rateRaw+'%';
+
+    // Single fragrance — just set weight directly, hide split UI
+    if(fragIdxs.length === 1){
+      splitRows.style.display = 'none';
+      warning.style.display = 'none';
+      const idx = fragIdxs[0];
+      const ozEl = document.getElementById('ing-oz-'+idx);
+      const gEl  = document.getElementById('ing-g-'+idx);
+      if(ozEl){ ozEl.value = totalFOoz.toFixed(4); ozEl.style.background='#e8f8ef'; }
+      if(gEl) { gEl.value  = oz2g(totalFOoz);      gEl.style.background='#e8f8ef'; }
+      this.editR.ingredients[idx].amount = String(totalFOoz);
+      this.editR.ingredients[idx].unit   = 'oz';
+      return;
+    }
+
+    // Multiple fragrances — show split UI
+    // Init split pcts if not already stored
+    if(!this._foSplitPcts || this._foSplitPcts.length !== fragIdxs.length){
+      const even = Math.round(100/fragIdxs.length * 10)/10;
+      this._foSplitPcts = fragIdxs.map((_,i) => i===fragIdxs.length-1
+        ? Math.round((100 - even*(fragIdxs.length-1))*10)/10
+        : even);
+    }
+
+    splitRows.style.display = 'block';
+    splitRows.innerHTML = fragIdxs.map((ingIdx, si) => {
+      const ing = this.editR.ingredients[ingIdx];
+      const pct = this._foSplitPcts[si] || 0;
+      const oz  = Math.round(totalFOoz * (pct/100) * 10000)/10000;
+      // Update actual ingredient amounts
+      const ozEl = document.getElementById('ing-oz-'+ingIdx);
+      const gEl  = document.getElementById('ing-g-'+ingIdx);
+      if(ozEl){ ozEl.value = oz.toFixed(4); ozEl.style.background='#e8f8ef'; }
+      if(gEl) { gEl.value  = oz2g(oz);      gEl.style.background='#e8f8ef'; }
+      this.editR.ingredients[ingIdx].amount = String(oz);
+      this.editR.ingredients[ingIdx].unit   = 'oz';
+
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="flex:1;font-size:.8rem;font-weight:700;color:#2a1a22;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${this.h(ing.name||'Fragrance '+(si+1))}</span>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+          <input type="number" min="0" max="100" step="0.1" value="${pct}"
+            oninput="App._foSplitChange(${si},this.value)"
+            style="width:60px;background:var(--cream);border:1.5px solid #b2dfdb;border-radius:8px;padding:5px 6px;font-family:Lato,sans-serif;font-size:.82rem;text-align:right;outline:none"/>
+          <span style="font-size:.8rem;color:var(--muted)">%</span>
+        </div>
+        <span style="font-size:.8rem;font-weight:700;color:#2e7d32;width:70px;text-align:right;flex-shrink:0">${displayUnit==='g' ? oz2g(oz)+' g' : oz.toFixed(3)+' oz'}</span>
+      </div>`;
+    }).join('');
+
+    // Show total % and warn if not 100
+    const sumPct = this._foSplitPcts.reduce((s,p)=>s+p,0);
+    const diff = Math.round((sumPct-100)*10)/10;
+    if(Math.abs(diff) < 0.01){
+      warning.style.display='none';
+    } else {
+      warning.style.display='block';
+      warning.textContent = `⚠ Split totals ${sumPct.toFixed(1)}% — must equal 100%`;
+    }
+  },
+
+  _foSplitChange(splitIdx, val){
+    if(!this._foSplitPcts) return;
+    this._foSplitPcts[splitIdx] = parseFloat(val)||0;
+    this._calcFragWeights();
+  },
+
+  _setUnitToggle(unit){
+    const hidden = document.getElementById('fbu');
+    if(!hidden) return;
+    hidden.value = unit;
+    // Update toggle button styles
+    const ozBtn = document.getElementById('fbu-oz');
+    const gBtn  = document.getElementById('fbu-g');
+    if(ozBtn && gBtn){
+      const activeStyle = 'background:var(--accent);color:#fff';
+      const inactiveStyle = 'background:transparent;color:var(--muted)';
+      ozBtn.style.cssText = ozBtn.style.cssText.replace(/background:[^;]+;color:[^;]+/, unit==='oz' ? activeStyle : inactiveStyle);
+      gBtn.style.cssText  = gBtn.style.cssText.replace(/background:[^;]+;color:[^;]+/, unit==='g'  ? activeStyle : inactiveStyle);
+    }
+    this._onUnitChange();
+  },
   _onUnitChange(){
     const prevUnit = (this.editR&&this.editR.batchUnit||'oz').toLowerCase();
     const newUnit  = (document.getElementById('fbu')?.value||'oz').toLowerCase();
