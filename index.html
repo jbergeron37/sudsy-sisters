@@ -1178,7 +1178,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.99.00';
+    const _ver = 'V-5.31.26.100.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -6104,6 +6104,7 @@ const App = {
           <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
             <input type="number" id="fo-pct-${si}" min="0" max="100" step="0.1" value="${pct}"
               oninput="App._foSplitChange(${si},this.value)"
+              onfocus="this.select()"
               style="width:60px;background:var(--cream);border:1.5px solid #b2dfdb;border-radius:8px;padding:5px 6px;font-family:Lato,sans-serif;font-size:.82rem;text-align:right;outline:none"/>
             <span style="font-size:.8rem;color:var(--muted)">%</span>
           </div>
@@ -6170,15 +6171,24 @@ const App = {
 
   _vfFragRow(i){
     const frag = this._vfFrags[i]||{id:'',name:''};
+    const pct = (this._vfSplitPcts&&this._vfSplitPcts[i]!=null) ? this._vfSplitPcts[i] : '';
+    const showPct = this._vfFrags.length > 1;
     const fragOpts = (this.fragrances||[]).map(f =>
       '<option value="'+f.id+'"'+(f.id===frag.id?' selected':'')+'>'+this.h(f.name)+'</option>'
     ).join('');
-    return '<div class="ing-form-row" id="vf-fr'+i+'" style="margin-bottom:6px">'+
+    return '<div class="ing-form-row" id="vf-fr'+i+'" style="margin-bottom:6px;align-items:center">'+
+      (showPct ?
+        '<div style="display:flex;align-items:center;gap:2px;flex-shrink:0">'+
+          '<input type="number" id="vf-sp-pct-'+i+'" min="0" max="100" step="0.1" value="'+pct+'"'+
+            ' oninput="App._vfSplitChange('+i+',this.value)"'+
+            ' onfocus="this.select()"'+
+            ' style="width:52px;background:var(--cream);border:1.5px solid #b2dfdb;border-radius:8px;padding:5px 4px;font-family:Lato,sans-serif;font-size:.82rem;text-align:right;outline:none"/>'+
+          '<span style="font-size:.78rem;color:var(--muted);margin-right:4px">%</span>'+
+        '</div>' : '')+
       '<select id="vf-fr-sel-'+i+'" style="flex:2;font-size:15px" onchange="App._vfSyncFrag('+i+',this.value)">'+
         '<option value="">— Select fragrance —</option>'+fragOpts+
       '</select>'+
-      '<span id="vf-fr-oz-'+i+'" style="font-size:.82rem;font-weight:700;color:#2e7d32;min-width:60px;text-align:right;align-self:center"></span>'+
-      '<span id="vf-fr-g-'+i+'"  style="font-size:.78rem;color:var(--muted);min-width:50px;text-align:right;align-self:center"></span>'+
+      '<span id="vf-fr-oz-'+i+'" style="font-size:.82rem;font-weight:700;color:#2e7d32;min-width:64px;text-align:right;align-self:center;flex-shrink:0"></span>'+
       '<button class="ing-del" onclick="App._vfRemoveFragRow('+i+')">−</button>'+
     '</div>';
   },
@@ -6260,54 +6270,37 @@ const App = {
       this._vfSplitPcts = this._vfFrags.map((_,i)=>i===n-1?Math.round((100-even*(n-1))*10)/10:even);
     }
 
-    // Single frag — just show weight, hide split
-    if(n===1){
-      panel.style.display='none';
-      const ozEl = document.getElementById('vf-fr-oz-0');
-      const gEl  = document.getElementById('vf-fr-g-0');
-      if(ozEl) ozEl.textContent = totalFOoz.toFixed(3)+' oz';
-      if(gEl)  gEl.textContent  = oz2g(totalFOoz)+' g';
-      return;
+    // Always hide the separate split panel — pct inputs are now inline in each row
+    if(panel) panel.style.display='none';
+
+    // If row count changed (add/remove frag), rebuild rows to show/hide pct inputs
+    const fragRowWrap = document.getElementById('vf-frag-rows');
+    if(fragRowWrap && fragRowWrap.children.length !== n){
+      fragRowWrap.innerHTML = this._vfFrags.map((_,i)=>this._vfFragRow(i)).join('');
     }
 
-    // Multi frag — show split panel
-    panel.style.display='block';
+    // Update each row's % input (if not focused) and oz display in-place
     const sumPct = this._vfSplitPcts.reduce((s,p)=>s+p,0);
-    const diff = Math.round((sumPct-100)*10)/10;
-
-    const needsRebuild = splitWrap.children.length !== this._vfFrags.length;
-    if(needsRebuild){
-      splitWrap.innerHTML = this._vfFrags.map((frag,i)=>{
-        const pct = this._vfSplitPcts[i]||0;
-        return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'+
-          '<span id="vf-sp-lbl-'+i+'" style="flex:1;font-size:.8rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+this.h(frag.name||'Fragrance '+(i+1))+'</span>'+
-          '<input type="number" id="vf-sp-pct-'+i+'" min="0" max="100" step="0.1" value="'+pct+'" oninput="App._vfSplitChange('+i+',this.value)" '+
-            'style="width:60px;background:var(--card);border:1.5px solid #b2dfdb;border-radius:8px;padding:5px 6px;font-family:Lato,sans-serif;font-size:.82rem;text-align:right;outline:none"/>'+
-          '<span style="font-size:.8rem;color:var(--muted)">%</span>'+
-          '<span id="vf-sp-amt-'+i+'" style="font-size:.8rem;font-weight:700;color:#2e7d32;width:70px;text-align:right"></span>'+
-        '</div>';
-      }).join('');
-    }
-
-    // Update in-place (preserves focus)
     this._vfFrags.forEach((frag,i)=>{
       const pct = this._vfSplitPcts[i]||0;
       const oz  = Math.round(totalFOoz*(pct/100)*10000)/10000;
-      const lbl = document.getElementById('vf-sp-lbl-'+i);
-      if(lbl) lbl.textContent = frag.name||'Fragrance '+(i+1);
       const pctEl = document.getElementById('vf-sp-pct-'+i);
       if(pctEl && document.activeElement !== pctEl) pctEl.value = pct;
-      const amtEl = document.getElementById('vf-sp-amt-'+i);
-      if(amtEl) amtEl.textContent = oz.toFixed(3)+' oz';
       const ozEl = document.getElementById('vf-fr-oz-'+i);
-      const gEl  = document.getElementById('vf-fr-g-'+i);
       if(ozEl) ozEl.textContent = oz.toFixed(3)+' oz';
-      if(gEl)  gEl.textContent  = oz2g(oz)+' g';
     });
 
+    // Warning shown in the fo-panel warning div if it exists, otherwise skip
+    const diff = Math.round((sumPct-100)*10)/10;
     if(warning){
-      if(Math.abs(diff)<0.01){ warning.style.display='none'; }
-      else { warning.style.display='block'; warning.textContent='⚠ Split totals '+sumPct.toFixed(1)+'% — must equal 100%'; }
+      if(n > 1 && Math.abs(diff) >= 0.01){
+        panel.style.display='block';
+        if(splitWrap) splitWrap.innerHTML='';
+        warning.style.display='block';
+        warning.textContent='⚠ Split totals '+sumPct.toFixed(1)+'% — must equal 100%';
+      } else {
+        warning.style.display='none';
+      }
     }
   },
 
@@ -6541,7 +6534,7 @@ const App = {
       '<div class="rf-section">'+
         '<div class="rf-section-title">🌸 Fragrance & Color</div>'+
         (r&&r.fragranceRate ?
-          '<div class="rf-fo-banner">🧴 Base FO rate: <strong>'+this.h(r.fragranceRate)+'</strong> — weights calculated automatically</div>' : '')+
+          '<div class="rf-fo-banner">🧴 Base FO rate: <strong>'+this.h(String(r.fragranceRate||'').replace(/%/g,'')+'%')+'</strong> — weights calculated automatically</div>' : '')+
         '<div class="rf-col-hdr" style="margin-top:8px">'+
           '<div style="flex:2">Fragrance</div>'+
           '<div style="width:70px;text-align:right">oz</div>'+
