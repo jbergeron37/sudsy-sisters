@@ -397,7 +397,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .form-group label{display:block;font-size:.75rem;font-weight:700;color:var(--brown-d);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
 .form-group select,.form-group input,.form-group textarea{width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none;-webkit-appearance:none;appearance:none;transition:border-color .2s}
 .form-group select:focus,.form-group input:focus,.form-group textarea:focus{border-color:var(--brown-l)}
-.form-group textarea{resize:vertical;min-height:80px}
+.form-group textarea{resize:none;min-height:calc(2lh + 18px);max-height:calc(10lh + 18px);overflow-y:auto;field-sizing:content}
 .form-row{display:flex;gap:10px}
 .form-row .form-group{flex:1}
 .mode-row{display:flex;gap:8px}
@@ -1178,7 +1178,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.98.00';
+    const _ver = 'V-5.31.26.99.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2709,8 +2709,30 @@ const App = {
     this._foSplitPcts = null;
     document.getElementById('modal-recipe').classList.add('open');
     // Calculate batch size immediately from current ingredient data
-    requestAnimationFrame(()=>{ this._calcBatchSize(); });
+    requestAnimationFrame(()=>{ this._initTextareas(document.getElementById('modal-recipe-body')); this._calcBatchSize(); });
   },
+  // ── Auto-resize textareas (2 rows min, 10 rows max with scroll) ──────────
+  _initTextareas(root){
+    const tas = (root||document).querySelectorAll('textarea');
+    tas.forEach(ta => {
+      if(!ta._resizeInited){
+        ta._resizeInited = true;
+        const resize = () => {
+          const lh = parseInt(getComputedStyle(ta).lineHeight)||20;
+          const pad = parseInt(getComputedStyle(ta).paddingTop||0)*2;
+          ta.style.height = '0';
+          const min = lh*2 + pad + 4;
+          const max = lh*10 + pad + 4;
+          const needed = Math.min(max, Math.max(min, ta.scrollHeight));
+          ta.style.height = needed + 'px';
+          ta.style.overflowY = ta.scrollHeight > max ? 'auto' : 'hidden';
+        };
+        ta.addEventListener('input', resize);
+        resize();
+      }
+    });
+  },
+
   _rForm(r){
     const so=(a,v)=>a.map(o=>`<option${o===v?' selected':''}>${o}</option>`).join('');
     const uOpts=['oz','g'].map(u=>`<option${u===r.batchUnit?' selected':''}>${u}</option>`).join('');
@@ -2719,14 +2741,8 @@ const App = {
     return `
       <div class="rf-section">
         <div class="form-group"><label>Recipe Name *</label><input id="fn" value="${this.h(r.name)}" placeholder="e.g. Classic Goat Milk Bar"/></div>
-        <div class="form-row">
-          <div class="form-group"><label>Category</label><select id="fc">${so(R_CATS,r.category)}</select></div>
-          <div class="form-group"><label>Difficulty</label><select id="fd">${so(DIFF,r.difficulty)}</select></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Lye Type</label><select id="fly">${so(LYE_T,r.lye)}</select></div>
-          <div class="form-group"><label>Scent</label><input id="fsc" value="${this.h(r.scent)}" placeholder="Lavender"/></div>
-        </div>
+        <div class="form-group"><label>Category</label><select id="fc">${so(R_CATS,r.category)}</select></div>
+        <div class="form-group"><label>Lye Type</label><select id="fly">${so(LYE_T,r.lye)}</select></div>
         <div class="form-group"><label>Tags</label>
           <div class="tag-wrap" id="rtags-wrap"><input class="tag-input" id="rtags-inp" placeholder="Add tag…"/></div>
           <input type="hidden" id="rtags"/>
@@ -6076,29 +6092,50 @@ const App = {
     }
 
     splitRows.style.display = 'block';
-    splitRows.innerHTML = fragIdxs.map((ingIdx, si) => {
+
+    // Build rows only if count changed (avoids destroying focused input)
+    const needsRebuild = splitRows.children.length !== fragIdxs.length;
+    if(needsRebuild){
+      splitRows.innerHTML = fragIdxs.map((ingIdx, si) => {
+        const ing = this.editR.ingredients[ingIdx];
+        const pct = this._foSplitPcts[si] || 0;
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="flex:1;font-size:.8rem;font-weight:700;color:#2a1a22;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="fo-lbl-${si}">${this.h(ing.name||'Fragrance '+(si+1))}</span>
+          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+            <input type="number" id="fo-pct-${si}" min="0" max="100" step="0.1" value="${pct}"
+              oninput="App._foSplitChange(${si},this.value)"
+              style="width:60px;background:var(--cream);border:1.5px solid #b2dfdb;border-radius:8px;padding:5px 6px;font-family:Lato,sans-serif;font-size:.82rem;text-align:right;outline:none"/>
+            <span style="font-size:.8rem;color:var(--muted)">%</span>
+          </div>
+          <span id="fo-amt-${si}" style="font-size:.8rem;font-weight:700;color:#2e7d32;width:70px;text-align:right;flex-shrink:0"></span>
+        </div>`;
+      }).join('');
+    }
+
+    // Always update labels and amounts in-place (preserves focus)
+    fragIdxs.forEach((ingIdx, si) => {
       const ing = this.editR.ingredients[ingIdx];
       const pct = this._foSplitPcts[si] || 0;
       const oz  = Math.round(totalFOoz * (pct/100) * 10000)/10000;
-      // Update actual ingredient amounts
+
+      const lbl = document.getElementById('fo-lbl-'+si);
+      if(lbl) lbl.textContent = ing.name||'Fragrance '+(si+1);
+
+      // Only update pct input if not currently focused
+      const pctEl = document.getElementById('fo-pct-'+si);
+      if(pctEl && document.activeElement !== pctEl) pctEl.value = pct;
+
+      const amtEl = document.getElementById('fo-amt-'+si);
+      if(amtEl) amtEl.textContent = displayUnit==='g' ? oz2g(oz)+' g' : oz.toFixed(3)+' oz';
+
+      // Update ingredient row amounts
       const ozEl = document.getElementById('ing-oz-'+ingIdx);
       const gEl  = document.getElementById('ing-g-'+ingIdx);
       if(ozEl){ ozEl.value = oz.toFixed(4); ozEl.style.background='#e8f8ef'; }
       if(gEl) { gEl.value  = oz2g(oz);      gEl.style.background='#e8f8ef'; }
       this.editR.ingredients[ingIdx].amount = String(oz);
       this.editR.ingredients[ingIdx].unit   = 'oz';
-
-      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="flex:1;font-size:.8rem;font-weight:700;color:#2a1a22;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${this.h(ing.name||'Fragrance '+(si+1))}</span>
-        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-          <input type="number" min="0" max="100" step="0.1" value="${pct}"
-            oninput="App._foSplitChange(${si},this.value)"
-            style="width:60px;background:var(--cream);border:1.5px solid #b2dfdb;border-radius:8px;padding:5px 6px;font-family:Lato,sans-serif;font-size:.82rem;text-align:right;outline:none"/>
-          <span style="font-size:.8rem;color:var(--muted)">%</span>
-        </div>
-        <span style="font-size:.8rem;font-weight:700;color:#2e7d32;width:70px;text-align:right;flex-shrink:0">${displayUnit==='g' ? oz2g(oz)+' g' : oz.toFixed(3)+' oz'}</span>
-      </div>`;
-    }).join('');
+    });
 
     // Show total % and warn if not 100
     const sumPct = this._foSplitPcts.reduce((s,p)=>s+p,0);
@@ -6238,22 +6275,35 @@ const App = {
     const sumPct = this._vfSplitPcts.reduce((s,p)=>s+p,0);
     const diff = Math.round((sumPct-100)*10)/10;
 
-    splitWrap.innerHTML = this._vfFrags.map((frag,i)=>{
+    const needsRebuild = splitWrap.children.length !== this._vfFrags.length;
+    if(needsRebuild){
+      splitWrap.innerHTML = this._vfFrags.map((frag,i)=>{
+        const pct = this._vfSplitPcts[i]||0;
+        return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'+
+          '<span id="vf-sp-lbl-'+i+'" style="flex:1;font-size:.8rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+this.h(frag.name||'Fragrance '+(i+1))+'</span>'+
+          '<input type="number" id="vf-sp-pct-'+i+'" min="0" max="100" step="0.1" value="'+pct+'" oninput="App._vfSplitChange('+i+',this.value)" '+
+            'style="width:60px;background:var(--card);border:1.5px solid #b2dfdb;border-radius:8px;padding:5px 6px;font-family:Lato,sans-serif;font-size:.82rem;text-align:right;outline:none"/>'+
+          '<span style="font-size:.8rem;color:var(--muted)">%</span>'+
+          '<span id="vf-sp-amt-'+i+'" style="font-size:.8rem;font-weight:700;color:#2e7d32;width:70px;text-align:right"></span>'+
+        '</div>';
+      }).join('');
+    }
+
+    // Update in-place (preserves focus)
+    this._vfFrags.forEach((frag,i)=>{
       const pct = this._vfSplitPcts[i]||0;
       const oz  = Math.round(totalFOoz*(pct/100)*10000)/10000;
-      // Update row display
+      const lbl = document.getElementById('vf-sp-lbl-'+i);
+      if(lbl) lbl.textContent = frag.name||'Fragrance '+(i+1);
+      const pctEl = document.getElementById('vf-sp-pct-'+i);
+      if(pctEl && document.activeElement !== pctEl) pctEl.value = pct;
+      const amtEl = document.getElementById('vf-sp-amt-'+i);
+      if(amtEl) amtEl.textContent = oz.toFixed(3)+' oz';
       const ozEl = document.getElementById('vf-fr-oz-'+i);
       const gEl  = document.getElementById('vf-fr-g-'+i);
       if(ozEl) ozEl.textContent = oz.toFixed(3)+' oz';
       if(gEl)  gEl.textContent  = oz2g(oz)+' g';
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'+
-        '<span style="flex:1;font-size:.8rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+this.h(frag.name||'Fragrance '+(i+1))+'</span>'+
-        '<input type="number" min="0" max="100" step="0.1" value="'+pct+'" oninput="App._vfSplitChange('+i+',this.value)" '+
-          'style="width:60px;background:var(--card);border:1.5px solid #b2dfdb;border-radius:8px;padding:5px 6px;font-family:Lato,sans-serif;font-size:.82rem;text-align:right;outline:none"/>'+
-        '<span style="font-size:.8rem;color:var(--muted)">%</span>'+
-        '<span style="font-size:.8rem;font-weight:700;color:#2e7d32;width:70px;text-align:right">'+oz.toFixed(3)+' oz</span>'+
-      '</div>';
-    }).join('');
+    });
 
     if(warning){
       if(Math.abs(diff)<0.01){ warning.style.display='none'; }
@@ -6516,7 +6566,7 @@ const App = {
         '</div>'+
       '</div>';
     document.getElementById('modal-variant-form').classList.add('open');
-    requestAnimationFrame(()=>{ this._vfCalcFragWeights(); });
+    requestAnimationFrame(()=>{ this._initTextareas(document.getElementById('variant-form-body')); this._vfCalcFragWeights(); });
   },
 
   _variantPkgRow(i, p){
@@ -6759,14 +6809,14 @@ const App = {
     this._calcBatchSize(); // Ensure batch size is current before saving
     // Work on a deep copy — never mutate this.editR directly during save
     const r = JSON.parse(JSON.stringify(this.editR));
-    r.name=name; r.category=document.getElementById('fc').value; r.difficulty=document.getElementById('fd').value;
+    r.name=name; r.category=document.getElementById('fc').value;
     r.batchSize=document.getElementById('fbs').value; r.batchUnit=document.getElementById('fbu').value;
     r.unitsPerBatch=document.getElementById('fupb').value;
     r.unitSize=document.getElementById('fusz').value;
     r.cureTime=document.getElementById('fct').value; r.superfat=document.getElementById('fsf').value;
     r.fragranceRate=document.getElementById('ffrate')?.value?.trim()||'';
     r.refUrl=document.getElementById('furl')?.value?.trim()||'';
-    r.lye=document.getElementById('fly').value; r.scent=document.getElementById('fsc').value;
+    r.lye=document.getElementById('fly').value; r.scent='';
     r.description=document.getElementById('fde').value; r.instructions=document.getElementById('fin').value; r.notes=document.getElementById('fno').value;
     const tv=document.getElementById('rtags').value; r.tags=tv?JSON.parse(tv):[];
     // Read ingredients from DOM — use this.editR for phase/amount fallback BEFORE clearing
