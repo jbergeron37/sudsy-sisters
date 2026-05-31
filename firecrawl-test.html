@@ -297,28 +297,17 @@ async function runVendorTwoPass(vendor){
       if(job.status === 'error') throw new Error(job.error || 'Job failed');
 
       if(job.status === 'done'){
-        log('ok', `[${vendor.name}] Done — ${(job.matched||[]).length} matches, ${(job.results||[]).length} scraped`);
+        log('ok', `[${vendor.name}] Done — ${(job.matched||[]).length} matches`);
         renderPass1Results(vendor, job.pages_crawled||0, job.product_urls||[], job.matched||[]);
-
-        // Claude extraction on scraped markdown
-        setVendorStatus(vendor.id, 'running', `⏳ Extracting prices…`);
-        const scraped = [];
-        for(const r of (job.results||[])){
-          if(!r.markdown || r.markdown.length < 100){
-            scraped.push({ ingredient: r.ingredient, url: r.url, pricing: [] });
-            continue;
-          }
-          log('info', `  Extracting: ${r.ingredient}`);
-          try {
-            const pricing = await extractPricingWithClaude(r.markdown, r.ingredient, vendor.name, r.url);
-            scraped.push({ ingredient: r.ingredient, url: r.url, pricing });
-            log('ok', `  ${r.ingredient}: ${pricing.length} tiers`);
-          } catch(e){
-            log('err', `  Claude failed for ${r.ingredient}: ${e.message}`);
-            scraped.push({ ingredient: r.ingredient, url: r.url, pricing: [] });
-          }
-        }
-        setVendorStatus(vendor.id, 'done', `✓ ${scraped.filter(s=>s.pricing.length).length}/${scraped.length} priced`);
+        // Results already have pricing extracted server-side
+        const scraped = (job.results||[]).map(r => ({
+          ingredient: r.ingredient,
+          url: r.url,
+          pricing: r.pricing || []
+        }));
+        const priced = scraped.filter(s=>s.pricing.length).length;
+        log('ok', `[${vendor.name}] ${priced}/${scraped.length} ingredients priced`);
+        setVendorStatus(vendor.id, 'done', `✓ ${priced}/${scraped.length} priced`);
         renderPass2Results(vendor, scraped);
         return;
       }
