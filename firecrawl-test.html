@@ -99,7 +99,7 @@
 </head>
 <body>
 
-<h1>🔬 Vendor Price Crawl — Test <span style="font-size:.7rem;color:var(--muted);font-weight:400">v8</span></h1>
+<h1>🔬 Vendor Price Crawl — Test <span style="font-size:.7rem;color:var(--muted);font-weight:400">v9</span></h1>
 <p class="subtitle">Oils & Butters · Sudsy Sisters ingredient matching test</p>
 
 <div id="cors-warning" style="background:#fff3cd;border:1.5px solid #f59e0b;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.82rem;color:#7a4a00">
@@ -254,55 +254,76 @@ async function runSelected(){
 }
 
 async function runVendorTwoPass(vendor){
-  setVendorStatus(vendor.id, 'running', '⏳ Running… (1-2 min)');
-  log('info', `[${vendor.name}] Starting full pipeline — server handles crawl + scrape`);
+  setVendorStatus(vendor.id, 'running', '⏳ Starting…');
+  log('info', `[${vendor.name}] Creating scrape job…`);
 
   try {
-    const res = await fetch('https://brxtdstcvaudxneikazg.supabase.co/functions/v1/vendor-scrape', {
+    // CREATE JOB — returns immediately
+    const createRes = await fetch('https://brxtdstcvaudxneikazg.supabase.co/functions/v1/vendor-scrape', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SB_ANON },
       body: JSON.stringify({
-        action: 'full_pipeline',
+        action: 'create_job',
+        vendorId: vendor.id,
+        vendorName: vendor.name,
         crawlUrl: vendor.crawlUrl,
-        limit: 30,
-        excludePaths: vendor.exclude.map(e => `.*${e}.*`),
-        ingredients
+        ingredients,
+        excludePaths: vendor.exclude.map(e => `.*${e}.*`)
       })
     });
+    const createJson = await createRes.json();
+    if(createJson.error) throw new Error(createJson.error);
+    const jobId = createJson.jobId;
+    log('ok', `[${vendor.name}] Job created: ${jobId}`);
 
-    const json = await res.json();
-    if(json.error) throw new Error(json.error);
+    // POLL JOB STATUS every 6 seconds
+    let lastProgress = '';
+    for(let i = 0; i < 60; i++){
+      await sleep(6000);
+      const pollRes = await fetch('https://brxtdstcvaudxneikazg.supabase.co/functions/v1/vendor-scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SB_ANON },
+        body: JSON.stringify({ action: 'job_status', jobId })
+      });
+      const job = await pollRes.json();
+      if(job.error) throw new Error(job.error);
 
-    log('ok', `[${vendor.name}] ${json.pages} pages crawled, ${json.productUrls?.length} product URLs, ${json.matched?.length} matches`);
-    json.matched?.forEach(m => log('info', `  → ${m.ingredient}: ${m.url} (score ${m.score?.toFixed(2)})`));
-
-    const priced = (json.results||[]).filter(r => r.markdown && r.markdown.length > 100);
-    log('info', `[${vendor.name}] Pass 2: ${priced.length}/${json.results?.length} pages scraped successfully`);
-
-    // Run Claude extraction on each scraped page
-    setVendorStatus(vendor.id, 'running', `⏳ Extracting pricing from ${priced.length} pages…`);
-    renderPass1Results(vendor, {length: json.pages}, json.productUrls||[], json.matched||[]);
-
-    const scraped = [];
-    for(const r of (json.results||[])){
-      if(!r.markdown || r.markdown.length < 100){
-        log('err', `  No markdown for ${r.ingredient}: ${r.error||'empty'}`);
-        scraped.push({ ingredient: r.ingredient, url: r.url, pricing: [] });
-        continue;
+      if(job.progress && job.progress !== lastProgress){
+        log('info', `[${vendor.name}] ${job.progress}`);
+        lastProgress = job.progress;
       }
-      log('info', `  Extracting: ${r.ingredient} (${r.markdown.length} chars)`);
-      try {
-        const pricing = await extractPricingWithClaude(r.markdown, r.ingredient, vendor.name, r.url);
-        scraped.push({ ingredient: r.ingredient, url: r.url, pricing });
-        log('ok', `  ${r.ingredient}: ${pricing.length} price tiers`);
-      } catch(e){
-        log('err', `  Claude failed for ${r.ingredient}: ${e.message}`);
-        scraped.push({ ingredient: r.ingredient, url: r.url, pricing: [] });
+      setVendorStatus(vendor.id, 'running', `⏳ ${job.progress||job.status}`);
+
+      if(job.status === 'error') throw new Error(job.error || 'Job failed');
+
+      if(job.status === 'done'){
+        log('ok', `[${vendor.name}] Done — ${(job.matched||[]).length} matches, ${(job.results||[]).length} scraped`);
+        renderPass1Results(vendor, job.pages_crawled||0, job.product_urls||[], job.matched||[]);
+
+        // Claude extraction on scraped markdown
+        setVendorStatus(vendor.id, 'running', `⏳ Extracting prices…`);
+        const scraped = [];
+        for(const r of (job.results||[])){
+          if(!r.markdown || r.markdown.length < 100){
+            scraped.push({ ingredient: r.ingredient, url: r.url, pricing: [] });
+            continue;
+          }
+          log('info', `  Extracting: ${r.ingredient}`);
+          try {
+            const pricing = await extractPricingWithClaude(r.markdown, r.ingredient, vendor.name, r.url);
+            scraped.push({ ingredient: r.ingredient, url: r.url, pricing });
+            log('ok', `  ${r.ingredient}: ${pricing.length} tiers`);
+          } catch(e){
+            log('err', `  Claude failed for ${r.ingredient}: ${e.message}`);
+            scraped.push({ ingredient: r.ingredient, url: r.url, pricing: [] });
+          }
+        }
+        setVendorStatus(vendor.id, 'done', `✓ ${scraped.filter(s=>s.pricing.length).length}/${scraped.length} priced`);
+        renderPass2Results(vendor, scraped);
+        return;
       }
     }
-
-    setVendorStatus(vendor.id, 'done', `✓ ${scraped.filter(s=>s.pricing.length).length}/${scraped.length} priced`);
-    renderPass2Results(vendor, scraped);
+    throw new Error('Job timed out after 6 minutes');
 
   } catch(e){
     log('err', `[${vendor.name}] Failed: ${e.message}`);
