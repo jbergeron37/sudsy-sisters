@@ -1178,7 +1178,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.100.00';
+    const _ver = 'V-5.31.26.102.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2741,21 +2741,51 @@ const App = {
     return `
       <div class="rf-section">
         <div class="form-group"><label>Recipe Name *</label><input id="fn" value="${this.h(r.name)}" placeholder="e.g. Classic Goat Milk Bar"/></div>
-        <div class="form-group"><label>Category</label><select id="fc">${so(R_CATS,r.category)}</select></div>
-        <div class="form-group"><label>Lye Type</label><select id="fly">${so(LYE_T,r.lye)}</select></div>
+
+        <!-- Row 1: Category | Lye Type | Superfat -->
+        <div class="form-row">
+          <div class="form-group"><label>Category</label><select id="fc">${so(R_CATS,r.category)}</select></div>
+          <div class="form-group"><label>Lye Type</label><select id="fly">${so(LYE_T,r.lye)}</select></div>
+          <div class="form-group"><label>Superfat</label><input id="fsf" value="${this.h(r.superfat)}" placeholder="5%"/></div>
+        </div>
+
+        <!-- Row 2: Units/Batch | Unit Wt | Batch Wt (auto) | oz/g toggle -->
+        <div class="form-row" style="align-items:flex-end">
+          <div class="form-group">
+            <label>Units/Batch <span class="rf-auto-lbl">(auto)</span></label>
+            <input id="fupb" type="number" step="0.01" value="${this.h(r.unitsPerBatch)}" placeholder="auto" oninput="App._calcOzPerUnit()" style="background:var(--card)"/>
+          </div>
+          <div class="form-group">
+            <label id="fusz-label">${unitLbl}</label>
+            <input id="fusz" type="number" step="any" value="${this.h(r.unitSize)}" placeholder="e.g. 3.5" oninput="App._calcBatchSize()"/>
+          </div>
+          <div class="form-group">
+            <label>Batch Wt <span class="rf-auto-lbl">(auto)</span></label>
+            <div id="fbs-display" class="rf-auto-val">—</div>
+            <input type="hidden" id="fbs" value="${this.h(r.batchSize)}"/>
+          </div>
+          <div class="form-group" style="flex:0;min-width:0">
+            <label>Unit</label>
+            <div style="display:flex;align-items:center;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:3px">
+              <button type="button" id="fbu-oz" onclick="App._setUnitToggle('oz')" style="padding:6px 10px;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'transparent':'var(--accent)'};color:${r.batchUnit==='g'?'var(--muted)':'#fff'}">oz</button>
+              <button type="button" id="fbu-g"  onclick="App._setUnitToggle('g')"  style="padding:6px 10px;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'var(--accent)':'transparent'};color:${r.batchUnit==='g'?'#fff':'var(--muted)'}">g</button>
+            </div>
+            <input type="hidden" id="fbu" value="${this.h(r.batchUnit||'oz')}">
+          </div>
+        </div>
+
+        <!-- Row 3: Cure Time | Fragrance Rate | URL -->
+        <div class="form-row">
+          <div class="form-group"><label>Cure Time</label><input id="fct" value="${this.h(r.cureTime)}" placeholder="4–6 weeks"/></div>
+          <div class="form-group"><label>Fragrance Rate</label><input id="ffrate" value="${this.h(r.fragranceRate||'')}" placeholder="e.g. 6%" oninput="App._calcFragWeights()"/></div>
+          <div class="form-group"><label>Recipe URL <span class="rf-auto-lbl">(optional)</span></label><input id="furl" type="url" value="${this.h(r.refUrl||'')}" placeholder="https://…"/></div>
+        </div>
+
         <div class="form-group"><label>Tags</label>
           <div class="tag-wrap" id="rtags-wrap"><input class="tag-input" id="rtags-inp" placeholder="Add tag…"/></div>
           <input type="hidden" id="rtags"/>
         </div>
-      </div>
-
-      <div class="rf-section">
-        <div class="rf-section-title">Description & Notes</div>
         <div class="form-group"><label>Description</label><textarea id="fde" placeholder="Brief description…">${this.h(r.description)}</textarea></div>
-        <div class="form-group"><label>Instructions</label><textarea id="fin" rows="5" placeholder="Step-by-step…">${this.h(r.instructions)}</textarea></div>
-        <div class="form-group"><label>Notes</label><textarea id="fno" placeholder="Tips, warnings…">${this.h(r.notes)}</textarea>
-          <button type="button" onclick="App._openSplitFromRecipe()" class="rf-link-btn">📐 Open Split Calculator</button>
-        </div>
       </div>
 
       <div class="rf-section">
@@ -2791,35 +2821,10 @@ const App = {
       </div>
 
       <div class="rf-section">
-        <div class="rf-section-title">⚖️ Batch Settings</div>
-        <div class="form-row">
-          <div class="form-group"><label>Batch Size <span class="rf-auto-lbl">(auto)</span></label>
-            <div id="fbs-display" class="rf-auto-val">calculating...</div>
-            <input type="hidden" id="fbs" value="${this.h(r.batchSize)}"/>
-          </div>
-          <div class="form-group"><label>Unit</label>
-            <div style="display:flex;align-items:center;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:3px;width:fit-content">
-              <button type="button" id="fbu-oz" onclick="App._setUnitToggle('oz')" style="padding:6px 14px;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'transparent':'var(--accent)'};color:${r.batchUnit==='g'?'var(--muted)':'#fff'}">oz</button>
-              <button type="button" id="fbu-g"  onclick="App._setUnitToggle('g')"  style="padding:6px 14px;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'var(--accent)':'transparent'};color:${r.batchUnit==='g'?'#fff':'var(--muted)'}">g</button>
-            </div>
-            <input type="hidden" id="fbu" value="${this.h(r.batchUnit||'oz')}">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Units per Batch <span class="rf-auto-lbl">(auto)</span></label>
-            <input id="fupb" type="number" step="0.01" value="${this.h(r.unitsPerBatch)}" placeholder="auto" oninput="App._calcOzPerUnit()" style="background:var(--card)"/>
-          </div>
-          <div class="form-group"><label id="fusz-label">${unitLbl}</label>
-            <input id="fusz" type="number" step="any" value="${this.h(r.unitSize)}" placeholder="e.g. 3.5" oninput="App._calcBatchSize()"/>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Cure Time</label><input id="fct" value="${this.h(r.cureTime)}" placeholder="4–6 weeks"/></div>
-          <div class="form-group"><label>Superfat</label><input id="fsf" value="${this.h(r.superfat)}" placeholder="5%"/></div>
-          <div class="form-group"><label>Fragrance Rate</label><input id="ffrate" value="${this.h(r.fragranceRate||'')}" placeholder="e.g. 6%" oninput="App._calcFragWeights()"/></div>
-        </div>
-        <div class="form-group"><label>Recipe / Instruction URL <span class="rf-auto-lbl">(optional)</span></label>
-          <input id="furl" type="url" value="${this.h(r.refUrl||'')}" placeholder="https://…"/>
+        <div class="rf-section-title">Instructions & Notes</div>
+        <div class="form-group"><label>Instructions</label><textarea id="fin" placeholder="Step-by-step…">${this.h(r.instructions)}</textarea></div>
+        <div class="form-group"><label>Notes</label><textarea id="fno" placeholder="Tips, warnings…">${this.h(r.notes)}</textarea>
+          <button type="button" onclick="App._openSplitFromRecipe()" class="rf-link-btn">📐 Open Split Calculator</button>
         </div>
       </div>`;
   },
