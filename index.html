@@ -1178,7 +1178,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.105.00';
+    const _ver = 'V-5.31.26.106.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1792,7 +1792,11 @@ const App = {
           '<span style="font-weight:700;color:'+color+'">'+oz.toFixed(2)+' oz <span style="color:var(--muted);font-weight:400;font-size:.76rem">/ '+g.toFixed(1)+' g</span></span>'+
         '</div>';
       }).join('');
-    // ── PACKAGING PHASE ────────────────────────────────────────
+      return '<div style="margin-bottom:10px">'+
+        '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:'+color+';border-left:3px solid '+color+';padding-left:6px;margin-bottom:4px">'+(pLabels[p]||p)+'</div>'+
+        rows+'</div>';
+    }).join('');
+    // ── PACKAGING section (scoped outside ingHtml map) ────────────────────
     const pkgHtml = pkgItems.length ? (
       '<div style="margin-bottom:10px">'+
       '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#A8527A;border-left:3px solid #A8527A;padding-left:8px;margin-bottom:6px">📦 PACKAGING</div>'+
@@ -1809,10 +1813,6 @@ const App = {
       }).join('')+
       '</div>'
     ) : '';
-      return '<div style="margin-bottom:10px">'+
-        '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:'+color+';border-left:3px solid '+color+';padding-left:6px;margin-bottom:4px">'+(pLabels[p]||p)+'</div>'+
-        rows+'</div>';
-    }).join('');
     const metas = [
       r.batchSize ? '<div class="meta-pill">Batch <span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>' : '',
       r.cureTime  ? '<div class="meta-pill">Cure <span>'+this.h(r.cureTime)+'</span></div>' : '',
