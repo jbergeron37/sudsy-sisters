@@ -1160,7 +1160,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.93.00';
+    const _ver = 'V-5.31.26.94.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -5067,13 +5067,7 @@ const App = {
       '<div id="pg-footer"><span id="pg-date">Report Date: '+reportDate+'</span><span id="pg-num"></span></div>'+
       '<div class="hdr">'+logoTag+'<div><div class="brand">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div></div>'+
       body+
-      (autoPrint ? '<script>window.onload=function(){'+
-        'var pages=0;'+
-        'if(window.matchMedia){var m=window.matchMedia("print");m.addListener(function(mq){if(mq.matches){'+
-          'var t=document.body.innerHTML;var d=document.createElement("div");d.innerHTML=t;document.body.appendChild(d);'+
-        '}});}'+
-        'setTimeout(function(){window.print();},500);'+
-      '}<\/script>' : '')+
+      (autoPrint ? '<script>window.onload=function(){setTimeout(function(){window.print();},500);}<\/script>' : '')+
       '</body></html>';
     const win = existingWin || window.open('', '_blank');
     if(win){
