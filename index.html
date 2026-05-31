@@ -1178,7 +1178,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.103.00';
+    const _ver = 'V-5.31.26.105.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2748,33 +2748,46 @@ const App = {
           <div class="form-group"><label>Superfat</label><input id="fsf" value="${this.h(r.superfat)}" placeholder="5%"/></div>
         </div>
 
-        <div class="form-row" style="align-items:flex-end">
-          <div class="form-group">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end">
+          <div class="form-group" style="margin:0">
             <label>Units/Batch</label>
-            <input id="fupb" type="number" step="0.01" value="${this.h(r.unitsPerBatch)}" placeholder="auto" oninput="App._calcOzPerUnit()" style="background:var(--card)"/>
+            <input id="fupb" type="number" step="0.01" value="${this.h(r.unitsPerBatch)}" placeholder="auto" oninput="App._calcOzPerUnit()" style="background:var(--card);width:100%"/>
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin:0">
             <label id="fusz-label">${unitLbl}</label>
-            <input id="fusz" type="number" step="any" value="${this.h(r.unitSize)}" placeholder="e.g. 3.5" oninput="App._calcBatchSize()"/>
+            <input id="fusz" type="number" step="any" value="${this.h(r.unitSize)}" placeholder="e.g. 3.5" oninput="App._calcBatchSize()" style="width:100%"/>
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin:0">
             <label>Batch Wt</label>
             <div id="fbs-display" class="rf-auto-val">—</div>
             <input type="hidden" id="fbs" value="${this.h(r.batchSize)}"/>
           </div>
-          <div class="form-group" style="flex:0;min-width:0">
+          <div class="form-group" style="margin:0">
+            <label>&nbsp;</label>
+            <div style="visibility:hidden;height:38px"></div>
+          </div>
+
+          <div class="form-group" style="margin:0">
+            <label>FO Rate</label>
+            <div style="display:flex;align-items:center;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;overflow:hidden">
+              <input id="ffrate-num" type="number" min="0" max="100" step="0.1"
+                value="${parseFloat((r.fragranceRate||'0').replace('%',''))||''}"
+                placeholder="6"
+                oninput="document.getElementById('ffrate').value=this.value+'%';App._calcFragWeights()"
+                style="flex:1;min-width:0;background:transparent;border:none;padding:8px 4px 8px 10px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none;-webkit-appearance:none;appearance:none"/>
+              <span style="font-size:.9rem;color:var(--muted);padding-right:8px;flex-shrink:0">%</span>
+            </div>
+            <input type="hidden" id="ffrate" value="${this.h(r.fragranceRate||'')}"/>
+          </div>
+          <div class="form-group" style="margin:0">
             <label>Unit</label>
             <div style="display:flex;align-items:center;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:3px">
-              <button type="button" id="fbu-oz" onclick="App._setUnitToggle('oz')" style="padding:6px 10px;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'transparent':'var(--accent)'};color:${r.batchUnit==='g'?'var(--muted)':'#fff'}">oz</button>
-              <button type="button" id="fbu-g"  onclick="App._setUnitToggle('g')"  style="padding:6px 10px;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'var(--accent)':'transparent'};color:${r.batchUnit==='g'?'#fff':'var(--muted)'}">g</button>
+              <button type="button" id="fbu-oz" onclick="App._setUnitToggle('oz')" style="flex:1;padding:6px 0;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'transparent':'var(--accent)'};color:${r.batchUnit==='g'?'var(--muted)':'#fff'}">oz</button>
+              <button type="button" id="fbu-g"  onclick="App._setUnitToggle('g')"  style="flex:1;padding:6px 0;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'var(--accent)':'transparent'};color:${r.batchUnit==='g'?'#fff':'var(--muted)'}">g</button>
             </div>
             <input type="hidden" id="fbu" value="${this.h(r.batchUnit||'oz')}">
           </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group"><label>Fragrance Rate</label><input id="ffrate" value="${this.h(r.fragranceRate||'')}" placeholder="e.g. 6%" oninput="App._calcFragWeights()"/></div>
-          <input type="hidden" id="fct" value="${this.h(r.cureTime)}"/>
+          <div class="form-group" style="margin:0;grid-column:span 2"></div>
         </div>
 
         <div class="form-group"><label>Tags</label>
