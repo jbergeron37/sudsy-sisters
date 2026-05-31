@@ -99,7 +99,7 @@
 </head>
 <body>
 
-<h1>🔬 Vendor Price Crawl — Test <span style="font-size:.7rem;color:var(--muted);font-weight:400">v7</span></h1>
+<h1>🔬 Vendor Price Crawl — Test <span style="font-size:.7rem;color:var(--muted);font-weight:400">v8</span></h1>
 <p class="subtitle">Oils & Butters · Sudsy Sisters ingredient matching test</p>
 
 <div id="cors-warning" style="background:#fff3cd;border:1.5px solid #f59e0b;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.82rem;color:#7a4a00">
@@ -254,62 +254,54 @@ async function runSelected(){
 }
 
 async function runVendorTwoPass(vendor){
-  setVendorStatus(vendor.id, 'running', '⏳ Pass 1: discovering pages…');
-  log('info', `[${vendor.name}] Pass 1: crawling ${vendor.crawlUrl}`);
+  setVendorStatus(vendor.id, 'running', '⏳ Running… (1-2 min)');
+  log('info', `[${vendor.name}] Starting full pipeline — server handles crawl + scrape`);
 
   try {
-    // ── PASS 1: single call — Edge Function handles crawl + polling ────────
-    setVendorStatus(vendor.id, 'running', '⏳ Crawling… (may take ~60s)');
-    log('info', `[${vendor.name}] Crawling ${vendor.crawlUrl} — server-side polling, please wait…`);
-    const crawlRes = await fetch('https://brxtdstcvaudxneikazg.supabase.co/functions/v1/vendor-scrape', {
+    const res = await fetch('https://brxtdstcvaudxneikazg.supabase.co/functions/v1/vendor-scrape', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SB_ANON },
       body: JSON.stringify({
-        action: 'crawl',
-        url: vendor.crawlUrl,
+        action: 'full_pipeline',
+        crawlUrl: vendor.crawlUrl,
         limit: 30,
-        excludePaths: vendor.exclude.map(e => `.*${e}.*`)
+        excludePaths: vendor.exclude.map(e => `.*${e}.*`),
+        ingredients
       })
     });
-    const crawlJson = await crawlRes.json();
-    if(crawlJson.error) throw new Error(crawlJson.error);
-    const pages = crawlJson.pages || [];
-    log('ok', `[${vendor.name}] Pass 1 complete: ${pages.length} pages${crawlJson.partial?' (partial)':''}`);
 
-    // ── Filter to likely product pages ──────────────────────────────────────
-    const productUrls = discoverProductUrls(pages, vendor);
-    log('info', `[${vendor.name}] Found ${productUrls.length} candidate product pages`);
+    const json = await res.json();
+    if(json.error) throw new Error(json.error);
 
-    if(!productUrls.length) {
-      renderNoResults(vendor, pages, 'No product pages found in crawl. Site may require JS rendering or login.');
-      setVendorStatus(vendor.id, 'error', '✗ No product pages found');
-      return;
-    }
+    log('ok', `[${vendor.name}] ${json.pages} pages crawled, ${json.productUrls?.length} product URLs, ${json.matched?.length} matches`);
+    json.matched?.forEach(m => log('info', `  → ${m.ingredient}: ${m.url} (score ${m.score?.toFixed(2)})`));
 
-    // ── Match product URLs to your ingredients ───────────────────────────────
-    const matched = matchUrlsToIngredients(productUrls, vendor);
-    log('info', `[${vendor.name}] ${matched.length} ingredient→URL matches`);
+    const priced = (json.results||[]).filter(r => r.markdown && r.markdown.length > 100);
+    log('info', `[${vendor.name}] Pass 2: ${priced.length}/${json.results?.length} pages scraped successfully`);
 
-    // Show pass-1 results + confirmation UI
-    renderPass1Results(vendor, pages, productUrls, matched);
-    setVendorStatus(vendor.id, 'running', `⏳ Pass 2: scraping ${matched.length} pages…`);
+    // Run Claude extraction on each scraped page
+    setVendorStatus(vendor.id, 'running', `⏳ Extracting pricing from ${priced.length} pages…`);
+    renderPass1Results(vendor, {length: json.pages}, json.productUrls||[], json.matched||[]);
 
-    // ── PASS 2: scrape each matched product page ─────────────────────────────
     const scraped = [];
-    for(const m of matched){
-      log('info', `[${vendor.name}] Scraping: ${m.url}`);
-      try {
-        const pricing = await scrapeProductPage(m.url, m.ingredient, vendor.name);
-        scraped.push({ ingredient: m.ingredient, url: m.url, pricing });
-        log('ok', `[${vendor.name}] ${m.ingredient}: ${pricing.length} price tiers found`);
-      } catch(e){
-        log('err', `[${vendor.name}] Scrape failed for ${m.url}: ${e.message}`);
-        scraped.push({ ingredient: m.ingredient, url: m.url, pricing: [] });
+    for(const r of (json.results||[])){
+      if(!r.markdown || r.markdown.length < 100){
+        log('err', `  No markdown for ${r.ingredient}: ${r.error||'empty'}`);
+        scraped.push({ ingredient: r.ingredient, url: r.url, pricing: [] });
+        continue;
       }
-      await sleep(800); // be polite
+      log('info', `  Extracting: ${r.ingredient} (${r.markdown.length} chars)`);
+      try {
+        const pricing = await extractPricingWithClaude(r.markdown, r.ingredient, vendor.name, r.url);
+        scraped.push({ ingredient: r.ingredient, url: r.url, pricing });
+        log('ok', `  ${r.ingredient}: ${pricing.length} price tiers`);
+      } catch(e){
+        log('err', `  Claude failed for ${r.ingredient}: ${e.message}`);
+        scraped.push({ ingredient: r.ingredient, url: r.url, pricing: [] });
+      }
     }
 
-    setVendorStatus(vendor.id, 'done', `✓ ${scraped.filter(s=>s.pricing.length).length}/${matched.length} priced`);
+    setVendorStatus(vendor.id, 'done', `✓ ${scraped.filter(s=>s.pricing.length).length}/${scraped.length} priced`);
     renderPass2Results(vendor, scraped);
 
   } catch(e){
@@ -501,12 +493,13 @@ function clearResults(){ document.getElementById('results-area').innerHTML=''; }
 
 // ── Render helpers ─────────────────────────────────────────────────────────
 function renderPass1Results(vendor, pages, productUrls, matched){
+  const pageCount = typeof pages === 'number' ? pages : (pages?.length ?? 0);
   const area = document.getElementById('results-area');
   area.insertAdjacentHTML('beforeend', `
     <div class="result-block" id="rb-${vendor.id}">
       <div class="result-header">
         <span>${vendor.name}</span>
-        <span class="pages">Pass 1: ${pages.length} pages crawled · ${productUrls.length} product URLs · ${matched.length} ingredient matches</span>
+        <span class="pages">Pass 1: ${pageCount} pages crawled · ${productUrls.length} product URLs · ${matched.length} ingredient matches</span>
       </div>
       <div class="result-body" id="rb-body-${vendor.id}">
         <div class="match-title" style="margin-bottom:6px">🔗 Matched Ingredient → Product URL</div>
