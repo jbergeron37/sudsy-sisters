@@ -531,13 +531,11 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     </button>
     <!-- REPORTS DROPDOWN -->
     <div style="position:relative;margin-right:4px" id="reports-dd-wrap">
-      <button onclick="App.toggleDropdown('reports-dd')" title="Reports" style="background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:7px 10px;border-radius:10px;display:flex;align-items:center;gap:5px;font-family:Lato,sans-serif;font-size:.72rem;font-weight:700">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        Reports
+      <button onclick="App.toggleDropdown('reports-dd')" title="Reports" style="background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       </button>
       <div id="reports-dd" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.12);min-width:210px;z-index:500;overflow:hidden">
         <div style="padding:8px 12px 4px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)">Inventory</div>
-        <div class="dd-item" onclick="App.closeDropdown('reports-dd');App.openOrderReport()">📦 Low Inventory Report</div>
         <div class="dd-item" onclick="App.closeDropdown('reports-dd');App.printInventoryReport()">🖨 Print Low Inventory</div>
         <div style="padding:8px 12px 4px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);border-top:1px solid var(--border);margin-top:4px">Fragrance</div>
         <div class="dd-item" onclick="App.closeDropdown('reports-dd');App.printLowStockFragrances()">🖨 Low Fragrance Stock</div>
@@ -549,9 +547,8 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     </div>
     <!-- TOOLS DROPDOWN -->
     <div style="position:relative;margin-right:4px" id="tools-dd-wrap">
-      <button onclick="App.toggleDropdown('tools-dd')" title="Tools" style="background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:7px 10px;border-radius:10px;display:flex;align-items:center;gap:5px;font-family:Lato,sans-serif;font-size:.72rem;font-weight:700">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        Tools
+      <button onclick="App.toggleDropdown('tools-dd')" title="Tools" style="background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
       </button>
       <div id="tools-dd" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.12);min-width:210px;z-index:500;overflow:hidden">
         <div style="padding:8px 12px 4px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)">Calculators</div>
@@ -1163,7 +1160,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.87.00';
+    const _ver = 'V-5.31.26.88.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
