@@ -1178,7 +1178,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.107.00';
+    const _ver = 'V-5.31.26.108.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1190,6 +1190,7 @@ const App = {
     this._loadPending();
     this.recipes   = JSON.parse(localStorage.getItem('ss_r')||'null') || SEED_RECIPES;
     this.inventory = JSON.parse(localStorage.getItem('ss_i')||'null') || SEED_INV;
+    this.vendorPrices = JSON.parse(localStorage.getItem('ss_vp')||'[]');
     if(!localStorage.getItem('ss_r')) this._localSaveR();
     if(!localStorage.getItem('ss_i')) this._localSaveI();
     this._buildRecipeChips();
@@ -1233,6 +1234,7 @@ const App = {
   // ── LOCAL CACHE ──────────────────────────────────────────────
   _localSaveR(){ localStorage.setItem('ss_r', JSON.stringify(this.recipes)); },
   _localSaveI(){ localStorage.setItem('ss_i', JSON.stringify(this.inventory)); },
+  _localSaveVP(){ localStorage.setItem('ss_vp', JSON.stringify(this.vendorPrices)); },
 
   // ── SAVE: local + cloud ──────────────────────────────────────
   _saveR(){
@@ -1319,13 +1321,15 @@ const App = {
 
   async _syncFromCloud(){
     try {
-      const [rRes,iRes,fRes] = await Promise.all([
+      const [rRes,iRes,fRes,vpRes] = await Promise.all([
         this._sbFetch('GET','recipes?select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,version,created_at,updated_at,is_favorite&order=updated_at.desc'),
         this._sbFetch('GET','inventory?select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,updated_at&order=updated_at.desc'),
-        this._sbFetch('GET','fragrances?order=updated_at.desc')
+        this._sbFetch('GET','fragrances?order=updated_at.desc'),
+        this._sbFetch('GET','vendor_prices?order=item_name.asc,price_per_oz.asc')
       ]);
       if(!rRes.ok||!iRes.ok||!fRes.ok) throw new Error('Fetch failed');
       const rRows=await rRes.json(), iRows=await iRes.json(), fRows=await fRes.json();
+      const vpRows = vpRes.ok ? await vpRes.json() : [];
       // Keep local version for records with pending changes (don't overwrite with stale DB data)
       const _pendingRIds = new Set(this._pending.filter(p=>p.table==='recipes').map(p=>p.id));
       const _pendingIIds = new Set(this._pending.filter(p=>p.table==='inventory').map(p=>p.id));
@@ -1354,7 +1358,8 @@ const App = {
         };
       });
       this.fragrances=fRows||[];
-      this._localSaveR(); this._localSaveI();
+      this.vendorPrices=vpRows||[];
+      this._localSaveR(); this._localSaveI(); this._localSaveVP();
       localStorage.setItem('ss_f',JSON.stringify(this.fragrances));
       this._setOnline(true);
       this.renderRecipes(); this.renderInventory(); this.populateCalcRecipes();
@@ -2023,6 +2028,29 @@ const App = {
   },
 
   // ── Calculate cost breakdown for a recipe using inventory cost data ──
+  // ── COST PROPAGATION ───────────────────────────────────────────────────────
+  // Called whenever an inventory item's cost changes.
+  // Touches every recipe that includes this ingredient — recalculates and
+  // persists the updated cost so recipe detail and variant costing stay fresh.
+  _propagateCostChange(ingredientName){
+    if(!ingredientName) return;
+    const nameLower = ingredientName.trim().toLowerCase();
+    let changed = 0;
+    (this.recipes||[]).forEach(r => {
+      const uses = (r.ingredients||[]).some(ing =>
+        ing.name && ing.name.trim().toLowerCase() === nameLower);
+      if(uses){
+        // Touch updated_at so sync knows it changed; cost is recomputed live
+        r.updated_at = new Date().toISOString();
+        changed++;
+      }
+    });
+    if(changed){
+      this._localSaveR();
+      this._toast(`💲 Cost updated — affects ${changed} recipe${changed!==1?'s':''}`);
+    }
+  },
+
   _calcRecipeCost(r){
     const ingredients = (r.ingredients||[]);
     const breakdown = [];
@@ -3305,6 +3333,13 @@ const App = {
     const stLbl={ok:'✅ In Stock',low:'⚠️ Low Stock',out:'🚨 Out of Stock'};
     const costPerUnit = parseFloat(i.cost)||0;
     const totalValue = Math.round(i.quantity * costPerUnit * 100)/100;
+
+    // Count vendor prices for this item
+    const vps = (this.vendorPrices||[])
+      .filter(vp=>vp.inventory_id===i.id||vp.item_name?.toLowerCase()===i.name?.toLowerCase())
+      .sort((a,b)=>parseFloat(a.price_per_oz)-parseFloat(b.price_per_oz));
+    const vpCount = vps.length;
+
     document.getElementById('view-inv-detail').innerHTML=`
       <div class="detail">
         <div class="detail-header">
@@ -3317,13 +3352,29 @@ const App = {
           </div>
           <div style="margin-top:10px;font-size:.85rem;font-weight:700;color:${stClr[st]}">${stLbl[st]}</div>
         </div>
-        ${(i.supplier||i.vendorUrl||i.cost)?`<div class="section">
-          <div class="section-title">Vendor & Pricing</div>
-          ${i.supplier?`<div class="ing-row"><span class="ing-name">Vendor</span><span class="ing-amt">${this.h(i.supplier)}</span></div>`:''}
+
+        <!-- LAST PURCHASE / VENDOR SUMMARY -->
+        <div class="section">
+          <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+            <span>Vendor & Pricing</span>
+            <button onclick="App._toggleVendorPrices('${i.id}')"
+              style="background:var(--accent-l,#EDE0FF);color:var(--accent);border:1.5px solid var(--accent);border-radius:20px;padding:4px 12px;font-family:Lato,sans-serif;font-size:.75rem;font-weight:700;cursor:pointer">
+              📊 Prices${vpCount?' ('+vpCount+')':''}
+            </button>
+          </div>
+          <div class="ing-row"><span class="ing-name">Last purchase vendor</span>
+            <span class="ing-amt">${i.supplier?this.h(i.supplier):'<span style="color:var(--muted)">not set</span>'}</span></div>
+          <div class="ing-row"><span class="ing-name">Last purchase price</span>
+            <span class="ing-amt">${costPerUnit?'$'+costPerUnit.toFixed(4)+' / '+i.unit:'<span style="color:var(--muted)">not set</span>'}</span></div>
           ${i.vendorUrl?`<div class="ing-row"><span class="ing-name">Website</span><span class="ing-amt" style="font-size:.78rem"><a href="${this.h(i.vendorUrl)}" target="_blank" style="color:var(--brown)">Open ↗</a></span></div>`:''}
-          ${costPerUnit?`<div class="ing-row"><span class="ing-name">Price / ${i.unit}</span><span class="ing-amt">$${costPerUnit.toFixed(2)}</span></div>`:''}
           ${costPerUnit&&i.quantity?`<div class="ing-row"><span class="ing-name">Stock value</span><span class="ing-amt">$${totalValue.toFixed(2)}</span></div>`:''}
-        </div>`:''}
+
+          <!-- VENDOR PRICES PANEL (collapsed by default) -->
+          <div id="vp-panel-${i.id}" style="display:none;margin-top:12px">
+            ${this._renderVendorPricesPanel(i, vps)}
+          </div>
+        </div>
+
         ${i.notes?`<div class="section"><div class="section-title">Notes</div><div class="prose-muted">${this.h(i.notes)}</div></div>`:''}
         <div class="section">
           <div class="section-title">Adjust Quantity</div>
@@ -3376,6 +3427,238 @@ const App = {
         });
       } catch(e){ console.warn('Inventory delete cloud failed:', e.message); }
     });
+  },
+
+  // ── VENDOR PRICES ──────────────────────────────────────────────────────────
+  _toggleVendorPrices(invId){
+    const panel = document.getElementById('vp-panel-'+invId);
+    if(!panel) return;
+    const open = panel.style.display === 'none';
+    panel.style.display = open ? 'block' : 'none';
+  },
+
+  _renderVendorPricesPanel(item, vps){
+    const bestPPO = vps.length ? parseFloat(vps[0].price_per_oz) : null;
+    const rows = vps.map(vp => {
+      const ppo = parseFloat(vp.price_per_oz);
+      const isBest = bestPPO !== null && ppo === bestPPO;
+      const updated = vp.last_updated ? new Date(vp.last_updated).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+      const sourceBadge = vp.source==='scraped'
+        ? '<span style="font-size:.68rem;background:#e8f4fd;color:#1565C0;border-radius:4px;padding:1px 5px">auto</span>'
+        : '<span style="font-size:.68rem;background:#f5f5f5;color:#666;border-radius:4px;padding:1px 5px">manual</span>';
+      return `<div style="border:1.5px solid ${isBest?'#b2dfdb':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:8px;background:${isBest?'#f0faf4':'var(--card)'}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.88rem;color:var(--text);display:flex;align-items:center;gap:6px">
+              ${this.h(vp.vendor)}
+              ${isBest?'<span style="font-size:.68rem;background:#C6EFCE;color:#276221;border-radius:4px;padding:1px 5px;font-weight:700">★ BEST</span>':''}
+              ${sourceBadge}
+            </div>
+            <div style="font-size:.78rem;color:var(--muted);margin-top:2px">${this.h(vp.size_label)}</div>
+            ${vp.vendor_url?`<a href="${this.h(vp.vendor_url)}" target="_blank" style="font-size:.72rem;color:var(--brown)">View product ↗</a>`:''}
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:1rem;font-weight:700;color:${isBest?'#276221':'var(--text)'}">$${parseFloat(vp.price).toFixed(2)}</div>
+            <div style="font-size:.78rem;color:var(--muted)">$${ppo.toFixed(4)} / oz</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <div style="font-size:.72rem;color:var(--muted)">Updated ${updated}</div>
+          <div style="display:flex;gap:6px">
+            <button onclick="App._openVPModal('${item.id}','${this.h(vp.id)}')"
+              style="font-size:.72rem;padding:3px 10px;border:1px solid var(--border);border-radius:6px;background:var(--cream);color:var(--brown);cursor:pointer;font-family:Lato,sans-serif">✏️ Edit</button>
+            <button onclick="App._deleteVP('${vp.id}','${item.id}')"
+              style="font-size:.72rem;padding:3px 10px;border:1px solid #e88;border-radius:6px;background:#fff0f0;color:#c00;cursor:pointer;font-family:Lato,sans-serif">✕</button>
+          </div>
+        </div>
+        ${vp.notes?`<div style="font-size:.75rem;color:var(--muted);margin-top:4px;font-style:italic">${this.h(vp.notes)}</div>`:''}
+      </div>`;
+    }).join('');
+
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">
+          ${vps.length} price${vps.length!==1?'s':''} on file — sorted by $/oz
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="App._scrapeVP('${item.id}')"
+            style="font-size:.75rem;padding:5px 10px;border:1.5px solid var(--accent);border-radius:8px;background:var(--accent-l,#EDE0FF);color:var(--accent);cursor:pointer;font-family:Lato,sans-serif;font-weight:700">
+            🔍 Scrape
+          </button>
+          <button onclick="App._openVPModal('${item.id}',null)"
+            style="font-size:.75rem;padding:5px 10px;border:1.5px solid var(--accent);border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;font-family:Lato,sans-serif;font-weight:700">
+            + Add Price
+          </button>
+        </div>
+      </div>
+      ${rows || '<div style="font-size:.82rem;color:var(--muted);font-style:italic;padding:8px 0">No price data yet. Add one or run a scrape.</div>'}`;
+  },
+
+  _openVPModal(invId, vpId){
+    const item = this.inventory.find(x=>x.id===invId);
+    if(!item) return;
+    const vp = vpId ? (this.vendorPrices||[]).find(x=>x.id===vpId) : null;
+    const VENDOR_LIST = ['Wholesale Supplies Plus','Bulk Apothecary','JEdwards International',"Sam's Club",'Lotion Crafter','Plant Guru','Simply Ingredients','Amazon','Other'];
+    const vOpts = VENDOR_LIST.map(v=>`<option${vp&&vp.vendor===v?' selected':''}>${this.h(v)}</option>`).join('');
+
+    const html = `<div style="padding:16px">
+      <div class="form-group"><label>Vendor *</label>
+        <select id="vp-vendor" style="font-size:16px">${vOpts}</select>
+      </div>
+      <div class="form-group"><label>Size / Package</label>
+        <input id="vp-size-label" value="${this.h(vp?vp.size_label:'')}" placeholder="e.g. 7 lb, Gallon (3.5 kg), 55 lb pail"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Size in oz *</label>
+          <input id="vp-size-oz" type="number" step="0.01" value="${vp?vp.size_oz:''}" placeholder="e.g. 112"/>
+        </div>
+        <div class="form-group"><label>Price ($) *</label>
+          <input id="vp-price" type="number" step="0.01" value="${vp?vp.price:''}" placeholder="0.00"/>
+        </div>
+      </div>
+      <div id="vp-ppo-preview" style="background:var(--cream);border-radius:8px;padding:8px 12px;font-size:.82rem;color:var(--muted);margin-bottom:10px">
+        $/oz: enter size and price to calculate
+      </div>
+      <div class="form-group"><label>Vendor Product URL</label>
+        <input id="vp-url" type="url" value="${this.h(vp?vp.vendor_url||'':'')}" placeholder="https://…"/>
+      </div>
+      <div class="form-group"><label>Notes</label>
+        <input id="vp-notes" value="${this.h(vp?vp.notes||'':'')}" placeholder="Grade, organic, bulk discount…"/>
+      </div>
+    </div>`;
+
+    // Show in a confirm-style modal
+    this._showModal('📊 '+(vp?'Edit':'Add')+' Price — '+item.name, html, [
+      {label:'Cancel', action:'close', style:'outline'},
+      {label: vp?'Save Changes':'Add Price', action:()=>this._saveVP(invId, vpId), style:'primary'}
+    ]);
+
+    // Live $/oz preview
+    ['vp-size-oz','vp-price'].forEach(id=>{
+      document.getElementById(id)?.addEventListener('input', ()=>{
+        const oz=parseFloat(document.getElementById('vp-size-oz')?.value)||0;
+        const pr=parseFloat(document.getElementById('vp-price')?.value)||0;
+        const prev=document.getElementById('vp-ppo-preview');
+        if(prev && oz>0 && pr>0){
+          prev.textContent='$/oz: $'+(pr/oz).toFixed(4);
+          prev.style.color='var(--text)'; prev.style.fontWeight='700';
+        } else if(prev){
+          prev.textContent='$/oz: enter size and price to calculate';
+          prev.style.color='var(--muted)'; prev.style.fontWeight='400';
+        }
+      });
+    });
+  },
+
+  async _saveVP(invId, vpId){
+    const vendor = document.getElementById('vp-vendor')?.value?.trim();
+    const sizeLabel = document.getElementById('vp-size-label')?.value?.trim();
+    const sizeOz = parseFloat(document.getElementById('vp-size-oz')?.value);
+    const price = parseFloat(document.getElementById('vp-price')?.value);
+    const url = document.getElementById('vp-url')?.value?.trim()||'';
+    const notes = document.getElementById('vp-notes')?.value?.trim()||'';
+    if(!vendor||!sizeOz||isNaN(sizeOz)||!price||isNaN(price)){
+      this._toast('Vendor, size (oz) and price are required'); return;
+    }
+    const item = this.inventory.find(x=>x.id===invId);
+    const now = new Date().toISOString();
+    const record = {
+      id: vpId || this.uid(),
+      inventory_id: invId,
+      item_name: item?.name||'',
+      vendor, size_label: sizeLabel||sizeOz+'oz',
+      size_oz: sizeOz, price,
+      price_per_oz: Math.round(price/sizeOz*10000)/10000,
+      vendor_url: url, notes, source:'manual',
+      last_updated: now, created_at: now, updated_at: now
+    };
+    const idx = (this.vendorPrices||[]).findIndex(x=>x.id===record.id);
+    if(idx>=0) this.vendorPrices[idx]=record; else (this.vendorPrices=this.vendorPrices||[]).push(record);
+    this._localSaveVP();
+    this._closeModal();
+    this._toast(vpId?'Price updated!':'Price added!');
+    // Push to cloud
+    try {
+      await this._sbFetch(vpId?'PATCH':'POST',
+        'vendor_prices'+(vpId?'?id=eq.'+vpId:''),
+        record);
+    } catch(e){ console.warn('VP save cloud failed:',e.message); }
+    // Refresh detail view
+    if(this.subview==='inv-detail') this.openInvDetail(invId);
+  },
+
+  async _deleteVP(vpId, invId){
+    this.vendorPrices = (this.vendorPrices||[]).filter(x=>x.id!==vpId);
+    this._localSaveVP();
+    this._toast('Price removed');
+    if(this.subview==='inv-detail') this.openInvDetail(invId);
+    try { await this._sbFetch('DELETE','vendor_prices?id=eq.'+vpId); }
+    catch(e){ console.warn('VP delete failed:',e.message); }
+  },
+
+  async _scrapeVP(invId){
+    const item = this.inventory.find(x=>x.id===invId);
+    if(!item){ this._toast('Item not found'); return; }
+    // Find vendor URLs for this item from vendorPrices or item.vendorUrl
+    const knownUrls = [
+      ...(this.vendorPrices||[]).filter(vp=>vp.inventory_id===invId&&vp.vendor_url).map(vp=>({vendor:vp.vendor,url:vp.vendor_url})),
+      ...(item.vendorUrl?[{vendor:item.supplier||'Vendor',url:item.vendorUrl}]:[])
+    ];
+    if(!knownUrls.length){
+      this._toast('No vendor URLs on file for this item. Add a price entry with a URL first.');
+      return;
+    }
+    this._toast('🔍 Scraping prices… this may take a moment');
+    try {
+      const res = await this._sbFetch('POST', 'scrape-price', {
+        inventory_id: invId,
+        item_name: item.name,
+        vendor_urls: knownUrls
+      });
+      if(!res.ok) throw new Error('Scrape failed');
+      const data = await res.json();
+      const newPrices = data.prices||[];
+      newPrices.forEach(p => {
+        const existing = (this.vendorPrices||[]).findIndex(x=>
+          x.inventory_id===invId && x.vendor===p.vendor && x.size_label===p.size_label);
+        if(existing>=0) this.vendorPrices[existing]={...this.vendorPrices[existing],...p,last_updated:new Date().toISOString(),source:'scraped'};
+        else (this.vendorPrices=this.vendorPrices||[]).push({...p,id:this.uid(),inventory_id:invId,item_name:item.name,source:'scraped',last_updated:new Date().toISOString()});
+      });
+      this._localSaveVP();
+      this._toast(`✅ Found ${newPrices.length} price${newPrices.length!==1?'s':''}!`);
+      if(this.subview==='inv-detail') this.openInvDetail(invId);
+    } catch(e){
+      this._toast('Scrape failed — check console. You may need Anthropic API credits.');
+      console.warn('Scrape error:',e);
+    }
+  },
+
+  // Generic modal helper for vendor prices UI
+  _showModal(title, bodyHtml, buttons){
+    let existing = document.getElementById('__vp-modal');
+    if(!existing){
+      existing = document.createElement('div');
+      existing.id = '__vp-modal';
+      existing.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center';
+      document.body.appendChild(existing);
+    }
+    const btns = (buttons||[]).map(b=>{
+      if(b.action==='close') return `<button onclick="App._closeModal()" class="btn btn-outline" style="flex:1">${b.label}</button>`;
+      return `<button onclick="App._closeModal();(${b.action.toString()})()" class="btn btn-primary" style="flex:2">${b.label}</button>`;
+    }).join('');
+    existing.innerHTML=`<div style="background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700">${title}</div>
+        <button onclick="App._closeModal()" style="background:none;border:none;font-size:1.3rem;color:var(--muted);cursor:pointer;line-height:1">×</button>
+      </div>
+      ${bodyHtml}
+      <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px">${btns}</div>
+    </div>`;
+    existing.style.display='flex';
+    existing.onclick=e=>{ if(e.target===existing) this._closeModal(); };
+  },
+  _closeModal(){
+    const m=document.getElementById('__vp-modal'); if(m) m.style.display='none';
   },
   delRecipe(id){
     this._confirm('Delete Recipe','This recipe will be permanently removed. This cannot be undone.',async ()=>{
@@ -3441,6 +3724,7 @@ const App = {
     i.name=name; i.category=document.getElementById('iic').value; i.unit=document.getElementById('iiu').value;
     i.quantity=parseFloat(document.getElementById('iiq').value)||0;
     i.reorderAt=parseFloat(document.getElementById('iir').value)||0;
+    const prevCost = i.cost;
     i.cost=document.getElementById('iico').value;
     i.pkgSize=document.getElementById('iipkg').value;
     i.supplier=document.getElementById('iis').value;
@@ -3450,6 +3734,10 @@ const App = {
     const idx=this.inventory.findIndex(x=>x.id===i.id);
     if(idx>=0) this.inventory[idx]=i; else this.inventory.unshift(i);
     this._localSaveI();
+    // Cost propagation — if cost changed, recalc any recipe that uses this ingredient
+    if(String(i.cost) !== String(prevCost)){
+      this._propagateCostChange(i.name);
+    }
     this.renderInventory(); this.renderOrders(); this.closeModal('modal-inv');
     this._toast(idx>=0?'Item updated!':'Item added!');
     if(this.subview==='inv-detail') this.openInvDetail(i.id);
