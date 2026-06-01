@@ -1178,7 +1178,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.110.00';
+    const _ver = 'V-5.31.26.111.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -3635,17 +3635,60 @@ const App = {
           vendor_urls: knownUrls
         })
       });
-      if(!res.ok) throw new Error('Scrape failed');
+      if(!res.ok) throw new Error('Scrape failed: ' + res.status);
       const data = await res.json();
+      console.log('Scrape response:', JSON.stringify(data));
       const newPrices = data.prices||[];
+      const errors = data.errors||[];
+
+      if(newPrices.length === 0){
+        const errMsg = errors.length
+          ? errors.map(e=>e.vendor+': '+e.reason).join('\n')
+          : 'No prices found — vendor pages may not have loaded or prices are behind login.';
+        this._toast('⚠ No prices extracted. Check console for details.');
+        console.warn('Scrape errors:', errMsg);
+        return;
+      }
+
+      // Update local state
       newPrices.forEach(p => {
+        const record = {...p, id:this.uid(), inventory_id:invId, item_name:item.name,
+          source:'scraped', last_updated:new Date().toISOString()};
         const existing = (this.vendorPrices||[]).findIndex(x=>
           x.inventory_id===invId && x.vendor===p.vendor && x.size_label===p.size_label);
-        if(existing>=0) this.vendorPrices[existing]={...this.vendorPrices[existing],...p,last_updated:new Date().toISOString(),source:'scraped'};
-        else (this.vendorPrices=this.vendorPrices||[]).push({...p,id:this.uid(),inventory_id:invId,item_name:item.name,source:'scraped',last_updated:new Date().toISOString()});
+        if(existing>=0) this.vendorPrices[existing]={...this.vendorPrices[existing],...record};
+        else (this.vendorPrices=this.vendorPrices||[]).push(record);
       });
       this._localSaveVP();
+
+      // Push all to Supabase
+      try {
+        await fetch(this.SB_URL + '/rest/v1/vendor_prices', {
+          method: 'POST',
+          headers: {
+            'apikey': this.SB_KEY,
+            'Authorization': 'Bearer ' + this.SB_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify(newPrices.map(p=>({
+            id: this.uid(),
+            inventory_id: invId,
+            item_name: item.name,
+            vendor: p.vendor,
+            vendor_url: p.vendor_url||'',
+            size_label: p.size_label,
+            size_oz: p.size_oz,
+            price: p.price,
+            source: 'scraped',
+            notes: p.notes||'',
+            last_updated: new Date().toISOString()
+          })))
+        });
+      } catch(e){ console.warn('VP cloud push failed:', e); }
+
       this._toast(`✅ Found ${newPrices.length} price${newPrices.length!==1?'s':''}!`);
+      if(errors.length) console.warn('Some vendors skipped:', errors);
       if(this.subview==='inv-detail') this.openInvDetail(invId);
     } catch(e){
       this._toast('Scrape failed — check console. You may need Anthropic API credits.');
