@@ -1184,7 +1184,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.115.00';
+    const _ver = 'V-5.31.26.116.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -3162,28 +3162,35 @@ const App = {
 
   // ── TASK 6 continued: Hook into _iRow ────────────────────────
 
-  _initTags(fid,init){
-    const wrap=document.getElementById(fid+'-wrap');
-    const hidden=document.getElementById(fid);
-    const input=document.getElementById(fid+'-inp');
-    let tags=[...(init||[])];
-    const render=()=>{
+  _initTags(fid, init){
+    const wrap   = document.getElementById(fid+'-wrap');
+    const hidden = document.getElementById(fid);
+    const input  = document.getElementById(fid+'-inp');
+    if(!wrap||!hidden||!input) return;
+    let tags = [...(init||[])];
+    const rmKey = '_rmTag_'+fid;
+    const render = () => {
       wrap.querySelectorAll('.tag-pill').forEach(p=>p.remove());
-      tags.forEach((t,i)=>{
-        const p=document.createElement('div'); p.className='tag-pill';
-        p.innerHTML=`${this.h(t)}<button onclick="_rmTag(${i})">×</button>`;
-        wrap.insertBefore(p,input);
+      tags.forEach((t,i) => {
+        const p = document.createElement('div');
+        p.className = 'tag-pill';
+        p.innerHTML = `${this.h(t)}<button onclick="window['${rmKey}'](${i})">×</button>`;
+        wrap.insertBefore(p, input);
       });
-      hidden.value=JSON.stringify(tags);
+      hidden.value = JSON.stringify(tags);
     };
-    window._rmTag=(i)=>{tags.splice(i,1);render();};
-    input.addEventListener('keydown',e=>{
-      if((e.key==='Enter'||e.key===',')&&input.value.trim()){
-        e.preventDefault(); const v=input.value.replace(',','').trim();
-        if(v&&!tags.includes(v)){tags.push(v);render();} input.value='';
-      } else if(e.key==='Backspace'&&!input.value&&tags.length){tags.pop();render();}
+    window[rmKey] = (i) => { tags.splice(i,1); render(); };
+    input.addEventListener('keydown', e => {
+      if((e.key==='Enter'||e.key===',') && input.value.trim()){
+        e.preventDefault();
+        const v = input.value.replace(',','').trim();
+        if(v && !tags.includes(v)){ tags.push(v); render(); }
+        input.value = '';
+      } else if(e.key==='Backspace' && !input.value && tags.length){
+        tags.pop(); render();
+      }
     });
-    wrap.addEventListener('click',()=>input.focus());
+    wrap.addEventListener('click', ()=>input.focus());
     render();
   },
 
@@ -3885,7 +3892,6 @@ const App = {
       this._pending=this._pending.filter(p=>!(p.table==='inventory'&&p.id===i.id));
       localStorage.setItem('ss_pending',JSON.stringify(this._pending));
       this._updateSyncBadge();
-      this._showSyncStatus('Saved \u2713');
     }catch(e){
       console.warn('Inventory cloud save failed:',e.message);
       this._queuePending('inventory',i.id,'upsert',{id:i.id,name:i.name||'',category:i.category||'',quantity:parseFloat(i.quantity)||0,unit:i.unit||'oz',cost:i.cost!==''&&i.cost!=null?parseFloat(i.cost):null,reorder_at:parseFloat(i.reorderAt)||0,supplier:i.supplier||'',notes:i.notes||'',pkg_size:i.pkgSize||'',vendor_url:i.vendorUrl||''});
