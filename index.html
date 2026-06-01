@@ -766,6 +766,12 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     <h3 style="margin-bottom:6px">🧪 Make It?</h3>
     <p style="font-size:.8rem;color:var(--muted);margin-bottom:12px">The following will be deducted from your inventory:</p>
     <div id="make-confirm-list" style="font-size:.83rem;margin-bottom:14px"></div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label style="font-size:.8rem;font-weight:700;color:var(--brown-d);display:block;margin-bottom:4px">Batch Note <span style="font-weight:400;color:var(--muted)">(optional — what's this batch for?)</span></label>
+      <textarea id="make-confirm-note" rows="2"
+        style="width:100%;font-family:Lato,sans-serif;font-size:.85rem;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;resize:vertical;color:var(--text);background:var(--cream);box-sizing:border-box"
+        placeholder="e.g. Christmas market stock, Sip &amp; Soap class Apr 12, Gift set order for Sarah…"></textarea>
+    </div>
     <div class="confirm-btns">
       <button class="cbtn-cancel" onclick="App.closeMakeConfirm()">Cancel</button>
       <button class="cbtn-make" onclick="App._executeMake()" style="background:var(--brown);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-weight:700;cursor:pointer;flex:1">✅ Confirm & Deduct</button>
@@ -1178,7 +1184,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.111.00';
+    const _ver = 'V-5.31.26.113.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1323,7 +1329,7 @@ const App = {
     try {
       const [rRes,iRes,fRes,vpRes] = await Promise.all([
         this._sbFetch('GET','recipes?select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,version,created_at,updated_at,is_favorite&order=updated_at.desc'),
-        this._sbFetch('GET','inventory?select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,updated_at&order=updated_at.desc'),
+        this._sbFetch('GET','inventory?select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,aliases,updated_at&order=updated_at.desc'),
         this._sbFetch('GET','fragrances?order=updated_at.desc'),
         this._sbFetch('GET','vendor_prices?order=item_name.asc,price_per_oz.asc')
       ]);
@@ -1354,7 +1360,7 @@ const App = {
           quantity:parseFloat(row.quantity)||0,unit:row.unit||'oz',
           cost:row.cost!=null?String(row.cost):'',reorderAt:parseFloat(row.reorder_at)||0,
           supplier:row.supplier||'',notes:row.notes||'',pkgSize:row.pkg_size||'',
-          vendorUrl:row.vendor_url||'',updated_at:row.updated_at||''
+          vendorUrl:row.vendor_url||'',aliases:Array.isArray(row.aliases)?row.aliases:(row.aliases?JSON.parse(row.aliases):[]),updated_at:row.updated_at||''
         };
       });
       this.fragrances=fRows||[];
@@ -1452,7 +1458,7 @@ const App = {
       quantity:parseFloat(obj.quantity)||0,unit:obj.unit||'oz',
       cost:obj.cost!==''&&obj.cost!=null?parseFloat(obj.cost):null,
       reorder_at:parseFloat(obj.reorderAt)||0,supplier:obj.supplier||'',
-      notes:obj.notes||'',pkg_size:obj.pkgSize||'',vendor_url:obj.vendorUrl||''
+      notes:obj.notes||'',pkg_size:obj.pkgSize||'',vendor_url:obj.vendorUrl||'',aliases:obj.aliases||[]
     };
     if(table==='fragrances') return {
       id:obj.id, name:obj.name||'', description:obj.description||'',
@@ -1608,7 +1614,7 @@ const App = {
                 if(ri>=0) this.recipes[ri]=Object.assign({},this.recipes[ri],updated);
               } else if(pItem.table==='inventory'){
                 const d = pItem.data;
-                const updated = {id:d.id,name:d.name||'',category:d.category||'',quantity:parseFloat(d.quantity)||0,unit:d.unit||'oz',cost:d.cost!=null?String(d.cost):'',reorderAt:parseFloat(d.reorder_at)||0,supplier:d.supplier||'',notes:d.notes||'',pkgSize:d.pkg_size||'',vendorUrl:d.vendor_url||''};
+                const updated = {id:d.id,name:d.name||'',category:d.category||'',quantity:parseFloat(d.quantity)||0,unit:d.unit||'oz',cost:d.cost!=null?String(d.cost):'',reorderAt:parseFloat(d.reorder_at)||0,supplier:d.supplier||'',notes:d.notes||'',pkgSize:d.pkg_size||'',vendorUrl:d.vendor_url||'',aliases:Array.isArray(d.aliases)?d.aliases:[]};
                 const ii = this.inventory.findIndex(x=>x.id===pItem.id);
                 if(ii>=0) this.inventory[ii]=Object.assign({},this.inventory[ii],updated);
               }
@@ -1628,7 +1634,7 @@ const App = {
           } else if(row.table==='inventory'){
             const res=await this._sbFetch('GET','inventory?id=eq.'+row.id+'&select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,updated_at');
             const rows=await res.json();
-            if(rows&&rows[0]){ const r=rows[0]; const item={id:r.id,name:r.name||'',category:r.category||'',quantity:parseFloat(r.quantity)||0,unit:r.unit||'oz',cost:r.cost!=null?String(r.cost):'',reorderAt:parseFloat(r.reorder_at)||0,supplier:r.supplier||'',notes:r.notes||'',pkgSize:r.pkg_size||'',vendorUrl:r.vendor_url||'',updated_at:r.updated_at||''}; const idx=this.inventory.findIndex(x=>x.id===item.id); if(idx>=0) this.inventory[idx]=item; else this.inventory.push(item); }
+            if(rows&&rows[0]){ const r=rows[0]; const item={id:r.id,name:r.name||'',category:r.category||'',quantity:parseFloat(r.quantity)||0,unit:r.unit||'oz',cost:r.cost!=null?String(r.cost):'',reorderAt:parseFloat(r.reorder_at)||0,supplier:r.supplier||'',notes:r.notes||'',pkgSize:r.pkg_size||'',vendorUrl:r.vendor_url||'',aliases:Array.isArray(r.aliases)?r.aliases:[],updated_at:r.updated_at||''}; const idx=this.inventory.findIndex(x=>x.id===item.id); if(idx>=0) this.inventory[idx]=item; else this.inventory.push(item); }
             applied++;
           }
         }
@@ -2632,6 +2638,8 @@ const App = {
 
   closeMakeConfirm(){
     document.getElementById('modal-make-confirm').style.display='none';
+    const noteEl = document.getElementById('make-confirm-note');
+    if(noteEl) noteEl.value='';
     this._makePending = null;
   },
 
@@ -2639,6 +2647,7 @@ const App = {
     const p = this._makePending;
     if(!p){ this.closeMakeConfirm(); return; }
 
+    const batchNote = (document.getElementById('make-confirm-note')?.value||'').trim();
     let deducted = 0, skipped = 0;
     const usedAt = new Date().toISOString();
     const transactions = [];
@@ -2669,6 +2678,7 @@ const App = {
             variant_id: p.variantId||null,
             variant_name: p.v ? p.v.name : null,
             units_yielded: _unitsYielded,
+            batch_note: batchNote||null,
             used_at: usedAt
           });
         }
@@ -2690,6 +2700,7 @@ const App = {
             variant_id: p.variantId||null,
             variant_name: p.v ? p.v.name : null,
             units_yielded: _unitsYielded,
+            batch_note: batchNote||null,
             used_at: usedAt
           });
         }
@@ -3275,14 +3286,20 @@ const App = {
         const date = new Date(tx.used_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
         const time = new Date(tx.used_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
         const amt = tx.unit==='ea' ? tx.amount_used+' unit'+(tx.amount_used!==1?'s':'') : tx.amount_used+' '+(tx.unit||'oz');
-        const src = tx.variant_name ? this.h(tx.recipe_name||'Unknown')+' — '+this.h(tx.variant_name) : this.h(tx.recipe_name||'Unknown');
-        const units = tx.units_yielded ? ' · '+tx.units_yielded+' units made' : '';
-        return `<div style="padding:7px 0;border-bottom:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-weight:600;color:var(--text);font-size:.83rem">${src}</span>
-            <span style="font-weight:700;color:var(--brown);white-space:nowrap;margin-left:10px;font-size:.83rem">−${amt}</span>
+        const src = tx.variant_name
+          ? this.h(tx.recipe_name||'Unknown')+' — '+this.h(tx.variant_name)
+          : this.h(tx.recipe_name||'Unknown');
+        const units = tx.units_yielded ? ' · '+tx.units_yielded+' unit'+(tx.units_yielded!==1?'s':'')+' made' : '';
+        const note = tx.batch_note
+          ? `<div style="font-size:.75rem;color:var(--brown-d);background:var(--cream);border-left:3px solid var(--accent-l,#FCBFCE);border-radius:0 6px 6px 0;padding:3px 8px;margin-top:4px;font-style:italic">📝 ${this.h(tx.batch_note)}</div>`
+          : '';
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+            <span style="font-weight:600;color:var(--text);font-size:.83rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${src}</span>
+            <span style="font-weight:700;color:var(--brown);white-space:nowrap;font-size:.83rem;flex-shrink:0">−${amt}</span>
           </div>
-          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${date} · ${time}${units}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${date} at ${time}${units}</div>
+          ${note}
         </div>`;
       };
       let html = rows.slice(0,10).map(mkRow).join('');
@@ -3307,14 +3324,20 @@ const App = {
         const date = new Date(tx.used_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
         const time = new Date(tx.used_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
         const amt = tx.unit==='ea' ? tx.amount_used+' unit'+(tx.amount_used!==1?'s':'') : tx.amount_used+' '+(tx.unit||'oz');
-        const src = tx.variant_name ? this.h(tx.recipe_name||'Unknown')+' — '+this.h(tx.variant_name) : this.h(tx.recipe_name||'Unknown');
-        const units = tx.units_yielded ? ' · '+tx.units_yielded+' units made' : '';
-        return `<div style="padding:7px 0;border-bottom:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-weight:600;color:var(--text);font-size:.83rem">${src}</span>
-            <span style="font-weight:700;color:var(--brown);white-space:nowrap;margin-left:10px;font-size:.83rem">−${amt}</span>
+        const src = tx.variant_name
+          ? this.h(tx.recipe_name||'Unknown')+' — '+this.h(tx.variant_name)
+          : this.h(tx.recipe_name||'Unknown');
+        const units = tx.units_yielded ? ' · '+tx.units_yielded+' unit'+(tx.units_yielded!==1?'s':'')+' made' : '';
+        const note = tx.batch_note
+          ? `<div style="font-size:.75rem;color:var(--brown-d);background:var(--cream);border-left:3px solid var(--accent-l,#FCBFCE);border-radius:0 6px 6px 0;padding:3px 8px;margin-top:4px;font-style:italic">📝 ${this.h(tx.batch_note)}</div>`
+          : '';
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+            <span style="font-weight:600;color:var(--text);font-size:.83rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${src}</span>
+            <span style="font-weight:700;color:var(--brown);white-space:nowrap;font-size:.83rem;flex-shrink:0">−${amt}</span>
           </div>
-          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${date} · ${time}${units}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${date} at ${time}${units}</div>
+          ${note}
         </div>`;
       };
       if(wrap) wrap.innerHTML = `<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
@@ -3375,6 +3398,7 @@ const App = {
             <span class="ing-amt">${costPerUnit?'$'+costPerUnit.toFixed(4)+' / '+i.unit:'<span style="color:var(--muted)">not set</span>'}</span></div>
           ${i.vendorUrl?`<div class="ing-row"><span class="ing-name">Website</span><span class="ing-amt" style="font-size:.78rem"><a href="${this.h(i.vendorUrl)}" target="_blank" style="color:var(--brown)">Open ↗</a></span></div>`:''}
           ${costPerUnit&&i.quantity?`<div class="ing-row"><span class="ing-name">Stock value</span><span class="ing-amt">$${totalValue.toFixed(2)}</span></div>`:''}
+          ${(i.aliases&&i.aliases.length)?`<div class="ing-row" style="align-items:flex-start"><span class="ing-name">Aliases</span><span class="ing-amt" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">${i.aliases.map(a=>`<span style="background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:2px 8px;font-size:.75rem">${this.h(a)}</span>`).join('')}</span></div>`:''}
 
           <!-- VENDOR PRICES PANEL (collapsed by default) -->
           <div id="vp-panel-${i.id}" style="display:none;margin-top:12px">
@@ -3632,6 +3656,7 @@ const App = {
         body: JSON.stringify({
           inventory_id: invId,
           item_name: item.name,
+          aliases: item.aliases||[],
           vendor_urls: knownUrls
         })
       });
@@ -3739,15 +3764,21 @@ const App = {
   },
   openInvModal(id){
     const item=id?this.inventory.find(x=>x.id===id):null;
-    this.editI=item?JSON.parse(JSON.stringify(item)):{id:this.uid(),name:'',category:'Oils',quantity:0,unit:'oz',reorderAt:8,supplier:'',vendorUrl:'',cost:'',pkgSize:'',notes:''};
+    this.editI=item?JSON.parse(JSON.stringify(item)):{id:this.uid(),name:'',category:'Oils',quantity:0,unit:'oz',reorderAt:8,supplier:'',vendorUrl:'',cost:'',pkgSize:'',notes:'',aliases:[]};
     document.getElementById('modal-inv-title').textContent=item?'Edit Item':'New Inventory Item';
     document.getElementById('modal-inv-body').innerHTML=this._iForm(this.editI);
     document.getElementById('modal-inv').classList.add('open');
+    // Init alias tag input
+    requestAnimationFrame(()=>this._initTags('ialiases', this.editI.aliases||[]));
   },
   _iForm(i){
     const so=(a,v)=>a.map(o=>`<option${o===v?' selected':''}>${o}</option>`).join('');
     const vendors=[...new Set(this.inventory.map(x=>x.supplier).filter(Boolean))].sort();
     const vOpts=vendors.map(v=>`<option value="${this.h(v)}">`).join('');
+    const aliases = Array.isArray(i.aliases) ? i.aliases : [];
+    const aliasPills = aliases.map(a=>
+      `<span class="tag-pill">${this.h(a)}<button type="button" onclick="App._removeAlias(this,'${this.h(a)}')" class="tag-rm">×</button></span>`
+    ).join('');
     return `
       <div style="display:flex;gap:8px;margin-bottom:14px">
         <button type="button" class="btn btn-outline" style="flex:1;font-size:.8rem" onclick="App.openScanner()">📷 Scan Barcode</button>
@@ -3765,6 +3796,13 @@ const App = {
       <div class="form-row">
         <div class="form-group"><label>Purchase Price ($)</label><input id="iico" type="number" step="0.01" value="${this.h(i.cost)}" placeholder="0.00"/></div>
         <div class="form-group"><label>Package Size</label><input id="iipkg" value="${this.h(i.pkgSize||'')}" placeholder="e.g. 32 oz jug"/></div>
+      </div>
+      <div class="form-group"><label>Aliases <span style="font-size:.72rem;color:var(--muted);font-weight:400">— other names for this ingredient (Enter or comma to add)</span></label>
+        <div class="tag-wrap" id="ialias-wrap">
+          ${aliasPills}
+          <input class="tag-input" id="ialias-inp" placeholder="e.g. Golden Jojoba, Jojoba Golden…" autocomplete="off"/>
+        </div>
+        <input type="hidden" id="ialiases" value="${this.h(JSON.stringify(aliases))}"/>
       </div>
       <div class="form-group"><label>Vendor / Supplier</label>
         <input id="iis" list="vendor-datalist" value="${this.h(i.supplier)}" placeholder="e.g. Brambleberry" autocomplete="off"/>
@@ -3793,6 +3831,7 @@ const App = {
     i.supplier=document.getElementById('iis').value;
     i.vendorUrl=document.getElementById('iiurl').value;
     i.notes=document.getElementById('iino').value;
+    try { i.aliases=JSON.parse(document.getElementById('ialiases')?.value||'[]'); } catch(e){ i.aliases=[]; }
     i.updated_at=new Date().toISOString();
     const idx=this.inventory.findIndex(x=>x.id===i.id);
     if(idx>=0) this.inventory[idx]=i; else this.inventory.unshift(i);
@@ -3813,7 +3852,7 @@ const App = {
         quantity:parseFloat(i.quantity)||0,unit:i.unit||'oz',
         cost:i.cost!==''&&i.cost!=null?parseFloat(i.cost):null,
         reorder_at:parseFloat(i.reorderAt)||0,supplier:i.supplier||'',
-        notes:i.notes||'',pkg_size:i.pkgSize||'',vendor_url:i.vendorUrl||''};
+        notes:i.notes||'',pkg_size:i.pkgSize||'',vendor_url:i.vendorUrl||'',aliases:i.aliases||[]};
       const res=await fetch(this.SB_URL+'/rest/v1/inventory?on_conflict=id',{
         method:'POST',
         headers:{'apikey':this.SB_KEY,'Authorization':'Bearer '+this.SB_KEY,
