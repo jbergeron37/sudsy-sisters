@@ -1178,7 +1178,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.109.00';
+    const _ver = 'V-5.31.26.110.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -3622,10 +3622,18 @@ const App = {
     }
     this._toast('🔍 Scraping prices… this may take a moment');
     try {
-      const res = await this._sbFetch('POST', 'scrape-price', {
-        inventory_id: invId,
-        item_name: item.name,
-        vendor_urls: knownUrls
+      const res = await fetch(this.SB_URL + '/functions/v1/scrape-price', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + this.SB_KEY,
+          'apikey': this.SB_KEY
+        },
+        body: JSON.stringify({
+          inventory_id: invId,
+          item_name: item.name,
+          vendor_urls: knownUrls
+        })
       });
       if(!res.ok) throw new Error('Scrape failed');
       const data = await res.json();
