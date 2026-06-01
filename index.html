@@ -1184,7 +1184,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.114.00';
+    const _ver = 'V-5.31.26.115.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -3375,6 +3375,7 @@ const App = {
         <div class="detail-header">
           <div class="detail-badge" style="background:var(--brown)">${this.h(i.category)}</div>
           <div class="detail-name">${this.h(i.name)}</div>
+          ${(i.aliases&&i.aliases.length)?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;justify-content:center">${i.aliases.map(a=>`<span style="background:rgba(255,255,255,0.55);border:1px solid rgba(168,82,122,0.25);border-radius:12px;padding:2px 10px;font-size:.75rem;color:var(--brown-d)">aka ${this.h(a)}</span>`).join('')}</div>`:'' }
           <div class="meta-row">
             <div class="meta-pill">Qty <span>${i.quantity} ${i.unit}</span></div>
             <div class="meta-pill">Reorder at <span>${i.reorderAt} ${i.unit}</span></div>
@@ -3398,7 +3399,6 @@ const App = {
             <span class="ing-amt">${costPerUnit?'$'+costPerUnit.toFixed(4)+' / '+i.unit:'<span style="color:var(--muted)">not set</span>'}</span></div>
           ${i.vendorUrl?`<div class="ing-row"><span class="ing-name">Website</span><span class="ing-amt" style="font-size:.78rem"><a href="${this.h(i.vendorUrl)}" target="_blank" style="color:var(--brown)">Open ↗</a></span></div>`:''}
           ${costPerUnit&&i.quantity?`<div class="ing-row"><span class="ing-name">Stock value</span><span class="ing-amt">$${totalValue.toFixed(2)}</span></div>`:''}
-          ${(i.aliases&&i.aliases.length)?`<div class="ing-row" style="align-items:flex-start"><span class="ing-name">Aliases</span><span class="ing-amt" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">${i.aliases.map(a=>`<span style="background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:2px 8px;font-size:.75rem">${this.h(a)}</span>`).join('')}</span></div>`:''}
 
           <!-- VENDOR PRICES PANEL (collapsed by default) -->
           <div id="vp-panel-${i.id}" style="display:none;margin-top:12px">
@@ -3802,9 +3802,6 @@ const App = {
     const vendors=[...new Set(this.inventory.map(x=>x.supplier).filter(Boolean))].sort();
     const vOpts=vendors.map(v=>`<option value="${this.h(v)}">`).join('');
     const aliases = Array.isArray(i.aliases) ? i.aliases : [];
-    const aliasPills = aliases.map(a=>
-      `<span class="tag-pill">${this.h(a)}<button type="button" onclick="App._removeAlias(this,'${this.h(a)}')" class="tag-rm">×</button></span>`
-    ).join('');
     return `
       <div style="display:flex;gap:8px;margin-bottom:14px">
         <button type="button" class="btn btn-outline" style="flex:1;font-size:.8rem" onclick="App.openScanner()">📷 Scan Barcode</button>
@@ -3824,9 +3821,8 @@ const App = {
         <div class="form-group"><label>Package Size</label><input id="iipkg" value="${this.h(i.pkgSize||'')}" placeholder="e.g. 32 oz jug"/></div>
       </div>
       <div class="form-group"><label>Aliases <span style="font-size:.72rem;color:var(--muted);font-weight:400">— other names for this ingredient (Enter or comma to add)</span></label>
-        <div class="tag-wrap" id="ialias-wrap">
-          ${aliasPills}
-          <input class="tag-input" id="ialias-inp" placeholder="e.g. Golden Jojoba, Jojoba Golden…" autocomplete="off"/>
+        <div class="tag-wrap" id="ialiases-wrap">
+          <input class="tag-input" id="ialiases-inp" placeholder="e.g. Golden Jojoba, Coconut 76…" autocomplete="off"/>
         </div>
         <input type="hidden" id="ialiases" value="${this.h(JSON.stringify(aliases))}"/>
       </div>
