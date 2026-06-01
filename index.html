@@ -1184,7 +1184,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.113.00';
+    const _ver = 'V-5.31.26.114.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -3461,6 +3461,15 @@ const App = {
   },
 
   // ── VENDOR PRICES ──────────────────────────────────────────────────────────
+  _toggleUnpriced(invId){
+    const panel = document.getElementById('vp-unpriced-'+invId);
+    const btn = document.getElementById('vp-unpriced-btn-'+invId);
+    if(!panel) return;
+    const open = panel.style.display === 'none';
+    panel.style.display = open ? 'block' : 'none';
+    if(btn) btn.style.opacity = open ? '0.7' : '1';
+  },
+
   _toggleVendorPrices(invId){
     const panel = document.getElementById('vp-panel-'+invId);
     if(!panel) return;
@@ -3470,18 +3479,22 @@ const App = {
 
   _renderVendorPricesPanel(item, vps){
     const pricedVps = vps.filter(v=>parseFloat(v.price)>0 && parseFloat(v.size_oz)>0);
+    const unpricedVps = vps.filter(v=>!(parseFloat(v.price)>0 && parseFloat(v.size_oz)>0));
     const bestPPO = pricedVps.length ? parseFloat(pricedVps[0].price_per_oz) : null;
-    const rows = vps.map(vp => {
+
+    const mkCard = (vp, showBest) => {
       const ppo = parseFloat(vp.price_per_oz);
-      const isBest = bestPPO !== null && ppo === bestPPO;
+      const hasPrice = parseFloat(vp.price)>0 && parseFloat(vp.size_oz)>0;
+      const isBest = showBest && bestPPO !== null && hasPrice && ppo === bestPPO;
       const updated = vp.last_updated ? new Date(vp.last_updated).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
       const sourceBadge = vp.source==='scraped'
         ? '<span style="font-size:.68rem;background:#e8f4fd;color:#1565C0;border-radius:4px;padding:1px 5px">auto</span>'
         : '<span style="font-size:.68rem;background:#f5f5f5;color:#666;border-radius:4px;padding:1px 5px">manual</span>';
+      const noteText = vp.notes && vp.notes !== 'URL only — price needed' && vp.notes !== 'Shopify variant data' ? vp.notes : '';
       return `<div style="border:1.5px solid ${isBest?'#b2dfdb':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:8px;background:${isBest?'#f0faf4':'var(--card)'}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div style="flex:1;min-width:0">
-            <div style="font-weight:700;font-size:.88rem;color:var(--text);display:flex;align-items:center;gap:6px">
+            <div style="font-weight:700;font-size:.88rem;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               ${this.h(vp.vendor)}
               ${isBest?'<span style="font-size:.68rem;background:#C6EFCE;color:#276221;border-radius:4px;padding:1px 5px;font-weight:700">★ BEST</span>':''}
               ${sourceBadge}
@@ -3491,10 +3504,10 @@ const App = {
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-size:1rem;font-weight:700;color:${isBest?'#276221':'var(--text)'}">
-              ${parseFloat(vp.price)>0 ? '$'+parseFloat(vp.price).toFixed(2) : '<span style="color:var(--muted);font-size:.82rem">no price</span>'}
+              ${hasPrice ? '$'+parseFloat(vp.price).toFixed(2) : '<span style="color:var(--muted);font-size:.82rem">no price</span>'}
             </div>
             <div style="font-size:.78rem;color:${isBest?'#276221':'var(--muted)'}">
-              ${(parseFloat(vp.price_per_oz)>0) ? '$'+ppo.toFixed(4)+' / oz' : '<span style="color:#b2dfdb">URL only</span>'}
+              ${hasPrice ? '$'+ppo.toFixed(4)+' / oz' : '<span style="color:#b2dfdb">URL only</span>'}
             </div>
           </div>
         </div>
@@ -3507,14 +3520,26 @@ const App = {
               style="font-size:.72rem;padding:3px 10px;border:1px solid #e88;border-radius:6px;background:#fff0f0;color:#c00;cursor:pointer;font-family:Lato,sans-serif">✕</button>
           </div>
         </div>
-        ${vp.notes?`<div style="font-size:.75rem;color:var(--muted);margin-top:4px;font-style:italic">${this.h(vp.notes)}</div>`:''}
+        ${noteText?`<div style="font-size:.75rem;color:var(--muted);margin-top:4px;font-style:italic">${this.h(noteText)}</div>`:''}
       </div>`;
-    }).join('');
+    };
+
+    const pricedRows = pricedVps.map(vp=>mkCard(vp,true)).join('');
+    let unpricedSection = '';
+    if(unpricedVps.length){
+      const unpricedRows = unpricedVps.map(vp=>mkCard(vp,false)).join('');
+      unpricedSection = `
+        <button onclick="App._toggleUnpriced('${item.id}')" id="vp-unpriced-btn-${item.id}"
+          style="width:100%;text-align:left;background:none;border:1px dashed var(--border);border-radius:8px;padding:7px 12px;font-size:.78rem;color:var(--muted);cursor:pointer;margin-top:4px;font-family:Lato,sans-serif">
+          ＋ ${unpricedVps.length} vendor${unpricedVps.length!==1?'s':''} with URL but no price yet — tap to show / scrape
+        </button>
+        <div id="vp-unpriced-${item.id}" style="display:none;margin-top:8px">${unpricedRows}</div>`;
+    }
 
     return `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">
-          ${vps.length} price${vps.length!==1?'s':''} on file — sorted by $/oz
+          ${pricedVps.length} price${pricedVps.length!==1?'s':''} on file — sorted by $/oz
         </div>
         <div style="display:flex;gap:6px">
           <button onclick="App._scrapeVP('${item.id}')"
@@ -3527,7 +3552,8 @@ const App = {
           </button>
         </div>
       </div>
-      ${rows || '<div style="font-size:.82rem;color:var(--muted);font-style:italic;padding:8px 0">No price data yet. Add one or run a scrape.</div>'}`;
+      ${pricedRows || '<div style="font-size:.82rem;color:var(--muted);font-style:italic;padding:8px 0">No price data yet. Add one or run a scrape.</div>'}
+      ${unpricedSection}`;
   },
 
   _openVPModal(invId, vpId){
