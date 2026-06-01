@@ -1184,7 +1184,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.119.00';
+    const _ver = 'V-5.31.26.120.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -7282,53 +7282,20 @@ const App = {
     r.lye=document.getElementById('fly').value; r.scent='';
     r.description=document.getElementById('fde').value; r.instructions=document.getElementById('fin').value; r.notes=document.getElementById('fno').value;
     const tv=document.getElementById('rtags').value; r.tags=tv?JSON.parse(tv):[];
-    // Read ingredients from DOM — use this.editR for phase/amount fallback BEFORE clearing
-    const editIngsCopy = (this.editR.ingredients||[]).slice();
-    r.ingredients=[];
-    document.querySelectorAll('#ing-rows .ing-form-row').forEach((row)=>{
-      const rowIdx = parseInt((row.id||'').replace('ir',''));
-      const nameEl = row.querySelector('input[placeholder="Ingredient"]');
-      const n = (nameEl ? nameEl.value.trim() : '') || ((!isNaN(rowIdx) && editIngsCopy[rowIdx]) ? editIngsCopy[rowIdx].name : '');
-      if(!n) return;
-      // Packaging rows use qty input, not oz/g
-      const isPkg = (!isNaN(rowIdx) && editIngsCopy[rowIdx] && editIngsCopy[rowIdx].unit==='ea') ||
-                    row.querySelector('label') !== null;
-      const qtyEl = isNaN(rowIdx) ? null : document.getElementById('ing-qty-'+rowIdx);
-      const ozEl  = isNaN(rowIdx) ? null : document.getElementById('ing-oz-'+rowIdx);
-      const gEl   = isNaN(rowIdx) ? null : document.getElementById('ing-g-'+rowIdx);
-      let amount = '', unit = 'oz';
-      if(isPkg && qtyEl && qtyEl.value.trim()) {
-        amount = qtyEl.value.trim(); unit = 'ea';
-      } else if(ozEl && ozEl.value.trim()) { amount = ozEl.value.trim(); unit = 'oz'; }
-      else if(gEl && gEl.value.trim()) { amount = gEl.value.trim(); unit = 'g'; }
-      else if(!isNaN(rowIdx) && editIngsCopy[rowIdx]) {
-        amount = editIngsCopy[rowIdx].amount || '';
-        unit   = editIngsCopy[rowIdx].unit   || 'oz';
-      }
-      let phase = '';
-      if(!isNaN(rowIdx) && editIngsCopy[rowIdx] && editIngsCopy[rowIdx].unit==='ea') {
-        phase = 'pkg'; // Always keep packaging phase
-      } else if(!isNaN(rowIdx) && editIngsCopy[rowIdx]) {
-        phase = editIngsCopy[rowIdx].phase || '';
-      } else {
-        const phaseSel = row.querySelector('select');
-        const phaseTxt = isNaN(rowIdx) ? null : document.getElementById('ing-phase-txt-'+rowIdx);
-        if(phaseSel && phaseSel.value && phaseSel.value !== 'custom') phase = phaseSel.value;
-        else if(phaseTxt && phaseTxt.value) phase = phaseTxt.value.trim();
-      }
-      r.ingredients.push({name:n, amount, unit, phase});
-    });
-    // Calculate usage_rate (% of batch total) for each ingredient
-    const g2oz = g => Math.round(parseFloat(g)/28.3495*1000)/1000;
-    const batchOz = parseFloat(r.batchSize)||0;
-    if(batchOz > 0){
-      r.ingredients = r.ingredients.map(i=>{
-        if(i.unit==='ea'||i.phase==='pkg') return {...i, usage_rate: 0}; // packaging has no weight
-        const oz = i.unit==='g' ? g2oz(i.amount) : (parseFloat(i.amount)||0);
-        const rate = Math.round(oz/batchOz*1000)/10;
-        return {...i, usage_rate: rate};
+    // Use this.editR.ingredients directly — _syncIng keeps it live as the user edits
+    // DOM re-read is fragile because row IDs can desync after add/delete operations
+    r.ingredients = (this.editR.ingredients||[])
+      .filter(ing => ing.name && ing.name.trim())
+      .map(ing => {
+        // Recalculate usage_rate while we have the batch size
+        const batchOz2 = parseFloat(r.batchSize)||0;
+        if(batchOz2 > 0 && ing.unit !== 'ea' && ing.phase !== 'pkg'){
+          const g2oz2 = g => Math.round(parseFloat(g)/28.3495*1000)/1000;
+          const oz2 = ing.unit==='g' ? g2oz2(ing.amount) : (parseFloat(ing.amount)||0);
+          return {...ing, usage_rate: Math.round(oz2/batchOz2*1000)/10};
+        }
+        return {...ing, usage_rate: ing.unit==='ea' ? 0 : (ing.usage_rate||0)};
       });
-    }
     const isExisting = this.recipes.findIndex(x=>x.id===r.id)>=0;
     if(isExisting){
       // Skip version modal for now - always update in place
