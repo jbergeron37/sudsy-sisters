@@ -1178,7 +1178,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.108.00';
+    const _ver = 'V-5.31.26.109.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -3337,7 +3337,14 @@ const App = {
     // Count vendor prices for this item
     const vps = (this.vendorPrices||[])
       .filter(vp=>vp.inventory_id===i.id||vp.item_name?.toLowerCase()===i.name?.toLowerCase())
-      .sort((a,b)=>parseFloat(a.price_per_oz)-parseFloat(b.price_per_oz));
+      .sort((a,b)=>{
+        const aHasPrice = parseFloat(a.price)>0 && parseFloat(a.size_oz)>0;
+        const bHasPrice = parseFloat(b.price)>0 && parseFloat(b.size_oz)>0;
+        if(aHasPrice && !bHasPrice) return -1;
+        if(!aHasPrice && bHasPrice) return 1;
+        if(!aHasPrice && !bHasPrice) return (a.vendor||'').localeCompare(b.vendor||'');
+        return parseFloat(a.price_per_oz)-parseFloat(b.price_per_oz);
+      });
     const vpCount = vps.length;
 
     document.getElementById('view-inv-detail').innerHTML=`
@@ -3438,7 +3445,8 @@ const App = {
   },
 
   _renderVendorPricesPanel(item, vps){
-    const bestPPO = vps.length ? parseFloat(vps[0].price_per_oz) : null;
+    const pricedVps = vps.filter(v=>parseFloat(v.price)>0 && parseFloat(v.size_oz)>0);
+    const bestPPO = pricedVps.length ? parseFloat(pricedVps[0].price_per_oz) : null;
     const rows = vps.map(vp => {
       const ppo = parseFloat(vp.price_per_oz);
       const isBest = bestPPO !== null && ppo === bestPPO;
@@ -3458,8 +3466,12 @@ const App = {
             ${vp.vendor_url?`<a href="${this.h(vp.vendor_url)}" target="_blank" style="font-size:.72rem;color:var(--brown)">View product ↗</a>`:''}
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:1rem;font-weight:700;color:${isBest?'#276221':'var(--text)'}">$${parseFloat(vp.price).toFixed(2)}</div>
-            <div style="font-size:.78rem;color:var(--muted)">$${ppo.toFixed(4)} / oz</div>
+            <div style="font-size:1rem;font-weight:700;color:${isBest?'#276221':'var(--text)'}">
+              ${parseFloat(vp.price)>0 ? '$'+parseFloat(vp.price).toFixed(2) : '<span style="color:var(--muted);font-size:.82rem">no price</span>'}
+            </div>
+            <div style="font-size:.78rem;color:${isBest?'#276221':'var(--muted)'}">
+              ${(parseFloat(vp.price_per_oz)>0) ? '$'+ppo.toFixed(4)+' / oz' : '<span style="color:#b2dfdb">URL only</span>'}
+            </div>
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
