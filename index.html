@@ -462,14 +462,17 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .rf-col-hdr{display:flex;gap:6px;padding:0 0 6px;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
 .rf-link-btn{margin-top:6px;display:inline-flex;align-items:center;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;color:var(--brown-d);cursor:pointer}
 /* Add buttons — ingredient style (dashed, neutral) */
-.rf-add-btn{display:flex;align-items:center;justify-content:center;gap:6px;border-radius:10px;padding:10px 12px;width:100%;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s;text-align:center}
+.rf-add-btn{display:flex;align-items:center;justify-content:center;gap:5px;border-radius:10px;padding:9px 10px;width:100%;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s;text-align:center;white-space:nowrap}
 .rf-add-ing{background:none;border:1.5px dashed var(--border);color:var(--muted)}
 .rf-add-ing:active{background:var(--cream)}
 .rf-add-pkg{background:none;border:1.5px dashed #A8527A;color:#A8527A}
 .rf-add-pkg:active{background:#FDF0F5}
 .rf-add-auto{background:var(--accent-l,#EDE0FF);border:1.5px dashed var(--accent);color:var(--accent)}
-.tag-wrap{display:flex;flex-wrap:wrap;gap:6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;min-height:42px;cursor:text}
+.tag-wrap{display:flex;flex-direction:column;gap:0;background:#fff;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;cursor:text}
 .tag-wrap:focus-within{border-color:var(--brown-l)}
+.tag-input-row{padding:6px 10px;background:#fff;display:flex;align-items:center}
+.tag-pills-row{display:flex;flex-wrap:wrap;gap:5px;padding:6px 10px;background:var(--cream);min-height:0}
+.tag-pills-row:empty{display:none}
 .tag-pill{background:var(--brown);color:#fff;border-radius:7px;padding:2px 8px;font-size:.75rem;display:flex;align-items:center;gap:4px;font-weight:700}
 .tag-pill button{background:none;border:none;cursor:pointer;color:#fff;font-size:.9rem;padding:0;line-height:1}
 .tag-input{border:none;outline:none;background:none;font-family:Lato,sans-serif;font-size:.85rem;color:var(--text);min-width:70px;flex:1;padding:2px 0}
@@ -1185,7 +1188,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.129.00';
+    const _ver = 'V-5.31.26.130.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2891,11 +2894,10 @@ const App = {
         </div>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button class="rf-add-btn rf-add-ing" onclick="App.addIngRow()">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Ingredient
+            🧪 Ingredient
           </button>
           <button class="rf-add-btn rf-add-pkg" onclick="App.addPkgRow()">
-            📦 Add Packaging
+            📦 Packaging
           </button>
           <button class="rf-add-btn rf-add-auto" onclick="App.autoAssignPhases()">
             ✨ Auto-phase
@@ -3204,13 +3206,28 @@ const App = {
     if(!wrap||!hidden||!input) return;
     let tags = [...(init||[])];
     const rmKey = '_rmTag_'+fid;
+
+    // Ensure two-row structure: input row + pills row
+    if(!wrap.querySelector('.tag-input-row')){
+      const inputRow = document.createElement('div');
+      inputRow.className = 'tag-input-row';
+      inputRow.appendChild(input);
+      wrap.appendChild(inputRow);
+    }
+    if(!wrap.querySelector('.tag-pills-row')){
+      const pillsRow = document.createElement('div');
+      pillsRow.className = 'tag-pills-row';
+      wrap.appendChild(pillsRow);
+    }
+    const pillsRow = wrap.querySelector('.tag-pills-row');
+
     const render = () => {
-      wrap.querySelectorAll('.tag-pill').forEach(p=>p.remove());
+      pillsRow.innerHTML = '';
       tags.forEach((t,i) => {
         const p = document.createElement('div');
         p.className = 'tag-pill';
         p.innerHTML = `${this.h(t)}<button onclick="window['${rmKey}'](${i})">×</button>`;
-        wrap.insertBefore(p, input);
+        pillsRow.appendChild(p);
       });
       hidden.value = JSON.stringify(tags);
     };
@@ -7168,8 +7185,7 @@ const App = {
         '</div>'+
         '<div id="vf-added-ings">'+addedIngsHtml+'</div>'+
         '<button class="rf-add-btn rf-add-ing" onclick="App._addVariantIngRow()" style="margin-top:8px">'+
-          '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
-          ' Add Additive'+
+          '🧪 Additive'+
         '</button>'+
       '</div>'+
 
@@ -7181,7 +7197,7 @@ const App = {
           '<div style="width:24px"></div>'+
         '</div>'+
         '<div id="vf-pkg-rows">'+pkgHtml+'</div>'+
-        '<button class="rf-add-btn rf-add-pkg" onclick="App._addVariantPkgRow()" style="margin-top:8px">📦 Add Packaging</button>'+
+        '<button class="rf-add-btn rf-add-pkg" onclick="App._addVariantPkgRow()" style="margin-top:8px">📦 Packaging</button>'+
       '</div>'+
 
       '<div class="rf-section">'+
