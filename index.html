@@ -559,6 +559,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <div id="reports-dd" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.12);min-width:210px;z-index:500;overflow:hidden">
         <div style="padding:8px 12px 4px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)">Inventory</div>
         <div class="dd-item" onclick="App.closeDropdown('reports-dd');App.printInventoryReport()">🖨 Print Low Inventory</div>
+        <div class="dd-item" onclick="App.closeDropdown('reports-dd');App.openOrderReport()">📋 Low Inventory Report</div>
         <div style="padding:8px 12px 4px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);border-top:1px solid var(--border);margin-top:4px">Fragrance</div>
         <div class="dd-item" onclick="App.closeDropdown('reports-dd');App.printLowStockFragrances()">🖨 Low Fragrance Stock</div>
         <div style="padding:8px 12px 4px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);border-top:1px solid var(--border);margin-top:4px">Coming Soon</div>
@@ -1197,7 +1198,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.136.00';
+    const _ver = 'V-5.31.26.137.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1982,31 +1983,36 @@ const App = {
     if(!dd) return;
     const isRecipe  = this.subview==='recipe-detail';
     const isVariant = this.subview==='variant-detail';
-    const SEC = (label) => `<div style="padding:8px 12px 4px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)${label.startsWith('—')?';border-top:1px solid var(--border);margin-top:4px':''}">${label.replace(/^—\s*/,'')}</div>`;
+    const SEC = (label, first) => `<div style="padding:8px 12px 4px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)${first?'':';border-top:1px solid var(--border);margin-top:4px'}">${label}</div>`;
     let html = '';
-    // Recipe-specific section
+
     if(isRecipe || isVariant){
-      html += SEC('Recipe');
+      html += SEC('Recipe', true);
       if(isRecipe){
-        html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.printRecipePDF(App.selRId)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;flex-shrink:0"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print Recipe</div>`;
+        html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.printRecipePDF(App.selRId)">🖨 Print Recipe</div>`;
         html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.openSplitCalc(App.selRId)">📐 % Split</div>`;
         html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.showVersionHistory(App.selRId)">🕐 Version History</div>`;
       }
       if(isVariant){
-        html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.printVariantPDF(App._varSelId,App._varSelBaseId)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;flex-shrink:0"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print Variant</div>`;
+        html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.printVariantPDF(App._varSelId,App._varSelBaseId)">🖨 Print Variant</div>`;
       }
     }
-    // Calculators
-    html += SEC((isRecipe||isVariant)?'— Calculators':'Calculators');
+
+    html += SEC('Calculators', !isRecipe && !isVariant);
     html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.openCalcModal()">⚖️ Batch Calculator</div>`;
     html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.openStandaloneSplitCalc()">📐 Split Calculator</div>`;
-    // Reports
-    html += SEC('— Reports');
-    html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.openOrderReport()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Low Inventory</div>`;
-    html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.openGlobalSearch()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Search</div>`;
-    // Settings
-    html += SEC('— Settings');
-    html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.openSettings()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings</div>`;
+
+    html += SEC('Business');
+    html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.openPricingModal()">💰 Pricing Manager</div>`;
+
+    html += SEC('Reports');
+    html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.openOrderReport()">📋 Low Inventory Report</div>`;
+    html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.printInventoryReport()">🖨 Print Low Inventory</div>`;
+    html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.printLowStockFragrances()">🖨 Low Fragrance Stock</div>`;
+
+    html += SEC('App');
+    html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.openGlobalSearch()">🔍 Search</div>`;
+    html += `<div class="dd-item" onclick="App.closeDropdown('hamburger-dd');App.openSettings()">⚙️ Settings</div>`;
     html += `<div style="height:6px"></div>`;
     dd.innerHTML = html;
   },
