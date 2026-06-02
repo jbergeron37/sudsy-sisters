@@ -219,6 +219,7 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
 [data-theme="dark"] .form-group select,
 [data-theme="dark"] .form-group input,
 [data-theme="dark"] .form-group textarea{ background:#16213E!important; color:#F0E6F0!important; border-color:#3D2A3D!important; }
+[data-theme="dark"] .tag-wrap,[data-theme="dark"] .notes-input-wrap,[data-theme="dark"] .adj-row input{ background:#16213E!important; border-color:#3D2A3D!important; color:#F0E6F0!important; }
 [data-theme="dark"] .inv-prog{ background:#2A1A2E; }
 [data-theme="dark"] .settings-sheet{ background:#1A1A2E!important; }
 [data-theme="dark"] .settings-label{ color:#F0E6F0!important; }
@@ -293,7 +294,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .frag-qty .unit{font-weight:400;color:var(--muted);margin-left:2px}
 .note-group{margin-bottom:12px}
 .note-group-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px}
-.notes-input-wrap{display:flex;flex-wrap:wrap;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;min-height:42px;cursor:text}
+.notes-input-wrap{display:flex;flex-wrap:wrap;gap:6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;min-height:42px;cursor:text}
 .notes-input-wrap:focus-within{border-color:var(--accent)}
 .note-tag{border-radius:7px;padding:2px 8px;font-size:.75rem;font-weight:700;display:flex;align-items:center;gap:4px}
 .note-tag button{background:none;border:none;cursor:pointer;font-size:.9rem;padding:0;line-height:1}
@@ -395,7 +396,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .calc-card h3{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:600;color:var(--brown-d);margin-bottom:14px}
 .form-group{margin-bottom:13px}
 .form-group label{display:block;font-size:.75rem;font-weight:700;color:var(--brown-d);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-.form-group select,.form-group input,.form-group textarea{width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none;-webkit-appearance:none;appearance:none;transition:border-color .2s}
+.form-group select,.form-group input,.form-group textarea{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none;-webkit-appearance:none;appearance:none;transition:border-color .2s}
 .form-group select:focus,.form-group input:focus,.form-group textarea:focus{border-color:var(--brown-l)}
 .form-group textarea{resize:none;min-height:calc(2lh + 18px);max-height:calc(10lh + 18px);overflow-y:auto;field-sizing:content}
 .form-row{display:flex;gap:10px}
@@ -467,7 +468,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .rf-add-pkg{background:none;border:1.5px dashed #A8527A;color:#A8527A}
 .rf-add-pkg:active{background:#FDF0F5}
 .rf-add-auto{background:var(--accent-l,#EDE0FF);border:1.5px dashed var(--accent);color:var(--accent)}
-.tag-wrap{display:flex;flex-wrap:wrap;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;min-height:42px;cursor:text}
+.tag-wrap{display:flex;flex-wrap:wrap;gap:6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;min-height:42px;cursor:text}
 .tag-wrap:focus-within{border-color:var(--brown-l)}
 .tag-pill{background:var(--brown);color:#fff;border-radius:7px;padding:2px 8px;font-size:.75rem;display:flex;align-items:center;gap:4px;font-weight:700}
 .tag-pill button{background:none;border:none;cursor:pointer;color:#fff;font-size:.9rem;padding:0;line-height:1}
@@ -506,7 +507,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .toast{position:fixed;bottom:calc(var(--bar-h) + var(--safe-b) + 14px);left:50%;transform:translateX(-50%) translateY(16px);background:var(--brown-d);color:#fff;padding:10px 20px;border-radius:24px;font-size:.82rem;font-weight:700;z-index:700;opacity:0;transition:all .28s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px var(--shadow)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .adj-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
-.adj-row input{flex:1;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none}
+.adj-row input{flex:1;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none}
 .adj-row select{background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;font-family:Lato,sans-serif;font-size:.85rem;color:var(--text);outline:none;-webkit-appearance:none}
 .scan-overlay{position:fixed;inset:0;background:#000;z-index:800;display:none;flex-direction:column}
 .scan-overlay.open{display:flex}
@@ -769,7 +770,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     <div class="form-group" style="margin-bottom:14px">
       <label style="font-size:.8rem;font-weight:700;color:var(--brown-d);display:block;margin-bottom:4px">Batch Note <span style="font-weight:400;color:var(--muted)">(optional — what's this batch for?)</span></label>
       <textarea id="make-confirm-note" rows="2"
-        style="width:100%;font-family:Lato,sans-serif;font-size:.85rem;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;resize:vertical;color:var(--text);background:var(--cream);box-sizing:border-box"
+        style="width:100%;font-family:Lato,sans-serif;font-size:.85rem;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;resize:vertical;color:var(--text);background:#fff;box-sizing:border-box"
         placeholder="e.g. Christmas market stock, Sip &amp; Soap class Apr 12, Gift set order for Sarah…"></textarea>
     </div>
     <div class="confirm-btns">
@@ -1184,7 +1185,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.127.00';
+    const _ver = 'V-5.31.26.128.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -3460,7 +3461,7 @@ const App = {
         <div class="section">
           <div class="section-title">Adjust Quantity</div>
           <div class="adj-row">
-            <input type="number" id="adj-amt" step="any" placeholder="Amount"/>
+            <input type="number" id="adj-amt" step="any" placeholder="Amount" style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none;flex:1"/>
             <select id="adj-unit">${UNITS.map(u=>`<option${u===i.unit?' selected':''}>${u}</option>`).join('')}</select>
           </div>
           <div style="display:flex;gap:8px">
@@ -3615,27 +3616,27 @@ const App = {
 
     const html = `<div style="padding:16px">
       <div class="form-group"><label>Vendor *</label>
-        <select id="vp-vendor" style="font-size:16px">${vOpts}</select>
+        <select id="vp-vendor" style="font-size:16px;width:100%;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;color:var(--text);outline:none;-webkit-appearance:none">${vOpts}</select>
       </div>
       <div class="form-group"><label>Size / Package</label>
-        <input id="vp-size-label" value="${this.h(vp?vp.size_label:'')}" placeholder="e.g. 7 lb, Gallon (3.5 kg), 55 lb pail"/>
+        <input id="vp-size-label" value="${this.h(vp?vp.size_label:'')}" placeholder="e.g. 7 lb, Gallon (3.5 kg), 55 lb pail" style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none;width:100%;box-sizing:border-box"/>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Size in oz *</label>
-          <input id="vp-size-oz" type="number" step="0.01" value="${vp?vp.size_oz:''}" placeholder="e.g. 112"/>
+          <input id="vp-size-oz" type="number" step="0.01" value="${vp?vp.size_oz:''}" placeholder="e.g. 112" style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none;width:100%;box-sizing:border-box"/>
         </div>
         <div class="form-group"><label>Price ($) *</label>
-          <input id="vp-price" type="number" step="0.01" value="${vp?vp.price:''}" placeholder="0.00"/>
+          <input id="vp-price" type="number" step="0.01" value="${vp?vp.price:''}" placeholder="0.00" style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none;width:100%;box-sizing:border-box"/>
         </div>
       </div>
       <div id="vp-ppo-preview" style="background:var(--cream);border-radius:8px;padding:8px 12px;font-size:.82rem;color:var(--muted);margin-bottom:10px">
         $/oz: enter size and price to calculate
       </div>
       <div class="form-group"><label>Vendor Product URL</label>
-        <input id="vp-url" type="url" value="${this.h(vp?vp.vendor_url||'':'')}" placeholder="https://…"/>
+        <input id="vp-url" type="url" value="${this.h(vp?vp.vendor_url||'':'') }" placeholder="https://…" style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none;width:100%;box-sizing:border-box"/>
       </div>
       <div class="form-group"><label>Notes</label>
-        <input id="vp-notes" value="${this.h(vp?vp.notes||'':'')}" placeholder="Grade, organic, bulk discount…"/>
+        <input id="vp-notes" value="${this.h(vp?vp.notes||'':'') }" placeholder="Grade, organic, bulk discount…" style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-family:Lato,sans-serif;font-size:.9rem;color:var(--text);outline:none;width:100%;box-sizing:border-box"/>
       </div>
     </div>`;
 
@@ -3977,7 +3978,7 @@ const App = {
       <!-- Aliases -->
       <div class="form-group">
         <label>Aliases <span style="font-size:.72rem;color:var(--muted);font-weight:400">— other names (Enter or comma to add)</span></label>
-        <div class="tag-wrap" id="ialiases-wrap" style="background:#fff">
+        <div class="tag-wrap" id="ialiases-wrap">
           <input class="tag-input" id="ialiases-inp" placeholder="e.g. Golden Jojoba, Coconut 76…" autocomplete="off"/>
         </div>
         <input type="hidden" id="ialiases" value="${this.h(JSON.stringify(aliases))}"/>
