@@ -551,9 +551,12 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     <button id="header-gsearch" onclick="App.openGlobalSearch()" title="Search" style="background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </button>
-    <button id="header-add" onclick="App.handleAdd()">
-      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    </button>
+    <div style="position:relative" id="add-dd-wrap">
+      <button id="header-add" onclick="App._openAddMenu()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <div id="add-dd" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.12);min-width:200px;z-index:500;overflow:hidden"></div>
+    </div>
     <!-- Hamburger — always shown -->
     <div style="position:relative;display:block" id="hamburger-wrap">
       <button id="header-hamburger" onclick="App._openHamburger()" style="display:flex;background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;align-items:center;justify-content:center">
@@ -1164,7 +1167,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.140.00';
+    const _ver = 'V-5.31.26.141.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1681,14 +1684,35 @@ const App = {
     document.getElementById(vmap[this.tab]||'view-recipes').classList.add('active');
     this._hdr();
   },
+  _openAddMenu(){
+    const dd = document.getElementById('add-dd');
+    if(!dd) return;
+    const tab = this.tab;
+    const DI = (label, fn) => `<div class="dd-item" onclick="App.closeDropdown('add-dd');${fn}">${label}</div>`;
+    const SEC = t => `<div style="padding:8px 12px 4px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)">${t}</div>`;
+    let html = '';
+    if(tab === 'recipes'){
+      html += SEC('New Recipe');
+      html += DI('✏️ Manual Entry', "App.openRecipeModal(null)");
+      html += DI('📷 Scan with AI', "App.openScanRecipe()");
+    } else if(tab === 'inventory'){
+      html += SEC('New Item');
+      html += DI('➕ Add Ingredient', "App.openInvModal(null)");
+    } else if(tab === 'fragrances'){
+      html += SEC('New Scent');
+      html += DI('➕ Add Fragrance', "App.openFragModal(null)");
+    }
+    html += `<div style="height:6px"></div>`;
+    dd.innerHTML = html;
+    this.toggleDropdown('add-dd');
+  },
+
   handleAdd(){
-    if(this.tab==='recipes') this._showAddOptions();
-    else if(this.tab==='inventory') this.openInvModal(null);
-    else if(this.tab==='fragrances') this.openFragModal(null);
+    this._openAddMenu();
   },
 
   _showAddOptions(){
-    document.getElementById('modal-add-options').classList.add('open');
+    this._openAddMenu();
   },
 
   // ── SCAN RECIPE WITH AI ──────────────────────────────────────
@@ -1901,6 +1925,7 @@ const App = {
     if(isDetail){
       back.style.display = 'flex';
       add.style.display  = 'none';
+      const _addW2=document.getElementById('add-dd-wrap');if(_addW2)_addW2.style.display='none';
       if(gsearch) gsearch.style.display = 'none';
       if(this.subview==='recipe-detail'){
         const r=this.recipes.find(x=>x.id===this.selRId);
@@ -1918,6 +1943,7 @@ const App = {
     } else {
       back.style.display  = 'none';
       add.style.display   = (this.tab==='pricing')?'none':'flex';
+      const addW=document.getElementById('add-dd-wrap');if(addW) addW.style.display=(this.tab==='pricing')?'none':'block';
       if(gsearch) gsearch.style.display = 'flex';
       title.textContent=TITLES[this.tab]||'Sudsy Sisters';
       sub.textContent='Sudsy Sisters';
@@ -2165,22 +2191,24 @@ const App = {
     if(!el) return;
     const isOpen = el.style.display !== 'none';
     // Close all dropdowns first
-    ['reports-dd','tools-dd','hamburger-dd'].forEach(d => {
+    ['reports-dd','tools-dd','hamburger-dd','add-dd'].forEach(d => {
       const dd = document.getElementById(d);
       if(dd) dd.style.display = 'none';
     });
     if(!isOpen) el.style.display = 'block';
-    // Close on outside click
+    // Close on outside click — stopPropagation prevents the dismissing tap
+    // from also triggering whatever element is underneath
     if(!isOpen){
-      setTimeout(()=>{
-        const handler = (e)=>{
-          if(!el.contains(e.target) && !el.previousElementSibling?.contains(e.target) && !el.parentElement?.contains(e.target)){
-            el.style.display='none';
-            document.removeEventListener('click', handler);
-          }
-        };
-        document.addEventListener('click', handler);
-      }, 50);
+      const handler = (e)=>{
+        const wrap = el.parentElement;
+        if(!wrap || !wrap.contains(e.target)){
+          e.stopImmediatePropagation();
+          el.style.display='none';
+          document.removeEventListener('click', handler, true);
+        }
+      };
+      // Use capture phase so we intercept before anything else fires
+      document.addEventListener('click', handler, true);
     }
   },
   closeDropdown(id){ const el=document.getElementById(id); if(el) el.style.display='none'; },
@@ -4978,7 +5006,7 @@ const App = {
     document.getElementById('header-title').textContent = f.name;
     document.getElementById('header-sub').textContent = f.scent_family||'Fragrance';
     document.getElementById('header-back').style.display='flex';
-    document.getElementById('header-add').style.display='none';
+    const _addW=document.getElementById('add-dd-wrap');if(_addW)_addW.style.display='none';
     document.getElementById('header-sync').style.display='none';
   },
 
@@ -6655,7 +6683,7 @@ const App = {
     document.getElementById('header-title').textContent = b.recipe_name;
     document.getElementById('header-sub').textContent = 'Batch · '+b.recipe_version;
     document.getElementById('header-back').style.display='flex';
-    document.getElementById('header-add').style.display='none';
+    const _addW=document.getElementById('add-dd-wrap');if(_addW)_addW.style.display='none';
     document.getElementById('header-sync').style.display='none';
   },
 
