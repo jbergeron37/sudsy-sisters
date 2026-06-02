@@ -219,7 +219,7 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
 [data-theme="dark"] .form-group select,
 [data-theme="dark"] .form-group input,
 [data-theme="dark"] .form-group textarea{ background:#16213E!important; color:#F0E6F0!important; border-color:#3D2A3D!important; }
-[data-theme="dark"] .tag-wrap,[data-theme="dark"] .notes-input-wrap,[data-theme="dark"] .adj-row input{ background:#16213E!important; border-color:#3D2A3D!important; color:#F0E6F0!important; }
+[data-theme="dark"] .tag-wrap,[data-theme="dark"] .notes-input-wrap,[data-theme="dark"] .adj-row input,[data-theme="dark"] .ing-form-row input,[data-theme="dark"] .ing-form-row select{ background:#16213E!important; border-color:#3D2A3D!important; color:#F0E6F0!important; }
 [data-theme="dark"] .inv-prog{ background:#2A1A2E; }
 [data-theme="dark"] .settings-sheet{ background:#1A1A2E!important; }
 [data-theme="dark"] .settings-label{ color:#F0E6F0!important; }
@@ -443,9 +443,9 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;padding:14px 16px}
 .modal-foot{padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
 .ing-form-row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
-.ing-form-row input{flex:2;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:Lato,sans-serif;font-size:.85rem;color:var(--text);outline:none;min-width:0}
+.ing-form-row input{flex:2;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:Lato,sans-serif;font-size:.85rem;color:var(--text);outline:none;min-width:0}
 .ing-form-row input.sm{flex:1}
-.ing-form-row select{flex:1;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px 6px;font-family:Lato,sans-serif;font-size:.8rem;color:var(--text);outline:none;-webkit-appearance:none;min-width:0}
+.ing-form-row select{flex:1;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 6px;font-family:Lato,sans-serif;font-size:.8rem;color:var(--text);outline:none;-webkit-appearance:none;min-width:0}
 .ing-form-row input:focus,.ing-form-row select:focus{border-color:var(--brown-l)}
 .ing-del{background:none;border:none;cursor:pointer;color:var(--red);font-size:1.4rem;padding:2px 4px;line-height:1;flex-shrink:0}
 .add-row-btn{background:none;border:1.5px dashed var(--border);border-radius:10px;padding:9px;width:100%;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s;margin-top:2px}
@@ -1185,7 +1185,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.128.00';
+    const _ver = 'V-5.31.26.129.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2843,7 +2843,7 @@ const App = {
 
           <div class="form-group" style="margin:0">
             <label>FO Rate</label>
-            <div style="display:flex;align-items:center;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;overflow:hidden">
+            <div style="display:flex;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:10px;overflow:hidden">
               <input id="ffrate-num" type="number" min="0" max="100" step="0.1"
                 value="${parseFloat((r.fragranceRate||'0').replace('%',''))||''}"
                 placeholder="6"
@@ -2855,7 +2855,7 @@ const App = {
           </div>
           <div class="form-group" style="margin:0">
             <label>Unit</label>
-            <div style="display:flex;align-items:center;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:3px">
+            <div style="display:flex;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:3px">
               <button type="button" id="fbu-oz" onclick="App._setUnitToggle('oz')" style="flex:1;padding:6px 0;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'transparent':'var(--accent)'};color:${r.batchUnit==='g'?'var(--muted)':'#fff'}">oz</button>
               <button type="button" id="fbu-g"  onclick="App._setUnitToggle('g')"  style="flex:1;padding:6px 0;border:none;border-radius:7px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .18s;background:${r.batchUnit==='g'?'var(--accent)':'transparent'};color:${r.batchUnit==='g'?'#fff':'var(--muted)'}">g</button>
             </div>
@@ -3310,7 +3310,7 @@ const App = {
       <div class="inv-name">${this.h(i.name)}</div>
       ${matchedAlias?`<div style="font-size:.72rem;color:var(--brown);margin-top:1px">aka ${this.h(matchedAlias)}</div>`:''}
       <div class="inv-qty-row">
-        <div class="inv-qty">${i.quantity}<span class="unit">${i.unit}</span></div>
+        <div class="inv-qty">${Math.round(parseFloat(i.quantity)||0)}<span class="unit">${i.unit}</span></div>
         <div class="inv-status s-${st}">${sl[st]}</div>
       </div>
       <div class="inv-prog"><div class="inv-prog-bar p-${st}" style="width:${pct.toFixed(1)}%"></div></div>
@@ -3423,7 +3423,7 @@ const App = {
           <div class="detail-name">${this.h(i.name)}</div>
           ${(i.aliases&&i.aliases.length)?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;justify-content:center">${i.aliases.map(a=>`<span style="background:rgba(255,255,255,0.55);border:1px solid rgba(168,82,122,0.25);border-radius:12px;padding:2px 10px;font-size:.75rem;color:var(--brown-d)">aka ${this.h(a)}</span>`).join('')}</div>`:'' }
           <div class="meta-row">
-            <div class="meta-pill">Qty <span>${i.quantity} ${i.unit}</span></div>
+            <div class="meta-pill">Qty <span>${Math.round(parseFloat(i.quantity)||0)} ${i.unit}</span></div>
             <div class="meta-pill">Reorder at <span>${i.reorderAt} ${i.unit}</span></div>
             ${i.pkgSize?`<div class="meta-pill">Package <span>${this.h(i.pkgSize)}</span></div>`:''}
             ${(i.purchase_size&&i.purchase_unit)?`<div class="meta-pill">Pkg size <span>${i.purchase_size} ${i.purchase_unit}</span></div>`:''}
