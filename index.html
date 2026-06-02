@@ -1184,7 +1184,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.120.00';
+    const _ver = 'V-5.31.26.122.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -7267,27 +7267,33 @@ const App = {
   _pendingRecipeSave: null,
 
   async saveRecipe(){
-    const name = document.getElementById('fn').value.trim();
+    try {
+    const name = (document.getElementById('fn')?.value||'').trim();
     if(!name){ this._toast('Please enter a recipe name'); return; }
-    this._calcBatchSize(); // Ensure batch size is current before saving
-    // Work on a deep copy — never mutate this.editR directly during save
+    if(!this.editR){ this._toast('No recipe loaded — please re-open the form'); return; }
+    this._calcBatchSize();
     const r = JSON.parse(JSON.stringify(this.editR));
-    r.name=name; r.category=document.getElementById('fc').value;
-    r.batchSize=document.getElementById('fbs').value; r.batchUnit=document.getElementById('fbu').value;
-    r.unitsPerBatch=document.getElementById('fupb').value;
-    r.unitSize=document.getElementById('fusz').value;
-    r.cureTime=document.getElementById('fct').value; r.superfat=document.getElementById('fsf').value;
-    r.fragranceRate=document.getElementById('ffrate')?.value?.trim()||'';
-    r.refUrl=document.getElementById('furl')?.value?.trim()||'';
-    r.lye=document.getElementById('fly').value; r.scent='';
-    r.description=document.getElementById('fde').value; r.instructions=document.getElementById('fin').value; r.notes=document.getElementById('fno').value;
-    const tv=document.getElementById('rtags').value; r.tags=tv?JSON.parse(tv):[];
+    r.name = name;
+    r.category     = document.getElementById('fc')?.value    || r.category    || 'Bar Soap';
+    r.batchSize    = document.getElementById('fbs')?.value   || r.batchSize   || '';
+    r.batchUnit    = document.getElementById('fbu')?.value   || r.batchUnit   || 'oz';
+    r.unitsPerBatch= document.getElementById('fupb')?.value  || r.unitsPerBatch|| '';
+    r.unitSize     = document.getElementById('fusz')?.value  || r.unitSize    || '';
+    r.cureTime     = document.getElementById('fct')?.value   || r.cureTime    || '';
+    r.superfat     = document.getElementById('fsf')?.value   || r.superfat    || '';
+    r.fragranceRate= (document.getElementById('ffrate')?.value||'').trim() || r.fragranceRate||'';
+    r.refUrl       = (document.getElementById('furl')?.value||'').trim()   || r.refUrl||'';
+    r.lye          = document.getElementById('fly')?.value   || r.lye        || '';
+    r.scent        = '';
+    r.description  = document.getElementById('fde')?.value  || r.description || '';
+    r.instructions = document.getElementById('fin')?.value  || r.instructions|| '';
+    r.notes        = document.getElementById('fno')?.value  || r.notes       || '';
+    const tv = document.getElementById('rtags')?.value;
+    r.tags = tv ? (()=>{ try{ return JSON.parse(tv); } catch(e){ return []; } })() : (r.tags||[]);
     // Use this.editR.ingredients directly — _syncIng keeps it live as the user edits
-    // DOM re-read is fragile because row IDs can desync after add/delete operations
     r.ingredients = (this.editR.ingredients||[])
       .filter(ing => ing.name && ing.name.trim())
       .map(ing => {
-        // Recalculate usage_rate while we have the batch size
         const batchOz2 = parseFloat(r.batchSize)||0;
         if(batchOz2 > 0 && ing.unit !== 'ea' && ing.phase !== 'pkg'){
           const g2oz2 = g => Math.round(parseFloat(g)/28.3495*1000)/1000;
@@ -7298,10 +7304,13 @@ const App = {
       });
     const isExisting = this.recipes.findIndex(x=>x.id===r.id)>=0;
     if(isExisting){
-      // Skip version modal for now - always update in place
       await this._doSaveRecipe(r, false);
     } else {
       await this._doSaveRecipe(r, false);
+    }
+    } catch(e){
+      console.error('saveRecipe crash:', e);
+      this._toast('⚠️ Save error: ' + (e?.message||'unknown').slice(0,80));
     }
   },
 
