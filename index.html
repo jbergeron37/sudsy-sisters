@@ -587,6 +587,19 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     <button id="header-add" onclick="App.handleAdd()">
       <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
+    <!-- Hamburger — shown only on detail subviews -->
+    <button id="header-hamburger" onclick="App._openHamburger()" style="display:none;background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;align-items:center;justify-content:center">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <!-- Hamburger bottom sheet -->
+  <div id="hamburger-sheet" onclick="App._closeHamburger()" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.45)">
+    <div onclick="event.stopPropagation()" style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:8px 0 calc(env(safe-area-inset-bottom) + 10px);max-height:80vh;overflow-y:auto">
+      <div style="width:36px;height:4px;background:var(--border);border-radius:4px;margin:6px auto 14px"></div>
+      <div id="hamburger-items"></div>
+    </div>
   </div>
   <div id="content">
     <!-- RECIPES LIST -->
@@ -1188,7 +1201,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.133.00';
+    const _ver = 'V-5.31.26.134.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1915,54 +1928,134 @@ const App = {
     this._scanShowStep('pick');
   },
   _hdr(){
-    const back=document.getElementById('header-back');
-    const title=document.getElementById('header-title');
-    const sub=document.getElementById('header-sub');
-    const add=document.getElementById('header-add');
-    const sync=document.getElementById('header-sync'); // removed from HTML - kept for compat
-    const TITLES={recipes:'Recipes',inventory:'Inventory',calc:'Calculator',orders:'Low Inventory Report',batches:'Batch History',fragrances:'Scents',pricing:'Pricing Manager',tools:'Tools'};
-    if(this.subview==='variant-detail'){
-      back.style.display='flex'; add.style.display='none'; if(sync) sync.style.display='none';
-      const _vgs=document.getElementById('header-gsearch');const _vst=document.getElementById('header-settings');const _vtl=document.getElementById('header-tools');if(_vgs)_vgs.style.display='none';if(_vst)_vst.style.display='none';if(_vtl)_vtl.style.display='none';
-      let vPrintBtn=document.getElementById('header-print');
-      if(!vPrintBtn){ vPrintBtn=document.createElement('button'); vPrintBtn.id='header-print'; vPrintBtn.title='Print Variant'; vPrintBtn.style.cssText='background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px'; vPrintBtn.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>'; document.getElementById('header').appendChild(vPrintBtn); }
-      vPrintBtn.style.display='flex';
-      vPrintBtn.onclick=function(){ App.printVariantPDF(App._varSelId, App._varSelBaseId); };
-      title.textContent=App._varSelName||'Variant'; sub.textContent='Variant';
-    } else if(this.subview==='recipe-detail'){
-      back.style.display='flex'; add.style.display='none'; if(sync) sync.style.display='none';
-      const _gs=document.getElementById('header-gsearch');const _st=document.getElementById('header-settings');const _tl=document.getElementById('header-tools');if(_gs)_gs.style.display='none';if(_st)_st.style.display='none';if(_tl)_tl.style.display='none';
-      // Show print button
-      let printBtn=document.getElementById('header-print');
-      if(!printBtn){
-        printBtn=document.createElement('button');
-        printBtn.id='header-print';
-        printBtn.title='Print Recipe';
-        printBtn.style.cssText='background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px';
-        printBtn.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>';
-        document.getElementById('header').appendChild(printBtn);
+    const back  = document.getElementById('header-back');
+    const title = document.getElementById('header-title');
+    const sub   = document.getElementById('header-sub');
+    const add   = document.getElementById('header-add');
+    const ham   = document.getElementById('header-hamburger');
+    const sync  = document.getElementById('header-sync');
+    const TITLES = {recipes:'Recipes',inventory:'Inventory',calc:'Calculator',orders:'Low Inventory Report',batches:'Batch History',fragrances:'Scents',pricing:'Pricing Manager',tools:'Tools'};
+
+    // IDs of all right-side buttons that collapse into hamburger on detail views
+    const RIGHT_IDS = ['header-gsearch','reports-dd-wrap','tools-dd-wrap','header-settings','header-print'];
+
+    const isDetail = ['recipe-detail','inv-detail','variant-detail','frag-detail','batch-detail'].includes(this.subview);
+
+    if(isDetail){
+      back.style.display = 'flex';
+      add.style.display  = 'none';
+      if(sync) sync.style.display = 'none';
+      RIGHT_IDS.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+      if(ham) ham.style.display = 'flex';
+
+      // Set title
+      if(this.subview==='recipe-detail'){
+        const r=this.recipes.find(x=>x.id===this.selRId);
+        title.textContent=r?r.name:'Recipe'; sub.textContent=r?r.category:'';
+      } else if(this.subview==='inv-detail'){
+        const i=this.inventory.find(x=>x.id===this.selIId);
+        title.textContent=i?i.name:'Item'; sub.textContent=i?i.category:'';
+      } else if(this.subview==='variant-detail'){
+        title.textContent=App._varSelName||'Variant'; sub.textContent='Variant';
+      } else if(this.subview==='frag-detail'){
+        title.textContent=sub.textContent||'Scent'; sub.textContent='Scents';
+      } else if(this.subview==='batch-detail'){
+        title.textContent='Batch'; sub.textContent='History';
       }
-      printBtn.style.display='flex';
-      printBtn.onclick=function(){ App.printRecipePDF(App.selRId); };
-      const _rHdr=this.recipes.find(x=>x.id===this.selRId); title.textContent=_rHdr?_rHdr.name:'Recipe'; sub.textContent=_rHdr?_rHdr.category:'';
-    } else if(this.subview==='inv-detail'){
-      const i=this.inventory.find(x=>x.id===this.selIId);
-      back.style.display='flex'; add.style.display='none'; if(sync) sync.style.display='none';
-      title.textContent=i?i.name:'Item'; sub.textContent=i?i.category:'';
     } else {
-      back.style.display='none';
-      add.style.display=(this.tab==='pricing')?'none':'flex';
-      if(sync) sync.style.display='flex';
-      const gs=document.getElementById('header-gsearch');
-      const st=document.getElementById('header-settings');
-      const tl=document.getElementById('header-tools');
-      const pb=document.getElementById('header-print');
-      if(gs) gs.style.display='flex';
-      if(st) st.style.display='flex';
-      if(tl) tl.style.display='flex';
-      if(pb) pb.style.display='none';
-      title.textContent=TITLES[this.tab]; sub.textContent='Sudsy Sisters';
+      back.style.display = 'none';
+      add.style.display  = (this.tab==='pricing')?'none':'flex';
+      if(sync) sync.style.display = 'flex';
+      if(ham)  ham.style.display  = 'none';
+      RIGHT_IDS.forEach(id=>{
+        const el=document.getElementById(id);
+        if(!el) return;
+        // header-print only shows on detail pages
+        el.style.display = (id==='header-print') ? 'none' : 'flex';
+        // reports-dd-wrap and tools-dd-wrap use block/inline-block, not flex
+        if(id==='reports-dd-wrap'||id==='tools-dd-wrap') el.style.display='block';
+      });
+      title.textContent=TITLES[this.tab]||''; sub.textContent='Sudsy Sisters';
     }
+  },
+
+  _openHamburger(){
+    const sheet = document.getElementById('hamburger-sheet');
+    const items = document.getElementById('hamburger-items');
+    if(!sheet||!items) return;
+
+    // Build menu items based on subview
+    const isRecipe  = this.subview==='recipe-detail';
+    const isVariant = this.subview==='variant-detail';
+    const isInv     = this.subview==='inv-detail';
+
+    const HI = 'display:flex;align-items:center;gap:12px;padding:14px 20px;font-family:Lato,sans-serif;font-size:.95rem;font-weight:600;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border)';
+    const iconStyle = 'width:32px;height:32px;background:var(--cream);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+
+    let html = '';
+
+    // Print — only for recipe/variant
+    if(isRecipe){
+      html += `<div style="${HI}" onclick="App._closeHamburger();App.printRecipePDF(App.selRId)">
+        <div style="${iconStyle}"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--brown)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div>
+        Print Recipe
+      </div>`;
+      html += `<div style="${HI}" onclick="App._closeHamburger();App.openSplitCalc(App.selRId)">
+        <div style="${iconStyle}">📐</div>
+        % Split Calculator
+      </div>`;
+      html += `<div style="${HI}" onclick="App._closeHamburger();App.showVersionHistory(App.selRId)">
+        <div style="${iconStyle}">🕐</div>
+        Version History
+      </div>`;
+    }
+    if(isVariant){
+      html += `<div style="${HI}" onclick="App._closeHamburger();App.printVariantPDF(App._varSelId,App._varSelBaseId)">
+        <div style="${iconStyle}"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--brown)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div>
+        Print Variant
+      </div>`;
+    }
+
+    // Search — always
+    html += `<div style="${HI}" onclick="App._closeHamburger();App.openGlobalSearch()">
+      <div style="${iconStyle}"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--brown)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+      Search
+    </div>`;
+
+    // Calculators
+    html += `<div style="${HI}" onclick="App._closeHamburger();App.openCalcModal()">
+      <div style="${iconStyle}">⚖️</div>
+      Batch Calculator
+    </div>`;
+    html += `<div style="${HI}" onclick="App._closeHamburger();App.openStandaloneSplitCalc()">
+      <div style="${iconStyle}">📐</div>
+      Split Calculator
+    </div>`;
+
+    // Reports
+    html += `<div style="${HI}" onclick="App._closeHamburger();App.openOrderReport()">
+      <div style="${iconStyle}"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--brown)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+      Low Inventory Report
+    </div>`;
+    html += `<div style="${HI}" onclick="App._closeHamburger();App.openPricingModal()">
+      <div style="${iconStyle}">💰</div>
+      Pricing Manager
+    </div>`;
+
+    // Settings — always last
+    html += `<div style="${HI};border-bottom:none" onclick="App._closeHamburger();App.openSettings()">
+      <div style="${iconStyle}"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--brown)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+      Settings
+    </div>`;
+
+    items.innerHTML = html;
+    sheet.style.display = 'flex';
+    requestAnimationFrame(()=>{ sheet.style.opacity='1'; });
+  },
+
+  _closeHamburger(){
+    const sheet = document.getElementById('hamburger-sheet');
+    if(sheet) sheet.style.display = 'none';
   },
 
   // SEARCH
