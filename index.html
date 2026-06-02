@@ -588,8 +588,8 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
     <!-- Hamburger — shown only on detail subviews -->
-    <div style="position:relative" id="hamburger-wrap">
-      <button id="header-hamburger" onclick="App.toggleDropdown('hamburger-dd')" style="display:none;background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;align-items:center;justify-content:center">
+    <div style="position:relative;display:none" id="hamburger-wrap">
+      <button id="header-hamburger" onclick="App._openHamburger()" style="display:none;background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;align-items:center;justify-content:center">
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
@@ -1197,7 +1197,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.135.00';
+    const _ver = 'V-5.31.26.136.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1943,6 +1943,7 @@ const App = {
       if(sync) sync.style.display = 'none';
       RIGHT_IDS.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
       if(ham) ham.style.display = 'flex';
+      const hw=document.getElementById('hamburger-wrap'); if(hw) hw.style.display='block';
 
       // Set title
       if(this.subview==='recipe-detail'){
@@ -1963,6 +1964,7 @@ const App = {
       add.style.display  = (this.tab==='pricing')?'none':'flex';
       if(sync) sync.style.display = 'flex';
       if(ham)  ham.style.display  = 'none';
+      const hw2=document.getElementById('hamburger-wrap'); if(hw2) hw2.style.display='none';
       RIGHT_IDS.forEach(id=>{
         const el=document.getElementById(id);
         if(!el) return;
