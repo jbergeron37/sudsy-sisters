@@ -1184,7 +1184,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.122.00';
+    const _ver = 'V-5.31.26.123.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1329,7 +1329,7 @@ const App = {
     try {
       const [rRes,iRes,fRes,vpRes] = await Promise.all([
         this._sbFetch('GET','recipes?select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,version,created_at,updated_at,is_favorite&order=updated_at.desc'),
-        this._sbFetch('GET','inventory?select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,aliases,updated_at&order=updated_at.desc'),
+        this._sbFetch('GET','inventory?select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,aliases,purchase_price,purchase_size,purchase_unit,cost_per_oz,updated_at&order=updated_at.desc'),
         this._sbFetch('GET','fragrances?order=updated_at.desc'),
         this._sbFetch('GET','vendor_prices?order=item_name.asc,price_per_oz.asc')
       ]);
@@ -1360,7 +1360,12 @@ const App = {
           quantity:parseFloat(row.quantity)||0,unit:row.unit||'oz',
           cost:row.cost!=null?String(row.cost):'',reorderAt:parseFloat(row.reorder_at)||0,
           supplier:row.supplier||'',notes:row.notes||'',pkgSize:row.pkg_size||'',
-          vendorUrl:row.vendor_url||'',aliases:Array.isArray(row.aliases)?row.aliases:(row.aliases?JSON.parse(row.aliases):[]),updated_at:row.updated_at||''
+          vendorUrl:row.vendor_url||'',aliases:Array.isArray(row.aliases)?row.aliases:(row.aliases?JSON.parse(row.aliases):[]),
+      purchase_price:row.purchase_price!=null?parseFloat(row.purchase_price):null,
+      purchase_size:row.purchase_size!=null?parseFloat(row.purchase_size):null,
+      purchase_unit:row.purchase_unit||'oz',
+      cost_per_oz:row.cost_per_oz!=null?parseFloat(row.cost_per_oz):null,
+      updated_at:row.updated_at||''
         };
       });
       this.fragrances=fRows||[];
@@ -1458,7 +1463,12 @@ const App = {
       quantity:parseFloat(obj.quantity)||0,unit:obj.unit||'oz',
       cost:obj.cost!==''&&obj.cost!=null?parseFloat(obj.cost):null,
       reorder_at:parseFloat(obj.reorderAt)||0,supplier:obj.supplier||'',
-      notes:obj.notes||'',pkg_size:obj.pkgSize||'',vendor_url:obj.vendorUrl||'',aliases:obj.aliases||[]
+      notes:obj.notes||'',pkg_size:obj.pkgSize||'',vendor_url:obj.vendorUrl||'',
+      aliases:Array.isArray(obj.aliases)?obj.aliases:[],
+      purchase_price:obj.purchase_price!=null?parseFloat(obj.purchase_price):null,
+      purchase_size:obj.purchase_size!=null?parseFloat(obj.purchase_size):null,
+      purchase_unit:obj.purchase_unit||'oz',
+      cost_per_oz:obj.cost_per_oz!=null?parseFloat(obj.cost_per_oz):null
     };
     if(table==='fragrances') return {
       id:obj.id, name:obj.name||'', description:obj.description||'',
@@ -3402,6 +3412,7 @@ const App = {
             <div class="meta-pill">Qty <span>${i.quantity} ${i.unit}</span></div>
             <div class="meta-pill">Reorder at <span>${i.reorderAt} ${i.unit}</span></div>
             ${i.pkgSize?`<div class="meta-pill">Package <span>${this.h(i.pkgSize)}</span></div>`:''}
+            ${(i.purchase_size&&i.purchase_unit)?`<div class="meta-pill">Pkg size <span>${i.purchase_size} ${i.purchase_unit}</span></div>`:''}
           </div>
           <div style="margin-top:10px;font-size:.85rem;font-weight:700;color:${stClr[st]}">${stLbl[st]}</div>
         </div>
@@ -3417,8 +3428,12 @@ const App = {
           </div>
           <div class="ing-row"><span class="ing-name">Last purchase vendor</span>
             <span class="ing-amt">${i.supplier?this.h(i.supplier):'<span style="color:var(--muted)">not set</span>'}</span></div>
-          <div class="ing-row"><span class="ing-name">Last purchase price</span>
-            <span class="ing-amt">${costPerUnit?'$'+costPerUnit.toFixed(4)+' / '+i.unit:'<span style="color:var(--muted)">not set</span>'}</span></div>
+          ${i.purchase_price?`<div class="ing-row"><span class="ing-name">Price paid</span><span class="ing-amt">$${parseFloat(i.purchase_price).toFixed(2)}</span></div>`:''}
+          ${i.purchase_size?`<div class="ing-row"><span class="ing-name">Package size</span><span class="ing-amt">${i.purchase_size} ${i.purchase_unit||'oz'}</span></div>`:''}
+          <div class="ing-row"><span class="ing-name">Cost per oz</span>
+            <span class="ing-amt" style="font-weight:700;color:var(--brown)">
+              ${(i.cost_per_oz||i.cost)?'$'+(parseFloat(i.cost_per_oz||i.cost)).toFixed(4)+' / oz':'<span style="color:var(--muted)">not set</span>'}
+            </span></div>
           ${i.vendorUrl?`<div class="ing-row"><span class="ing-name">Website</span><span class="ing-amt" style="font-size:.78rem"><a href="${this.h(i.vendorUrl)}" target="_blank" style="color:var(--brown)">Open ↗</a></span></div>`:''}
           ${costPerUnit&&i.quantity?`<div class="ing-row"><span class="ing-name">Stock value</span><span class="ing-amt">$${totalValue.toFixed(2)}</span></div>`:''}
 
@@ -3816,37 +3831,105 @@ const App = {
   },
   openInvModal(id){
     const item=id?this.inventory.find(x=>x.id===id):null;
-    this.editI=item?JSON.parse(JSON.stringify(item)):{id:this.uid(),name:'',category:'Oils',quantity:0,unit:'oz',reorderAt:8,supplier:'',vendorUrl:'',cost:'',pkgSize:'',notes:'',aliases:[]};
+    this.editI=item?JSON.parse(JSON.stringify(item)):{
+      id:this.uid(),name:'',category:'Oils',quantity:0,unit:'oz',reorderAt:8,
+      supplier:'',vendorUrl:'',cost:'',pkgSize:'',notes:'',aliases:[],
+      purchase_price:'',purchase_size:'',purchase_unit:'oz',cost_per_oz:''
+    };
     document.getElementById('modal-inv-title').textContent=item?'Edit Item':'New Inventory Item';
     document.getElementById('modal-inv-body').innerHTML=this._iForm(this.editI);
     document.getElementById('modal-inv').classList.add('open');
-    // Init alias tag input — setTimeout is more reliable than rAF on iOS Chrome
     setTimeout(()=>this._initTags('ialiases', this.editI.aliases||[]), 50);
   },
+
   _iForm(i){
     const so=(a,v)=>a.map(o=>`<option${o===v?' selected':''}>${o}</option>`).join('');
     const vendors=[...new Set(this.inventory.map(x=>x.supplier).filter(Boolean))].sort();
     const vOpts=vendors.map(v=>`<option value="${this.h(v)}">`).join('');
     const aliases = Array.isArray(i.aliases) ? i.aliases : [];
+
+    // Existing cost_per_oz — from new fields or fall back to legacy cost field
+    const existingCPO = parseFloat(i.cost_per_oz||i.cost)||0;
+    const cpoDisplay = existingCPO > 0 ? '$'+existingCPO.toFixed(4)+' / oz' : '—';
+
+    // Purchase unit options
+    const PKG_UNITS = ['oz','lb','kg','g','fl oz','gallon'];
+    const puOpts = PKG_UNITS.map(u=>`<option value="${u}"${(i.purchase_unit||'oz')===u?' selected':''}>${u}</option>`).join('');
+
+    // Unit of measure toggle (oz / g)
+    const uomIsG = (i.unit||'oz') === 'g';
+
     return `
       <div style="display:flex;gap:8px;margin-bottom:14px">
         <button type="button" class="btn btn-outline" style="flex:1;font-size:.8rem" onclick="App.openScanner()">📷 Scan Barcode</button>
         <button type="button" class="btn btn-outline" style="flex:1;font-size:.8rem" onclick="App.openLabelPhoto()">📸 Photo Label</button>
       </div>
+
       <div class="form-group"><label>Item Name *</label><input id="iin" value="${this.h(i.name)}" placeholder="e.g. Coconut Oil"/></div>
-      <div class="form-row">
-        <div class="form-group"><label>Category</label><select id="iic">${so(I_CATS,i.category)}</select></div>
-        <div class="form-group"><label>Unit</label><select id="iiu">${so(UNITS,i.unit)}</select></div>
+      <div class="form-group"><label>Category</label><select id="iic">${so(I_CATS,i.category)}</select></div>
+
+      <!-- Unit of Measure toggle + Current Qty -->
+      <div class="form-row" style="align-items:flex-end">
+        <div class="form-group" style="flex:1">
+          <label>Unit of Measure</label>
+          <div style="display:flex;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;height:38px">
+            <button type="button" id="uom-oz" onclick="App._setUOM('oz')"
+              style="flex:1;border:none;font-family:Lato,sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .15s;
+                background:${!uomIsG?'var(--brown)':'transparent'};color:${!uomIsG?'#fff':'var(--muted)'}">oz</button>
+            <button type="button" id="uom-g" onclick="App._setUOM('g')"
+              style="flex:1;border:none;font-family:Lato,sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .15s;
+                background:${uomIsG?'var(--brown)':'transparent'};color:${uomIsG?'#fff':'var(--muted)'}">g</button>
+          </div>
+          <input type="hidden" id="iiu" value="${this.h(i.unit||'oz')}"/>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>Current Qty</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input id="iiq" type="number" step="any" value="${i.quantity}" style="flex:1"/>
+            <span id="iiq-unit" style="font-size:.85rem;color:var(--muted);white-space:nowrap;min-width:20px">${i.unit||'oz'}</span>
+          </div>
+        </div>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label>Current Qty</label><input id="iiq" type="number" step="any" value="${i.quantity}"/></div>
-        <div class="form-group"><label>Reorder At</label><input id="iir" type="number" step="any" value="${i.reorderAt}" placeholder="8"/></div>
+      <div class="form-group">
+        <label>Reorder At</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input id="iir" type="number" step="any" value="${i.reorderAt}" placeholder="8" style="flex:1"/>
+          <span id="iir-unit" style="font-size:.85rem;color:var(--muted);white-space:nowrap;min-width:20px">${i.unit||'oz'}</span>
+        </div>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label>Purchase Price ($)</label><input id="iico" type="number" step="0.01" value="${this.h(i.cost)}" placeholder="0.00"/></div>
-        <div class="form-group"><label>Package Size</label><input id="iipkg" value="${this.h(i.pkgSize||'')}" placeholder="e.g. 32 oz jug"/></div>
+
+      <!-- Purchase Price + Package Size → auto $/oz -->
+      <div style="background:var(--cream);border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Purchase Info</div>
+        <div class="form-row">
+          <div class="form-group" style="flex:1">
+            <label>Price Paid ($)</label>
+            <input id="ii-pprice" type="number" step="0.01" min="0"
+              value="${this.h(String(i.purchase_price||''))}"
+              placeholder="e.g. 28.56"
+              oninput="App._calcCostPerOz()"/>
+          </div>
+          <div class="form-group" style="flex:1">
+            <label>Package Size</label>
+            <div style="display:flex;gap:4px">
+              <input id="ii-psize" type="number" step="any" min="0"
+                value="${this.h(String(i.purchase_size||''))}"
+                placeholder="e.g. 7"
+                oninput="App._calcCostPerOz()"
+                style="flex:2"/>
+              <select id="ii-punit" onchange="App._calcCostPerOz()" style="flex:1.2;min-width:0">${puOpts}</select>
+            </div>
+          </div>
+        </div>
+        <!-- Auto-calculated $/oz display -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#fff;border-radius:8px;border:1px solid var(--border)">
+          <span style="font-size:.78rem;color:var(--muted);font-weight:600">Cost per oz (auto)</span>
+          <span id="ii-cpo-display" style="font-size:1rem;font-weight:700;color:var(--brown)">${cpoDisplay}</span>
+        </div>
+        <input type="hidden" id="ii-cpo" value="${existingCPO||''}"/>
       </div>
-      <div class="form-group"><label>Aliases <span style="font-size:.72rem;color:var(--muted);font-weight:400">— other names for this ingredient (Enter or comma to add)</span></label>
+
+      <div class="form-group"><label>Aliases <span style="font-size:.72rem;color:var(--muted);font-weight:400">— other names (Enter or comma to add)</span></label>
         <div class="tag-wrap" id="ialiases-wrap">
           <input class="tag-input" id="ialiases-inp" placeholder="e.g. Golden Jojoba, Coconut 76…" autocomplete="off"/>
         </div>
@@ -3856,9 +3939,41 @@ const App = {
         <input id="iis" list="vendor-datalist" value="${this.h(i.supplier)}" placeholder="e.g. Brambleberry" autocomplete="off"/>
         <datalist id="vendor-datalist">${vOpts}</datalist>
       </div>
-      <div class="form-group"><label>Vendor Website (optional)</label><input id="iiurl" type="url" value="${this.h(i.vendorUrl||'')}" placeholder="https://brambleberry.com"/></div>
-      <div class="form-group"><label>Notes</label><textarea id="iino" placeholder="Grade, brand…">${this.h(i.notes)}</textarea></div>`;
+      <div class="form-group"><label>Vendor Website (optional)</label><input id="iiurl" type="url" value="${this.h(i.vendorUrl||'')}" placeholder="https://…"/></div>
+      <div class="form-group"><label>Notes</label><textarea id="iino" placeholder="Grade, brand, includes shipping…">${this.h(i.notes)}</textarea></div>`;
   },
+  // Unit of measure toggle — oz / g
+  _setUOM(unit){
+    document.getElementById('iiu').value = unit;
+    const ozBtn = document.getElementById('uom-oz');
+    const gBtn  = document.getElementById('uom-g');
+    const brown = 'var(--brown)', trans = 'transparent', white = '#fff', muted = 'var(--muted)';
+    if(ozBtn){ ozBtn.style.background = unit==='oz'?brown:trans; ozBtn.style.color = unit==='oz'?white:muted; }
+    if(gBtn) { gBtn.style.background  = unit==='g' ?brown:trans; gBtn.style.color  = unit==='g' ?white:muted; }
+    // Update the unit suffix labels
+    document.getElementById('iiq-unit') && (document.getElementById('iiq-unit').textContent = unit);
+    document.getElementById('iir-unit') && (document.getElementById('iir-unit').textContent = unit);
+  },
+
+  // Auto-calculate $/oz from purchase price + package size/unit
+  _calcCostPerOz(){
+    const price   = parseFloat(document.getElementById('ii-pprice')?.value)||0;
+    const size    = parseFloat(document.getElementById('ii-psize')?.value)||0;
+    const unit    = document.getElementById('ii-punit')?.value||'oz';
+    const display = document.getElementById('ii-cpo-display');
+    const hidden  = document.getElementById('ii-cpo');
+    if(!display || !hidden) return;
+    if(!price || !size){ display.textContent='—'; display.style.color='var(--muted)'; hidden.value=''; return; }
+    // Convert size to oz
+    const toOz = {'oz':1,'fl oz':1,'lb':16,'kg':35.274,'g':0.035274,'gallon':128};
+    const sizeOz = size * (toOz[unit]||1);
+    if(sizeOz <= 0){ display.textContent='—'; hidden.value=''; return; }
+    const cpo = Math.round(price/sizeOz*10000)/10000;
+    display.textContent = '$'+cpo.toFixed(4)+' / oz';
+    display.style.color = 'var(--brown)';
+    hidden.value = String(cpo);
+  },
+
   async saveInv(){
     const name=document.getElementById('iin').value.trim();
     if(!name){this._toast('Please enter an item name');return;}
@@ -3870,12 +3985,18 @@ const App = {
         if(!confirm('Similar ingredient found: "'+similar.name+'"\nThis may be the same item. Add anyway?')) return;
       }
     }
-    i.name=name; i.category=document.getElementById('iic').value; i.unit=document.getElementById('iiu').value;
+    i.name=name; i.category=document.getElementById('iic').value; i.unit=document.getElementById('iiu')?.value||'oz';
     i.quantity=parseFloat(document.getElementById('iiq').value)||0;
     i.reorderAt=parseFloat(document.getElementById('iir').value)||0;
     const prevCost = i.cost;
-    i.cost=document.getElementById('iico').value;
-    i.pkgSize=document.getElementById('iipkg').value;
+    // New purchase fields
+    i.purchase_price = parseFloat(document.getElementById('ii-pprice')?.value)||null;
+    i.purchase_size  = parseFloat(document.getElementById('ii-psize')?.value)||null;
+    i.purchase_unit  = document.getElementById('ii-punit')?.value||'oz';
+    const cpo = parseFloat(document.getElementById('ii-cpo')?.value)||null;
+    i.cost_per_oz = cpo;
+    i.cost = cpo || parseFloat(document.getElementById('iico')?.value)||null; // cost = $/oz for recipe calc
+    i.pkgSize=document.getElementById('iipkg')?.value||'';
     i.supplier=document.getElementById('iis').value;
     i.vendorUrl=document.getElementById('iiurl').value;
     i.notes=document.getElementById('iino').value;
