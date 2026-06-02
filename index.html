@@ -463,10 +463,10 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .rf-link-btn{margin-top:6px;display:inline-flex;align-items:center;gap:6px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;color:var(--brown-d);cursor:pointer}
 /* Add buttons — ingredient style (dashed, neutral) */
 .rf-add-btn{display:flex;align-items:center;justify-content:center;gap:5px;border-radius:10px;padding:9px 10px;width:100%;font-family:Lato,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s;text-align:center;white-space:nowrap}
-.rf-add-ing{background:none;border:1.5px dashed var(--border);color:var(--muted)}
-.rf-add-ing:active{background:var(--cream)}
-.rf-add-pkg{background:none;border:1.5px dashed #A8527A;color:#A8527A}
-.rf-add-pkg:active{background:#FDF0F5}
+.rf-add-ing{background:var(--accent-l,#EDE0FF);border:1.5px dashed var(--accent);color:var(--accent)}
+.rf-add-ing:active{background:var(--accent-l,#EDE0FF)}
+.rf-add-pkg{background:var(--accent-l,#EDE0FF);border:1.5px dashed var(--accent);color:var(--accent)}
+.rf-add-pkg:active{background:#EDE0FF}
 .rf-add-auto{background:var(--accent-l,#EDE0FF);border:1.5px dashed var(--accent);color:var(--accent)}
 .tag-wrap{display:flex;flex-direction:column;gap:0;background:#fff;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;cursor:text}
 .tag-wrap:focus-within{border-color:var(--brown-l)}
@@ -1188,7 +1188,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.31.26.130.00';
+    const _ver = 'V-5.31.26.133.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1845,8 +1845,9 @@ const App = {
       }).join('')+
       '</div>'
     ) : '';
+    const isSoapScan = (r.category||'').toLowerCase().includes('bar');
     const metas = [
-      r.batchSize ? '<div class="meta-pill">Batch <span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>' : '',
+      r.batchSize ? '<div class="meta-pill">'+(isSoapScan?'Batter Weight':'Batch')+' <span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>' : '',
       r.cureTime  ? '<div class="meta-pill">Cure <span>'+this.h(r.cureTime)+'</span></div>' : '',
       r.superfat  ? '<div class="meta-pill">Superfat <span>'+this.h(r.superfat)+'</span></div>' : '',
       r.fragranceRate ? '<div class="meta-pill">FO Rate <span>'+this.h(r.fragranceRate)+'</span></div>' : '',
@@ -2036,7 +2037,7 @@ const App = {
     const tags=(r.tags||[]).slice(0,5).map(t=>`<span class="tag">${t}</span>`).join('');
     const favIcon = r.is_favorite ? '★' : '☆';
     const favClr = r.is_favorite ? 'var(--accent)' : 'var(--muted)';
-    const yield_ = r.batchSize ? r.batchSize+' '+(r.batchUnit||'oz') : '';
+    const yield_ = r.batchSize ? (((r.category||'').toLowerCase().includes('bar') ? 'Batter: ' : '')+r.batchSize+' '+(r.batchUnit||'oz')) : '';
     const unitInfo = r.unitsPerBatch
       ? r.unitsPerBatch+' units'+(r.unitSize?' @ '+r.unitSize+' '+(r.batchUnit||'oz')+' each':'')
       : '';
@@ -2473,11 +2474,33 @@ const App = {
     const unitSzLabel = unitSzOz ? unitSzOz+' '+(r.batchUnit||'oz') : '';
     const costSection = this._buildCostSection(cost, numUnits, unitSzLabel);
 
+    // ── Oil weight (Phase 2 / non-lye / non-frag / non-pkg) ──────────────────
+    const isBarSoap = (r.category||'').toLowerCase().includes('bar soap') || (r.category||'').toLowerCase().includes('bar');
+    const oilWeightOz = (r.ingredients||[]).reduce((s,i)=>{
+      if(i.unit==='ea'||i.phase==='pkg'||i.phase==='Packaging'||i.phase==='packaging') return s;
+      if(LYE.test(i.name)) return s;
+      if(FRAG.test(i.name)) return s;
+      const oz = i.unit==='g' ? Math.round((parseFloat(i.amount)||0)/28.3495*1000)/1000 : (parseFloat(i.amount)||0);
+      return s + oz;
+    }, 0);
+
+    const lyeMilkWeightOz = (r.ingredients||[]).reduce((s,i)=>{
+      if(i.unit==='ea'||i.phase==='pkg'||i.phase==='Packaging'||i.phase==='packaging') return s;
+      if(!LYE.test(i.name)) return s;
+      const oz = i.unit==='g' ? Math.round((parseFloat(i.amount)||0)/28.3495*1000)/1000 : (parseFloat(i.amount)||0);
+      return s + oz;
+    }, 0);
+
     // ── Meta pills ──
+    const batchLabel = isBarSoap ? 'Batter Weight' : 'Batch';
     const metas = [
-      r.batchSize?`<div class="meta-pill">Batch <span>${r.batchSize} ${r.batchUnit||'oz'}</span></div>`:'',
+      r.batchSize?`<div class="meta-pill">${batchLabel} <span>${r.batchSize} ${r.batchUnit||'oz'}</span></div>`:'',
+      (isBarSoap && oilWeightOz > 0)?`<div class="meta-pill">Oil Weight <span>${dispFmt(oilWeightOz)}</span></div>`:'',
+      (isBarSoap && lyeMilkWeightOz > 0)?`<div class="meta-pill">Lye/Milk Wt <span>${dispFmt(lyeMilkWeightOz)}</span></div>`:'',
       numUnits?`<div class="meta-pill">Units/Batch <span>${numUnits}${r.unitSize?' @ '+r.unitSize+' '+(r.batchUnit||'oz'):''}</span></div>`:'',
       r.cureTime?`<div class="meta-pill">Cure <span>${this.h(r.cureTime)}</span></div>`:'',
+      r.superfat?`<div class="meta-pill">Superfat <span>${this.h(r.superfat)}</span></div>`:'',
+      r.fragranceRate?`<div class="meta-pill">FO Rate <span>${this.h(r.fragranceRate)}</span></div>`:'',
       r.lye&&r.lye!=='None'?`<div class="meta-pill">Lye <span>${r.lye}</span></div>`:'',
       r.scent?`<div class="meta-pill">Scent <span>${this.h(r.scent)}</span></div>`:''
     ].filter(Boolean).join('');
