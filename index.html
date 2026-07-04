@@ -1075,7 +1075,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.24.26.82.00';
+    const _ver = 'V-5.24.26.83.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1247,7 +1247,8 @@ const App = {
           quantity:parseFloat(row.quantity)||0,unit:row.unit||'oz',
           cost:row.cost!=null?String(row.cost):'',reorderAt:parseFloat(row.reorder_at)||0,
           supplier:row.supplier||'',notes:row.notes||'',pkgSize:row.pkg_size||'',
-          vendorUrl:row.vendor_url||'',updated_at:row.updated_at||''
+          vendorUrl:row.vendor_url||'',updated_at:row.updated_at||'',
+          aliases:Array.isArray(row.aliases)?row.aliases:(row.aliases?JSON.parse(row.aliases):[]),
         };
       });
       this.fragrances=fRows||[];
@@ -3076,6 +3077,9 @@ const App = {
     i.supplier=document.getElementById('iis').value;
     i.vendorUrl=document.getElementById('iiurl').value;
     i.notes=document.getElementById('iino').value;
+    // Aliases: comma-separated input → cleaned string array
+    const aliasRaw = (document.getElementById('iialiases')||{}).value||'';
+    i.aliases = aliasRaw.split(',').map(a=>a.trim()).filter(Boolean);
     i.updated_at=new Date().toISOString();
     const idx=this.inventory.findIndex(x=>x.id===i.id);
     if(idx>=0) this.inventory[idx]=i; else this.inventory.unshift(i);
@@ -3092,7 +3096,8 @@ const App = {
         quantity:parseFloat(i.quantity)||0,unit:i.unit||'oz',
         cost:i.cost!==''&&i.cost!=null?parseFloat(i.cost):null,
         reorder_at:parseFloat(i.reorderAt)||0,supplier:i.supplier||'',
-        notes:i.notes||'',pkg_size:i.pkgSize||'',vendor_url:i.vendorUrl||''};
+        notes:i.notes||'',pkg_size:i.pkgSize||'',vendor_url:i.vendorUrl||'',
+        aliases:JSON.stringify(Array.isArray(i.aliases)?i.aliases:[])};
       const res=await fetch(this.SB_URL+'/rest/v1/inventory?on_conflict=id',{
         method:'POST',
         headers:{'apikey':this.SB_KEY,'Authorization':'Bearer '+this.SB_KEY,
