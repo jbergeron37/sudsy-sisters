@@ -5363,6 +5363,13 @@ const App = {
       // ── Identical ingredient rendering to openRecipeDetail ──
       const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
       const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
+      const dUnit = (r.batchUnit||'oz').toLowerCase();
+      const toDisp = oz => {
+        if(dUnit==='g')  return Math.round((parseFloat(oz)||0)*28.3495*10)/10;
+        if(dUnit==='lb') return Math.round((parseFloat(oz)||0)/16*1000)/1000;
+        return Math.round((parseFloat(oz)||0)*1000)/1000;
+      };
+      const dispFmt = oz => toDisp(oz).toFixed(dUnit==='g'?1:2)+' '+dUnit;
       const pLabels = {'1':'Phase 1 — Goat Milk & Lye','2':'Phase 2 — Oils & Butters','3':'Phase 3 — Fragrance & Color','additive':'Extra Additives','':'Ingredients'};
       const pColors = {'1':'#5C35C2','2':'#A8527A','3':'#2E7D32','additive':'#E65100','':'#666'};
       const byPhase = {};
