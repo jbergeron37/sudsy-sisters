@@ -1218,7 +1218,7 @@ const App = {
     try {
       const [rRes,iRes,fRes] = await Promise.all([
         this._sbFetch('GET','recipes?select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,version,created_at,updated_at,is_favorite&order=updated_at.desc'),
-        this._sbFetch('GET','inventory?select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,aliases,updated_at&order=updated_at.desc'),
+        this._sbFetch('GET','inventory?select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,aliases,purchase_price,purchase_size,purchase_unit,updated_at&order=updated_at.desc'),
         this._sbFetch('GET','fragrances?order=updated_at.desc')
       ]);
       if(!rRes.ok||!iRes.ok||!fRes.ok) throw new Error('Fetch failed');
@@ -1247,6 +1247,9 @@ const App = {
           quantity:parseFloat(row.quantity)||0,unit:row.unit||'oz',
           cost:row.cost!=null?String(row.cost):'',reorderAt:parseFloat(row.reorder_at)||0,
           supplier:row.supplier||'',notes:row.notes||'',pkgSize:row.pkg_size||'',
+          purchasePrice:row.purchase_price!=null?String(row.purchase_price):'',
+          purchaseSize:row.purchase_size!=null?String(row.purchase_size):'',
+          purchaseUnit:row.purchase_unit||'oz',
           vendorUrl:row.vendor_url||'',updated_at:row.updated_at||'',
           aliases:Array.isArray(row.aliases)?row.aliases:(row.aliases?JSON.parse(row.aliases):[]),
         };
@@ -1345,7 +1348,10 @@ const App = {
       quantity:parseFloat(obj.quantity)||0,unit:obj.unit||'oz',
       cost:obj.cost!==''&&obj.cost!=null?parseFloat(obj.cost):null,
       reorder_at:parseFloat(obj.reorderAt)||0,supplier:obj.supplier||'',
-      notes:obj.notes||'',pkg_size:obj.pkgSize||'',vendor_url:obj.vendorUrl||''
+      notes:obj.notes||'',pkg_size:obj.pkgSize||'',vendor_url:obj.vendorUrl||'',
+      purchase_price:obj.purchasePrice!==''&&obj.purchasePrice!=null?parseFloat(obj.purchasePrice):null,
+      purchase_size:obj.purchaseSize!==''&&obj.purchaseSize!=null?parseFloat(obj.purchaseSize):null,
+      purchase_unit:obj.purchaseUnit||'oz'
     };
     if(table==='fragrances') return {
       id:obj.id, name:obj.name||'', description:obj.description||'',
@@ -1501,7 +1507,7 @@ const App = {
                 if(ri>=0) this.recipes[ri]=Object.assign({},this.recipes[ri],updated);
               } else if(pItem.table==='inventory'){
                 const d = pItem.data;
-                const updated = {id:d.id,name:d.name||'',category:d.category||'',quantity:parseFloat(d.quantity)||0,unit:d.unit||'oz',cost:d.cost!=null?String(d.cost):'',reorderAt:parseFloat(d.reorder_at)||0,supplier:d.supplier||'',notes:d.notes||'',pkgSize:d.pkg_size||'',vendorUrl:d.vendor_url||''};
+                const updated = {id:d.id,name:d.name||'',category:d.category||'',quantity:parseFloat(d.quantity)||0,unit:d.unit||'oz',cost:d.cost!=null?String(d.cost):'',reorderAt:parseFloat(d.reorder_at)||0,supplier:d.supplier||'',notes:d.notes||'',pkgSize:d.pkg_size||'',vendorUrl:d.vendor_url||'',purchasePrice:d.purchase_price!=null?String(d.purchase_price):'',purchaseSize:d.purchase_size!=null?String(d.purchase_size):'',purchaseUnit:d.purchase_unit||'oz'};
                 const ii = this.inventory.findIndex(x=>x.id===pItem.id);
                 if(ii>=0) this.inventory[ii]=Object.assign({},this.inventory[ii],updated);
               }
@@ -1519,9 +1525,9 @@ const App = {
             if(rows&&rows[0]){ const r=rows[0]; const recipe={id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batchSize:r.batch_size||'',batchUnit:r.batch_unit||'oz',cureTime:r.cure_time||'',superfat:r.superfat||'',fragranceRate:r.fragrance_rate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',refUrl:r.ref_url||'',unitSize:r.unit_size||'',unitsPerBatch:r.units_per_batch||'',version:r.version||'v1',created:r.created_at||'',updated_at:r.updated_at||'',is_favorite:r.is_favorite||false}; const idx=this.recipes.findIndex(x=>x.id===recipe.id); if(idx>=0) this.recipes[idx]=recipe; else this.recipes.push(recipe); }
             applied++;
           } else if(row.table==='inventory'){
-            const res=await this._sbFetch('GET','inventory?id=eq.'+row.id+'&select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,updated_at');
+            const res=await this._sbFetch('GET','inventory?id=eq.'+row.id+'&select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,purchase_price,purchase_size,purchase_unit,updated_at');
             const rows=await res.json();
-            if(rows&&rows[0]){ const r=rows[0]; const item={id:r.id,name:r.name||'',category:r.category||'',quantity:parseFloat(r.quantity)||0,unit:r.unit||'oz',cost:r.cost!=null?String(r.cost):'',reorderAt:parseFloat(r.reorder_at)||0,supplier:r.supplier||'',notes:r.notes||'',pkgSize:r.pkg_size||'',vendorUrl:r.vendor_url||'',updated_at:r.updated_at||''}; const idx=this.inventory.findIndex(x=>x.id===item.id); if(idx>=0) this.inventory[idx]=item; else this.inventory.push(item); }
+            if(rows&&rows[0]){ const r=rows[0]; const item={id:r.id,name:r.name||'',category:r.category||'',quantity:parseFloat(r.quantity)||0,unit:r.unit||'oz',cost:r.cost!=null?String(r.cost):'',reorderAt:parseFloat(r.reorder_at)||0,supplier:r.supplier||'',notes:r.notes||'',pkgSize:r.pkg_size||'',vendorUrl:r.vendor_url||'',purchasePrice:r.purchase_price!=null?String(r.purchase_price):'',purchaseSize:r.purchase_size!=null?String(r.purchase_size):'',purchaseUnit:r.purchase_unit||'oz',updated_at:r.updated_at||''}; const idx=this.inventory.findIndex(x=>x.id===item.id); if(idx>=0) this.inventory[idx]=item; else this.inventory.push(item); }
             applied++;
           }
         }
@@ -1922,6 +1928,42 @@ const App = {
 
   // ── Shared cost section renderer used by both recipe and variant detail ──
   // ── Centralized inventory lookup — checks primary name AND aliases ──
+  // ── UNIT CONVERSION HELPERS ────────────────────────────────
+  // Returns how many oz equal 1 of the given unit. null = not mass-convertible (ea, ml, L, tsp, tbsp, cup).
+  _ozFactor(u){
+    switch((u||'oz').toLowerCase()){
+      case 'oz': return 1;
+      case 'lb': return 16;
+      case 'g':  return 1/28.3495;
+      case 'kg': return 1000/28.3495;
+      default:   return null;
+    }
+  },
+  // Convert an amount in `unit` to oz. Non-mass units pass through unchanged.
+  _toOz(amount, unit){
+    const n = parseFloat(amount)||0;
+    const f = this._ozFactor(unit);
+    return f==null ? n : n*f;
+  },
+  // Given an inventory item (cost stored as $ per inv.unit), return $ per oz.
+  _invCostPerOz(inv){
+    const c = inv ? (parseFloat(inv.cost)||0) : 0;
+    if(!c) return 0;
+    const f = this._ozFactor(inv&&inv.unit);
+    return f==null ? c : c/f;
+  },
+  // Purchase Price ÷ Package Size, converted from purchaseUnit into displayUnit.
+  // Returns null if price or size isn't set yet (so callers can leave existing cost untouched).
+  _calcInvCost(purchasePrice, purchaseSize, purchaseUnit, displayUnit){
+    const price = parseFloat(purchasePrice)||0;
+    const size  = parseFloat(purchaseSize)||0;
+    if(!price || !size) return null;
+    const perPurchaseUnit = price/size;
+    const fP = this._ozFactor(purchaseUnit), fD = this._ozFactor(displayUnit);
+    if(fP==null || fD==null) return Math.round(perPurchaseUnit*10000)/10000;
+    return Math.round((perPurchaseUnit/fP*fD)*10000)/10000;
+  },
+
   _findInvByName(name){
     const nm = (name||'').toLowerCase().trim();
     if(!nm) return null;
@@ -1960,8 +2002,9 @@ const App = {
         if(!found) missing++;
         pkgBreakdown.push({name:ing.name, qty, costPer, lineCost, found});
       } else {
-        const oz = parseFloat(ing.amount)||0;
-        const lineCost = Math.round(oz*costPer*10000)/10000;
+        const oz = this._toOz(ing.amount, ing.unit);
+        const costPerOzVal = this._invCostPerOz(inv);
+        const lineCost = Math.round(oz*costPerOzVal*10000)/10000;
         ingTotal += lineCost;
         if(!found) missing++;
         ingBreakdown.push({
@@ -3024,7 +3067,7 @@ const App = {
   },
   openInvModal(id){
     const item=id?this.inventory.find(x=>x.id===id):null;
-    this.editI=item?JSON.parse(JSON.stringify(item)):{id:this.uid(),name:'',category:'Oils',quantity:0,unit:'oz',reorderAt:8,supplier:'',vendorUrl:'',cost:'',pkgSize:'',notes:''};
+    this.editI=item?JSON.parse(JSON.stringify(item)):{id:this.uid(),name:'',category:'Oils',quantity:0,unit:'oz',reorderAt:8,supplier:'',vendorUrl:'',cost:'',pkgSize:'',purchasePrice:'',purchaseSize:'',purchaseUnit:'oz',notes:''};
     document.getElementById('modal-inv-title').textContent=item?'Edit Item':'New Inventory Item';
     document.getElementById('modal-inv-body').innerHTML=this._iForm(this.editI);
     document.getElementById('modal-inv').classList.add('open');
@@ -3041,22 +3084,35 @@ const App = {
       <div class="form-group"><label>Item Name *</label><input id="iin" value="${this.h(i.name)}" placeholder="e.g. Coconut Oil"/></div>
       <div class="form-row">
         <div class="form-group"><label>Category</label><select id="iic">${so(I_CATS,i.category)}</select></div>
-        <div class="form-group"><label>Unit</label><select id="iiu">${so(UNITS,i.unit)}</select></div>
+        <div class="form-group"><label>Unit</label><select id="iiu" onchange="App._invCostPreview()">${so(UNITS,i.unit)}</select></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Current Qty</label><input id="iiq" type="number" step="any" value="${i.quantity}"/></div>
         <div class="form-group"><label>Reorder At</label><input id="iir" type="number" step="any" value="${i.reorderAt}" placeholder="8"/></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Purchase Price ($)</label><input id="iico" type="number" step="0.01" value="${this.h(i.cost)}" placeholder="0.00"/></div>
-        <div class="form-group"><label>Package Size</label><input id="iipkg" value="${this.h(i.pkgSize||'')}" placeholder="e.g. 32 oz jug"/></div>
+        <div class="form-group"><label>Package Size</label><input id="iipsz" type="number" step="any" value="${i.purchaseSize!=null?i.purchaseSize:''}" placeholder="e.g. 32" oninput="App._invCostPreview()"/></div>
+        <div class="form-group"><label>Purchased In</label><select id="iipu" onchange="App._invCostPreview()">${so(UNITS,i.purchaseUnit||i.unit||'oz')}</select></div>
       </div>
+      <div class="form-group"><label>Purchase Price ($) <span style="font-weight:400;color:var(--muted);font-size:.72rem">total cost of the package — add shipping in yourself if you want it included</span></label><input id="iipp" type="number" step="0.01" value="${i.purchasePrice!=null?i.purchasePrice:''}" placeholder="0.00" oninput="App._invCostPreview()"/></div>
+      <div class="form-group"><label>Cost / <span id="iicostunit">${this.h(i.unit||'oz')}</span> <span style="font-weight:400;color:var(--muted);font-size:.72rem">auto-calculated from above — editable if you need to override</span></label><input id="iico" type="number" step="0.0001" value="${this.h(i.cost)}" style="background:var(--cream)"/></div>
       <div class="form-group"><label>Vendor / Supplier</label>
         <input id="iis" list="vendor-datalist" value="${this.h(i.supplier)}" placeholder="e.g. Brambleberry" autocomplete="off"/>
         <datalist id="vendor-datalist">${vOpts}</datalist>
       </div>
       <div class="form-group"><label>Vendor Website (optional)</label><input id="iiurl" type="url" value="${this.h(i.vendorUrl||'')}" placeholder="https://brambleberry.com"/></div>
       <div class="form-group"><label>Notes</label><textarea id="iino" placeholder="Grade, brand…">${this.h(i.notes)}</textarea></div>`;
+  },
+  _invCostPreview(){
+    const dispUnit = (document.getElementById('iiu')||{}).value||'oz';
+    const pSize = (document.getElementById('iipsz')||{}).value;
+    const pUnit = (document.getElementById('iipu')||{}).value||'oz';
+    const pPrice = (document.getElementById('iipp')||{}).value;
+    const lbl = document.getElementById('iicostunit');
+    if(lbl) lbl.textContent = dispUnit;
+    const calc = this._calcInvCost(pPrice, pSize, pUnit, dispUnit);
+    const costInput = document.getElementById('iico');
+    if(costInput && calc!=null) costInput.value = calc;
   },
   async saveInv(){
     const name=document.getElementById('iin').value.trim();
@@ -3072,8 +3128,11 @@ const App = {
     i.name=name; i.category=document.getElementById('iic').value; i.unit=document.getElementById('iiu').value;
     i.quantity=parseFloat(document.getElementById('iiq').value)||0;
     i.reorderAt=parseFloat(document.getElementById('iir').value)||0;
+    i.purchaseSize=document.getElementById('iipsz').value;
+    i.purchaseUnit=document.getElementById('iipu').value;
+    i.purchasePrice=document.getElementById('iipp').value;
     i.cost=document.getElementById('iico').value;
-    i.pkgSize=document.getElementById('iipkg').value;
+    i.pkgSize=(i.purchaseSize&&i.purchaseUnit)?(i.purchaseSize+' '+i.purchaseUnit):(i.pkgSize||'');
     i.supplier=document.getElementById('iis').value;
     i.vendorUrl=document.getElementById('iiurl').value;
     i.notes=document.getElementById('iino').value;
@@ -3097,6 +3156,9 @@ const App = {
         cost:i.cost!==''&&i.cost!=null?parseFloat(i.cost):null,
         reorder_at:parseFloat(i.reorderAt)||0,supplier:i.supplier||'',
         notes:i.notes||'',pkg_size:i.pkgSize||'',vendor_url:i.vendorUrl||'',
+        purchase_price:i.purchasePrice!==''&&i.purchasePrice!=null?parseFloat(i.purchasePrice):null,
+        purchase_size:i.purchaseSize!==''&&i.purchaseSize!=null?parseFloat(i.purchaseSize):null,
+        purchase_unit:i.purchaseUnit||'oz',
         aliases:JSON.stringify(Array.isArray(i.aliases)?i.aliases:[])};
       const res=await fetch(this.SB_URL+'/rest/v1/inventory?on_conflict=id',{
         method:'POST',
@@ -3111,7 +3173,7 @@ const App = {
       this._showSyncStatus('Saved \u2713');
     }catch(e){
       console.warn('Inventory cloud save failed:',e.message);
-      this._queuePending('inventory',i.id,'upsert',{id:i.id,name:i.name||'',category:i.category||'',quantity:parseFloat(i.quantity)||0,unit:i.unit||'oz',cost:i.cost!==''&&i.cost!=null?parseFloat(i.cost):null,reorder_at:parseFloat(i.reorderAt)||0,supplier:i.supplier||'',notes:i.notes||'',pkg_size:i.pkgSize||'',vendor_url:i.vendorUrl||''});
+      this._queuePending('inventory',i.id,'upsert',{id:i.id,name:i.name||'',category:i.category||'',quantity:parseFloat(i.quantity)||0,unit:i.unit||'oz',cost:i.cost!==''&&i.cost!=null?parseFloat(i.cost):null,reorder_at:parseFloat(i.reorderAt)||0,supplier:i.supplier||'',notes:i.notes||'',pkg_size:i.pkgSize||'',vendor_url:i.vendorUrl||'',purchase_price:i.purchasePrice!==''&&i.purchasePrice!=null?parseFloat(i.purchasePrice):null,purchase_size:i.purchaseSize!==''&&i.purchaseSize!=null?parseFloat(i.purchaseSize):null,purchase_unit:i.purchaseUnit||'oz'});
       this._showSyncStatus('\u26A0\uFE0F Saved locally \u2014 check sync');
     }
   },
@@ -4824,6 +4886,16 @@ const App = {
   printRecipePDF(id, recipeOverride, existingWin){
     const r = recipeOverride || this.recipes.find(x=>x.id===id); if(!r) return;
     const cost = this._calcRecipeCost(r);
+    const batchSizeOz = (r.ingredients||[]).filter(i=>!(i.unit==='ea'||i.phase==='pkg'||i.phase==='Packaging')).reduce((s,i)=>{
+      const isG2 = i.unit==='g';
+      return s+(isG2?Math.round((parseFloat(i.amount)||0)/28.3495*1000)/1000:(parseFloat(i.amount)||0));
+    },0)||parseFloat(r.batchSize)||0;
+    const unitSzOz = parseFloat(r.unitSize)||3.5;
+    const numUnits = r.unitsPerBatch ? parseInt(r.unitsPerBatch) :
+      (unitSzOz>0&&batchSizeOz>0 ? Math.floor(batchSizeOz/unitSzOz) : 0);
+    const ingPerUnit = numUnits>0 ? Math.round(cost.total/numUnits*10000)/10000 : 0;
+    const pkgPerUnitTotal = cost.pkgBreakdown.reduce((s,p)=>s+(p.found?p.costPer:0),0);
+    const costPerUnit = Math.round((ingPerUnit+pkgPerUnitTotal)*10000)/10000;
     const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
     const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
     const ingRow = (i, shade) => {
