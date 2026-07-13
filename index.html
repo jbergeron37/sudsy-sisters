@@ -1075,7 +1075,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.24.26.83.00';
+    const _ver = 'V-5.12.26.84.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2329,7 +2329,8 @@ const App = {
     // 3. Fragrances
     const fragList = v ? (v.fragrances_used||[]) : [];
     if(!fragList.length && v && v.fragrance_id && v.fragrance_amount){
-      fragList.push({id:v.fragrance_id, amount:v.fragrance_amount});
+      // v.fragrance_amount is stored in grams; this pipeline works in oz below
+      fragList.push({id:v.fragrance_id, amount:Math.round((parseFloat(v.fragrance_amount)||0)/28.3495*1000)/1000});
     }
     fragList.filter(f=>f.id&&f.amount).forEach(f=>{
       const frag = (this.fragrances||[]).find(x=>x.id===f.id);
@@ -5969,10 +5970,10 @@ const App = {
           '<div class="form-group"><label>Fragrance</label>'+
             '<select id="vf-frag" style="font-size:16px"><option value="">— Base recipe FO —</option>'+fragOpts+'</select>'+
           '</div>'+
-          '<div class="form-group"><label>Amount</label>'+
+          '<div class="form-group"><label>Amount (g)</label>'+
             '<div style="display:flex;gap:6px">'+
-            '<input id="vf-frag-amt" type="number" step="any" value="'+this.h(v.fragrance_amount||'')+'" placeholder="oz" oninput="var g=document.getElementById(\'vf-frag-amt-g\');if(g)g.value=this.value?Math.round(parseFloat(this.value)*28.3495*100)/100:\'\';" style="font-size:16px;flex:1"/>'+
-            '<input id="vf-frag-amt-g" type="number" step="any" value="'+( v.fragrance_amount?Math.round(parseFloat(v.fragrance_amount)*28.3495*100)/100:'')+'" placeholder="g" oninput="var o=document.getElementById(\'vf-frag-amt\');if(o)o.value=this.value?Math.round(parseFloat(this.value)/28.3495*100)/100:\'\';" style="font-size:16px;flex:1"/>'+
+            '<input id="vf-frag-amt-g" type="number" step="any" value="'+this.h(v.fragrance_amount||'')+'" placeholder="g" oninput="var o=document.getElementById(\'vf-frag-amt\');if(o)o.value=this.value?Math.round(parseFloat(this.value)/28.3495*100)/100:\'\';" style="font-size:16px;flex:1"/>'+
+            '<input id="vf-frag-amt" type="number" step="any" value="'+( v.fragrance_amount?Math.round(parseFloat(v.fragrance_amount)/28.3495*100)/100:'')+'" placeholder="oz" oninput="var g=document.getElementById(\'vf-frag-amt-g\');if(g)g.value=this.value?Math.round(parseFloat(this.value)*28.3495*100)/100:\'\';" style="font-size:16px;flex:1"/>'+
             '</div>'+
           '</div>'+
         '</div>'+
@@ -6115,7 +6116,8 @@ const App = {
         units_per_batch:parseFloat((document.getElementById('vf-upb')||{}).value)||null,
         unit_size:parseFloat((document.getElementById('vf-usz')||{}).value)||null,
         fragrance_id:(document.getElementById('vf-frag')||{}).value||null,
-        fragrance_amount:parseFloat((document.getElementById('vf-frag-amt')||{}).value)||null,
+        fragrance_amount:parseFloat((document.getElementById('vf-frag-amt-g')||{}).value)||null,
+        fragrance_unit:'g',
         colorant:(document.getElementById('vf-colorant')||{}).value||'',
         updated_at:new Date().toISOString()
       });
@@ -6151,8 +6153,8 @@ const App = {
         });
         const fragIngs = v.fragrance_id && v.fragrance_amount ? (()=>{
           const frag = (this.fragrances||[]).find(x=>x.id===v.fragrance_id);
-          const oz = parseFloat(v.fragrance_amount)||0;
-          return [{name:frag?frag.name:'Fragrance', oz, g:oz2g(oz), phase:'3', frag_id:v.fragrance_id}];
+          const g = parseFloat(v.fragrance_amount)||0;
+          return [{name:frag?frag.name:'Fragrance', oz:g2oz(g), g, phase:'3', frag_id:v.fragrance_id}];
         })() : [];
         v.full_recipe = Object.assign({}, v.full_recipe||{}, {
           ingredients: [...baseIngs, ...fragIngs, ...addIngs]
