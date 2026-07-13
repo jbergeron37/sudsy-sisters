@@ -1032,12 +1032,12 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 </div>
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────
-const R_CATS  = ['Bar Soap','Liquid Soap','Lotion','Body Butter','Body Oil','Scrub','Other'];
+const R_CATS  = ['Bar Soap','Liquid Soap','Lotion','Body Butter','Oils','Scrub','Sponges','Jelly','Lips','Bath Bomb','Other'];
 const I_CATS  = ['Oils','Butters','Waxes','Lye & Alkalis','Fragrance & EO','Colorants','Additives','Packaging','Other'];
 const UNITS   = ['oz','lb','g','kg','ml','L','tsp','tbsp','cup','ea'];
 const DIFF    = ['Beginner','Intermediate','Advanced'];
 const LYE_T   = ['NaOH','KOH','Both','None'];
-const CAT_CLR = {'Bar Soap':'#D4789A','Liquid Soap':'#6600EE','Lotion':'#E899B4','Body Butter':'#FCBFCE','Body Oil':'#A8527A','Scrub':'#8833FF','Other':'#C060A0'};
+const CAT_CLR = {'Bar Soap':'#D4789A','Liquid Soap':'#6600EE','Lotion':'#E899B4','Body Butter':'#FCBFCE','Oils':'#A8527A','Scrub':'#8833FF','Sponges':'#3FA7A3','Jelly':'#E9A23B','Lips':'#E4574C','Bath Bomb':'#4A90D9','Other':'#C060A0'};
 
 // ── SAMPLE DATA ───────────────────────────────────────────────
 const SEED_RECIPES = [];
@@ -1856,9 +1856,13 @@ const App = {
       {label:'All',val:''},
       {label:'Bar Soap',val:'Bar Soap'},
       {label:'Lotion & Butter',val:'lotion_butter'},
-      {label:'Body Oil',val:'Body Oil'},
+      {label:'Oils',val:'Oils'},
       {label:'Hair',val:'hair'},
       {label:'Scrub',val:'Scrub'},
+      {label:'Sponges',val:'Sponges'},
+      {label:'Jelly',val:'Jelly'},
+      {label:'Lips',val:'Lips'},
+      {label:'Bath Bomb',val:'Bath Bomb'},
       {label:'Other',val:'Other'},
     ];
     const el=document.getElementById('r-chips');
@@ -1878,12 +1882,12 @@ const App = {
       const desc=(r.description||'').toLowerCase();
       return nm.includes('hair')||nm.includes('shampoo')||tags.includes('hair')||tags.includes('shampoo')||desc.includes('hair oil')||desc.includes('shampoo');
     }
-    if(this._rCat==='Body Oil'){
-      // Exclude hair recipes from Body Oil — they live under Hair filter
+    if(this._rCat==='Oils'){
+      // Exclude hair recipes from Oils — they live under Hair filter
       const nm=(r.name||'').toLowerCase();
       const tags=(r.tags||[]).join(' ').toLowerCase();
       const isHair=nm.includes('hair')||nm.includes('shampoo')||tags.includes('hair')||tags.includes('shampoo');
-      return r.category==='Body Oil' && !isHair;
+      return r.category==='Oils' && !isHair;
     }
     return r.category===this._rCat;
   },
@@ -2475,7 +2479,7 @@ const App = {
 
   openRecipeModal(id, prefill){
     const r=id?this.recipes.find(x=>x.id===id):(prefill||null);
-    this.editR=r?JSON.parse(JSON.stringify(r)):{id:this.uid(),name:'',category:'Bar Soap',difficulty:'Beginner',cureTime:'',batchSize:'',batchUnit:'oz',superfat:'',fragranceRate:'',lye:'NaOH',scent:'',tags:[],description:'',ingredients:[{name:'',amount:'',unit:'oz'}],instructions:'',notes:'',created:new Date().toISOString().slice(0,10)};
+    this.editR=r?JSON.parse(JSON.stringify(r)):{id:this.uid(),name:'',category:'Bar Soap',difficulty:'Beginner',cureTime:'',batchSize:'',batchUnit:'g',superfat:'',fragranceRate:'',lye:'NaOH',scent:'',tags:[],description:'',ingredients:[{name:'',amount:'',unit:'g'}],instructions:'',notes:'',created:new Date().toISOString().slice(0,10)};
     document.getElementById('modal-recipe-title').textContent=r?'Edit Recipe':'New Recipe';
     document.getElementById('modal-recipe-body').innerHTML=this._rForm(this.editR);
     this._initTags('rtags',this.editR.tags);
@@ -2485,9 +2489,8 @@ const App = {
   },
   _rForm(r){
     const so=(a,v)=>a.map(o=>`<option${o===v?' selected':''}>${o}</option>`).join('');
-    const uOpts=['oz','g'].map(u=>`<option${u===r.batchUnit?' selected':''}>${u}</option>`).join('');
     const ings=(r.ingredients||[]).map((g,i)=>g.unit==='ea'?this._pkgRow(i,g):this._iRow(i,g)).join('');
-    const unitLbl = (r.batchUnit||'oz')==='g' ? 'Grams per Unit' : 'Oz per Unit';
+    const unitLbl = 'Grams per Unit';
     return `
       <!-- 1. NAME / TITLE CARD -->
       <div class="form-group"><label>Recipe Name *</label><input id="fn" value="${this.h(r.name)}" placeholder="e.g. Classic Goat Milk Bar"/></div>
@@ -2528,13 +2531,10 @@ const App = {
       <!-- 6. BATCH SETTINGS -->
       <div style="background:var(--cream);border-radius:12px;padding:12px 14px;margin-top:4px">
         <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.6px;margin-bottom:10px">⚖️ Batch Settings</div>
-        <div class="form-row">
-          <div class="form-group"><label>Batch Size <span style="font-size:.7rem;color:var(--muted)">(auto)</span></label><div id="fbs-display" style="padding:8px 10px;background:var(--card);border-radius:8px;font-weight:700;color:var(--text);min-height:38px">calculating...</div><input type="hidden" id="fbs" value="${this.h(r.batchSize)}"/></div>
-          <div class="form-group"><label>Unit</label><select id="fbu" onchange="App._onUnitChange()">${uOpts}</select></div>
-        </div>
+        <div class="form-group"><label>Batch Size <span style="font-size:.7rem;color:var(--muted)">(auto — grams)</span></label><div id="fbs-display" style="padding:8px 10px;background:var(--card);border-radius:8px;font-weight:700;color:var(--text);min-height:38px">calculating...</div><input type="hidden" id="fbs" value="${this.h(r.batchSize)}"/><input type="hidden" id="fbu" value="g"/></div>
         <div class="form-row">
           <div class="form-group"><label>Units per Batch <span style="font-size:.7rem;color:var(--muted)">(auto)</span></label><input id="fupb" type="number" step="0.01" value="${this.h(r.unitsPerBatch)}" placeholder="auto" oninput="App._calcOzPerUnit()" style="background:var(--card)"/></div>
-          <div class="form-group"><label id="fusz-label">${unitLbl}</label><input id="fusz" type="number" step="any" value="${this.h(r.unitSize)}" placeholder="e.g. 3.5" oninput="App._calcBatchSize()"/></div>
+          <div class="form-group"><label id="fusz-label">${unitLbl}</label><input id="fusz" type="number" step="any" value="${this.h(r.unitSize)}" placeholder="e.g. 100" oninput="App._calcBatchSize()"/></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label>Cure Time</label><input id="fct" value="${this.h(r.cureTime)}" placeholder="4–6 weeks"/></div>
@@ -2578,8 +2578,9 @@ const App = {
   _ingOzChange(i){
     const oz=parseFloat(document.getElementById('ing-oz-'+i)?.value)||0;
     const gEl=document.getElementById('ing-g-'+i);
-    if(gEl) gEl.value = oz>0 ? Math.round(oz*28.3495*100)/100 : '';
-    App._syncIng(i,'amount',String(oz)); App._syncIng(i,'unit','oz');
+    const gVal = oz>0 ? Math.round(oz*28.3495*100)/100 : 0;
+    if(gEl) gEl.value = gVal ? gVal : '';
+    App._syncIng(i,'amount',String(gVal)); App._syncIng(i,'unit','g');
   },
   _ingGChange(i){
     const g=parseFloat(document.getElementById('ing-g-'+i)?.value)||0;
@@ -2590,8 +2591,8 @@ const App = {
   addIngRow(){
     if(!this.editR.ingredients) this.editR.ingredients=[];
     const i=this.editR.ingredients.length;
-    this.editR.ingredients.push({name:'',amount:'',unit:'oz',phase:''});
-    document.getElementById('ing-rows').insertAdjacentHTML('beforeend',this._iRow(i,{name:'',amount:'',unit:'oz',phase:''}));
+    this.editR.ingredients.push({name:'',amount:'',unit:'g',phase:''});
+    document.getElementById('ing-rows').insertAdjacentHTML('beforeend',this._iRow(i,{name:'',amount:'',unit:'g',phase:''}));
   },
 
   addPkgRow(){
@@ -3524,7 +3525,7 @@ const App = {
     document.getElementById('mb-additive-rows').insertAdjacentHTML('beforeend',this._mbAdditiveRow(i,{name:'',amount:'',unit:'oz'}));
   },
   _mbRemoveAdditive(i){ this._mbSession.additives.splice(i,1); document.getElementById('mb-additive-rows').innerHTML=this._mbSession.additives.map((a,x)=>this._mbAdditiveRow(x,a)).join(''); },
-  _mbSyncAddOz(i){ const v=parseFloat(document.getElementById('mb-aoz-'+i)?.value)||0; const g=document.getElementById('mb-ag-'+i); if(g)g.value=v?Math.round(v*28.3495*100)/100:''; if(this._mbSession.additives[i]){this._mbSession.additives[i].amount=String(v);this._mbSession.additives[i].unit='oz';} },
+  _mbSyncAddOz(i){ const v=parseFloat(document.getElementById('mb-aoz-'+i)?.value)||0; const gVal=v?Math.round(v*28.3495*100)/100:0; const g=document.getElementById('mb-ag-'+i); if(g)g.value=gVal?gVal:''; if(this._mbSession.additives[i]){this._mbSession.additives[i].amount=String(gVal);this._mbSession.additives[i].unit='g';} },
   _mbSyncAddG(i){ const v=parseFloat(document.getElementById('mb-ag-'+i)?.value)||0; const oz=document.getElementById('mb-aoz-'+i); if(oz)oz.value=v?Math.round(v/28.3495*100)/100:''; if(this._mbSession.additives[i]){this._mbSession.additives[i].amount=String(v);this._mbSession.additives[i].unit='g';} },
 
   _mbFragRow(i, fr){
@@ -4784,7 +4785,7 @@ const App = {
     this._lastSplitData = {
       recipeName: document.getElementById('header-title')?.textContent || 'Recipe',
       totalWt: total, oilTotal, lyeTotal,
-      batchUnit: 'oz', rows
+      batchUnit: 'g', rows
     };
     const res = document.getElementById('split-result');
     if(!res) return;
@@ -5442,8 +5443,8 @@ const App = {
         batchUnit: v.batch_unit||(fr&&fr.batch_unit)||(base&&base.batchUnit)||'oz',
         cureTime: (fr&&fr.cure_time)||(base&&base.cureTime)||'',
         fragranceRate: (fr&&fr.fragrance_rate)||(base&&base.fragranceRate)||'',
-        unitsPerBatch: base&&base.unitsPerBatch||'',
-        unitSize: base&&base.unitSize||'',
+        unitsPerBatch: v.units_per_batch||(base&&base.unitsPerBatch)||'',
+        unitSize: v.unit_size||(base&&base.unitSize)||'',
         notes: v.batch_notes||v.notes||'',
         description: 'Variant of '+baseName,
         ingredients
@@ -5813,13 +5814,13 @@ const App = {
     }
   },
 
-  // Auto-calculate unit size from batch size ÷ units per batch
+  // Auto-calculate unit size (grams) from batch size ÷ units per batch
   _calcUnitSize(){
-    const batch = parseFloat(document.getElementById('fbs')?.value);
+    const batchOz = parseFloat(document.getElementById('fbs')?.value);
     const units = parseFloat(document.getElementById('fupb')?.value);
     const usz = document.getElementById('fusz');
-    if(batch > 0 && units > 0 && usz){
-      usz.value = Math.round((batch / units) * 100) / 100;
+    if(batchOz > 0 && units > 0 && usz){
+      usz.value = Math.round((batchOz*28.3495 / units) * 100) / 100;
     }
   },
 
@@ -5869,6 +5870,7 @@ const App = {
               '<div style="font-weight:700;font-size:.92rem;color:var(--text)">'+this.h(v.name)+'</div>'+
               '<div style="font-size:.75rem;margin-top:3px">'+
                 '<span style="background:'+clr+'22;color:'+clr+';border-radius:6px;padding:2px 7px;font-weight:700;font-size:.7rem;text-transform:uppercase">'+mold+'</span>'+
+                (v.batch_multiplier&&Number(v.batch_multiplier)!==1?'<span style="margin-left:6px;background:#E9A23B22;color:#E9A23B;border-radius:6px;padding:2px 7px;font-weight:700;font-size:.7rem">'+v.batch_multiplier+'&times;</span>':'')+
                 (v.batch_size?'<span style="margin-left:6px;color:var(--muted)">'+v.batch_size+' '+(v.batch_unit||'oz')+'</span>':'')+
                 (ing?'<span style="margin-left:6px;color:var(--muted)">+'+ing+' additive'+(ing>1?'s':'')+'</span>':'')+
               '</div>'+
@@ -5890,7 +5892,7 @@ const App = {
   async openVariantForm(variantId, recipeId){
     const r = this.recipes.find(x=>x.id===(recipeId||this._variantRecipeId));
     let v = {id:'', base_recipe_id:recipeId||this._variantRecipeId, name:'',
-      added_ingredients:[], notes:'', fragrance_id:'', fragrance_amount:'', colorant:''};
+      added_ingredients:[], notes:'', fragrance_id:'', fragrance_amount:'', colorant:'', batch_multiplier:1};
     if(variantId){
       try {
         const res = await this._sbFetch('GET','recipe_variants?id=eq.'+variantId);
@@ -5931,6 +5933,18 @@ const App = {
       '<div style="background:var(--cream);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;color:var(--muted)">'+
         '💡 <strong>Base recipe:</strong> '+this.h(baseName)+' ('+this.h(baseSize)+'). Inherits all base ingredients — add extras below.'+
       '</div>'+
+      // 3a. BATCH MULTIPLIER
+      '<div class="form-group"><label>Batch Multiplier <span style="font-weight:400;color:var(--muted)">(2 = double, 3 = triple, 4 = quadruple…)</span></label><input id="vf-mult" type="number" step="any" min="0.1" value="'+this.h(v.batch_multiplier&&Number(v.batch_multiplier)!==1?v.batch_multiplier:'')+'" placeholder="1 (same as base)" oninput="App._onVariantMultChange()" style="font-size:16px"/></div>'+
+      '<div id="vf-mult-total" style="font-size:.72rem;color:var(--muted);margin:-6px 0 10px 2px"></div>'+
+      // 3b. UNIT YIELD (overrides base recipe)
+      '<div style="background:var(--cream);border-radius:12px;padding:12px 14px;margin-bottom:10px">'+
+        '<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.6px;margin-bottom:10px">⚖️ Unit Yield <span style="font-weight:400;text-transform:none">(optional — overrides base recipe)</span></div>'+
+        '<div class="form-row">'+
+          '<div class="form-group"><label>Units per Batch</label><input id="vf-upb" type="number" step="0.01" value="'+this.h(v.units_per_batch||'')+'" placeholder="'+(r&&r.unitsPerBatch?r.unitsPerBatch+' (base)':'auto')+'" oninput="App._calcVariantUnitSize()" style="font-size:16px"/></div>'+
+          '<div class="form-group"><label>Unit Size (g)</label><input id="vf-usz" type="number" step="any" value="'+this.h(v.unit_size||'')+'" placeholder="'+(r&&r.unitSize?r.unitSize+' (base)':'e.g. 100')+'" oninput="App._calcVariantUnitsPerBatch()" style="font-size:16px"/></div>'+
+        '</div>'+
+        '<div style="font-size:.7rem;color:var(--muted)">Leave both blank to inherit the base recipe&#39;s yield.</div>'+
+      '</div>'+
       // 4. EXTRA ADDITIVES
       '<div class="form-group"><label>Extra Additives <span style="font-weight:400;color:var(--muted)">(unique to this variant)</span></label>'+
         '<div style="display:flex;gap:6px;padding:0 0 4px;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase">'+
@@ -5968,6 +5982,7 @@ const App = {
       '</div>'+
       '</div>';
     document.getElementById('modal-variant-form').classList.add('open');
+    this._onVariantMultChange();
   },
 
   _variantPkgRow(i, p){
@@ -6025,11 +6040,60 @@ const App = {
       '<input class="sm" type="number" step="any" placeholder="0" value="'+gval+'" id="ving-g-'+i+'" oninput="App._variantIngGChange('+i+')" style="font-size:16px"/>'+
       '<button class="ing-del" onclick="App._delVariantIngRow('+i+')">−</button></div>';
   },
-  _addVariantIngRow(){ const i=(this._editVariant.added_ingredients||[]).length; if(!this._editVariant.added_ingredients)this._editVariant.added_ingredients=[]; this._editVariant.added_ingredients.push({name:'',amount:'',unit:'oz'}); document.getElementById('vf-added-ings').insertAdjacentHTML('beforeend',this._variantIngRow(i,{name:'',amount:'',unit:'oz'})); },
+  _addVariantIngRow(){ const i=(this._editVariant.added_ingredients||[]).length; if(!this._editVariant.added_ingredients)this._editVariant.added_ingredients=[]; this._editVariant.added_ingredients.push({name:'',amount:'',unit:'g'}); document.getElementById('vf-added-ings').insertAdjacentHTML('beforeend',this._variantIngRow(i,{name:'',amount:'',unit:'g'})); },
   _delVariantIngRow(i){ this._editVariant.added_ingredients.splice(i,1); document.getElementById('vf-added-ings').innerHTML=this._editVariant.added_ingredients.map((g,x)=>this._variantIngRow(x,g)).join(''); },
   _syncVariantIng(i,f,v){ if(this._editVariant.added_ingredients[i]) this._editVariant.added_ingredients[i][f]=v; },
-  _variantIngOzChange(i){ const oz=parseFloat(document.getElementById('ving-oz-'+i)?.value)||0; const gEl=document.getElementById('ving-g-'+i); if(gEl)gEl.value=oz>0?Math.round(oz*28.3495*100)/100:''; this._syncVariantIng(i,'amount',String(oz)); this._syncVariantIng(i,'unit','oz'); },
+  _variantIngOzChange(i){ const oz=parseFloat(document.getElementById('ving-oz-'+i)?.value)||0; const gEl=document.getElementById('ving-g-'+i); const gVal=oz>0?Math.round(oz*28.3495*100)/100:0; if(gEl)gEl.value=gVal?gVal:''; this._syncVariantIng(i,'amount',String(gVal)); this._syncVariantIng(i,'unit','g'); },
   _variantIngGChange(i){ const g=parseFloat(document.getElementById('ving-g-'+i)?.value)||0; const ozEl=document.getElementById('ving-oz-'+i); if(ozEl)ozEl.value=g>0?Math.round(g/28.3495*100)/100:''; this._syncVariantIng(i,'amount',String(g)); this._syncVariantIng(i,'unit','g'); },
+
+  _onVariantMultChange(){
+    const totalEl = document.getElementById('vf-mult-total');
+    const base = this.recipes.find(x=>x.id===(this._editVariant&&this._editVariant.base_recipe_id));
+    if(totalEl){
+      const mult = parseFloat((document.getElementById('vf-mult')||{}).value)||1;
+      let baseG = 0;
+      if(base){
+        (base.ingredients||[]).forEach(i=>{
+          if(i.unit==='ea'||i.phase==='pkg'||i.phase==='Packaging') return;
+          baseG += parseFloat(i.amount)||0; // base recipes are always grams
+        });
+      }
+      const total = Math.round(baseG*mult*100)/100;
+      totalEl.textContent = base ? ('Base batch: '+Math.round(baseG*100)/100+' g  ×  '+mult+'  =  '+total+' g (before extra additives)') : '';
+    }
+    // Refresh unit yield auto-calc if either field already has a value
+    const upbEl = document.getElementById('vf-upb'), uszEl = document.getElementById('vf-usz');
+    if(upbEl && upbEl.value) this._calcVariantUnitSize();
+    else if(uszEl && uszEl.value) this._calcVariantUnitsPerBatch();
+  },
+  _variantTotalG(){
+    const base = this.recipes.find(x=>x.id===(this._editVariant&&this._editVariant.base_recipe_id));
+    const mult = parseFloat((document.getElementById('vf-mult')||{}).value)||1;
+    let total = 0;
+    if(base){
+      (base.ingredients||[]).forEach(i=>{
+        if(i.unit==='ea'||i.phase==='pkg'||i.phase==='Packaging') return;
+        const isOz = i.unit==='oz';
+        total += (isOz ? (parseFloat(i.amount)||0)*28.3495 : (parseFloat(i.amount)||0)) * mult;
+      });
+    }
+    const n = (this._editVariant&&this._editVariant.added_ingredients||[]).length;
+    for(let i=0;i<n;i++){
+      const gEl = document.getElementById('ving-g-'+i);
+      if(gEl) total += parseFloat(gEl.value)||0;
+    }
+    return total;
+  },
+  _calcVariantUnitSize(){
+    const upb = parseFloat((document.getElementById('vf-upb')||{}).value)||0;
+    const uszEl = document.getElementById('vf-usz');
+    if(upb>0 && uszEl) uszEl.value = Math.round(this._variantTotalG()/upb*100)/100;
+  },
+  _calcVariantUnitsPerBatch(){
+    const usz = parseFloat((document.getElementById('vf-usz')||{}).value)||0;
+    const upbEl = document.getElementById('vf-upb');
+    if(usz>0 && upbEl) upbEl.value = Math.round(this._variantTotalG()/usz*100)/100;
+  },
 
   async saveVariant(){
     try {
@@ -6047,6 +6111,9 @@ const App = {
         notes:(document.getElementById('vf-notes')||{}).value||'',
         mold_type:(document.getElementById('vf-mold')||{}).value||'loaf',
         batch_size:parseFloat((document.getElementById('vf-batch')||{}).value)||null,
+        batch_multiplier:parseFloat((document.getElementById('vf-mult')||{}).value)||1,
+        units_per_batch:parseFloat((document.getElementById('vf-upb')||{}).value)||null,
+        unit_size:parseFloat((document.getElementById('vf-usz')||{}).value)||null,
         fragrance_id:(document.getElementById('vf-frag')||{}).value||null,
         fragrance_amount:parseFloat((document.getElementById('vf-frag-amt')||{}).value)||null,
         colorant:(document.getElementById('vf-colorant')||{}).value||'',
@@ -6054,6 +6121,8 @@ const App = {
       });
       if(!v.id) v.id = this.uid();
       if(!v.batch_size) delete v.batch_size;
+      if(!v.units_per_batch) delete v.units_per_batch;
+      if(!v.unit_size) delete v.unit_size;
       if(!v.fragrance_id) delete v.fragrance_id;
       if(!v.fragrance_amount) delete v.fragrance_amount;
 
@@ -6061,11 +6130,15 @@ const App = {
       // so the variant detail always shows up-to-date data
       const baseR = this.recipes.find(x=>x.id===v.base_recipe_id);
       if(baseR) {
+        const mult = v.batch_multiplier || 1;
         const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
         const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
         const baseIngs = (baseR.ingredients||[]).map(i=>{
-          const oz = i.unit==='g' ? g2oz(i.amount) : (parseFloat(i.amount)||0);
-          return {name:i.name, oz, g:oz2g(oz), phase:i.phase||'', usage_rate:i.usage_rate??null};
+          if(i.unit==='ea'||i.phase==='pkg'||i.phase==='Packaging'){
+            return {name:i.name, qty:parseFloat(i.amount)||1, oz:0, g:0, phase:'pkg', unit:'ea'};
+          }
+          const oz = (i.unit==='g' ? g2oz(i.amount) : (parseFloat(i.amount)||0)) * mult;
+          return {name:i.name, oz:Math.round(oz*1000)/1000, g:oz2g(oz), phase:i.phase||'', usage_rate:i.usage_rate??null};
         });
         const addIngs = (v.added_ingredients||[]).filter(a=>a.name).map(a=>{
           // Preserve packaging items with their unit/phase markers
@@ -6183,7 +6256,7 @@ const App = {
     // Work on a deep copy — never mutate this.editR directly during save
     const r = JSON.parse(JSON.stringify(this.editR));
     r.name=name; r.category=document.getElementById('fc').value; r.difficulty=document.getElementById('fd').value;
-    r.batchSize=document.getElementById('fbs').value; r.batchUnit=document.getElementById('fbu').value;
+    r.batchSize=String(Math.round((parseFloat(document.getElementById('fbs').value)||0)*28.3495*100)/100); r.batchUnit='g';
     r.unitsPerBatch=document.getElementById('fupb').value;
     r.unitSize=document.getElementById('fusz').value;
     r.cureTime=document.getElementById('fct').value; r.superfat=document.getElementById('fsf').value;
@@ -6358,6 +6431,8 @@ const App = {
       const merged = Object.assign({}, baseR, {
         name: baseR.name+' - '+v.name,
         batchSize: v.batch_size || baseR.batchSize,
+        unitsPerBatch: v.units_per_batch || baseR.unitsPerBatch,
+        unitSize: v.unit_size || baseR.unitSize,
         ingredients: [...(baseR.ingredients||[]),...(v.added_ingredients||[])],
         notes: [baseR.notes, v.colorant?'Colorant: '+v.colorant:'', v.notes].filter(Boolean).join('\n\n'),
         version: v.mold_type?(v.mold_type.charAt(0).toUpperCase()+v.mold_type.slice(1)+' mold'):baseR.version
