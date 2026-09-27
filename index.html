@@ -1077,7 +1077,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.26.88.00';
+    const _ver = 'V-5.27.26.89.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1267,7 +1267,7 @@ const App = {
     this._loadLaborRate();
     try {
       const [rRes,iRes,fRes] = await Promise.all([
-        this._sbFetch('GET','recipes?select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,labor_hours,pack_minutes,version,created_at,updated_at,is_favorite&order=updated_at.desc'),
+        this._sbFetch('GET','recipes?select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,prod_minutes,pack_minutes,version,created_at,updated_at,is_favorite&order=updated_at.desc'),
         this._sbFetch('GET','inventory?select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,aliases,purchase_price,purchase_size,purchase_unit,updated_at&order=updated_at.desc'),
         this._sbFetch('GET','fragrances?order=updated_at.desc')
       ]);
@@ -1285,7 +1285,7 @@ const App = {
           ingredients:row.ingredients||[],batchSize:row.batch_size||'',batchUnit:row.batch_unit||'oz',
           cureTime:row.cure_time||'',superfat:row.superfat||'',fragranceRate:row.fragrance_rate||'',
           lye:row.lye||'',scent:row.scent||'',difficulty:row.difficulty||'',refUrl:row.ref_url||'',
-          unitSize:row.unit_size||'',unitsPerBatch:row.units_per_batch||'',laborHours:row.labor_hours??'',packMinutes:row.pack_minutes??'',version:row.version||'v1',
+          unitSize:row.unit_size||'',unitsPerBatch:row.units_per_batch||'',prodMinutes:row.prod_minutes??'',packMinutes:row.pack_minutes??'',version:row.version||'v1',
           created:row.created_at||'',updated_at:row.updated_at||'',is_favorite:row.is_favorite||false
         };
       });
@@ -1390,7 +1390,7 @@ const App = {
       ingredients:obj.ingredients||[],batch_size:obj.batchSize||'',batch_unit:obj.batchUnit||'oz',
       cure_time:obj.cureTime||'',superfat:obj.superfat||'',fragrance_rate:obj.fragranceRate||'',
       lye:obj.lye||'',scent:obj.scent||'',difficulty:obj.difficulty||'',ref_url:obj.refUrl||'',
-      unit_size:obj.unitSize||'',units_per_batch:obj.unitsPerBatch||'',labor_hours:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(obj.laborHours),pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(obj.packMinutes),version:obj.version||'v1',
+      unit_size:obj.unitSize||'',units_per_batch:obj.unitsPerBatch||'',prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(obj.prodMinutes),pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(obj.packMinutes),version:obj.version||'v1',
       created_at:obj.created||'',is_favorite:obj.is_favorite||false
     };
     if(table==='inventory') return {
@@ -1552,7 +1552,7 @@ const App = {
                 const rr = this.recipes.find(x=>x.id===pItem.id);
                 // Row data is flat DB shape - rebuild app shape
                 const d = pItem.data;
-                const updated = {id:d.id,name:d.name||'',category:d.category||'',description:d.description||'',instructions:d.instructions||'',notes:d.notes||'',tags:d.tags||[],ingredients:d.ingredients||[],batchSize:d.batch_size||'',batchUnit:d.batch_unit||'oz',cureTime:d.cure_time||'',superfat:d.superfat||'',fragranceRate:d.fragrance_rate||'',lye:d.lye||'',scent:d.scent||'',difficulty:d.difficulty||'',refUrl:d.ref_url||'',unitSize:d.unit_size||'',unitsPerBatch:d.units_per_batch||'',laborHours:d.labor_hours??'',packMinutes:d.pack_minutes??'',version:d.version||'v1',created:d.created_at||'',is_favorite:d.is_favorite||false};
+                const updated = {id:d.id,name:d.name||'',category:d.category||'',description:d.description||'',instructions:d.instructions||'',notes:d.notes||'',tags:d.tags||[],ingredients:d.ingredients||[],batchSize:d.batch_size||'',batchUnit:d.batch_unit||'oz',cureTime:d.cure_time||'',superfat:d.superfat||'',fragranceRate:d.fragrance_rate||'',lye:d.lye||'',scent:d.scent||'',difficulty:d.difficulty||'',refUrl:d.ref_url||'',unitSize:d.unit_size||'',unitsPerBatch:d.units_per_batch||'',prodMinutes:d.prod_minutes??'',packMinutes:d.pack_minutes??'',version:d.version||'v1',created:d.created_at||'',is_favorite:d.is_favorite||false};
                 const ri = this.recipes.findIndex(x=>x.id===pItem.id);
                 if(ri>=0) this.recipes[ri]=Object.assign({},this.recipes[ri],updated);
               } else if(pItem.table==='inventory'){
@@ -1570,9 +1570,9 @@ const App = {
           applied++;
         } else if(row.winner==='cloud'){
           if(row.table==='recipes'){
-            const res=await this._sbFetch('GET','recipes?id=eq.'+row.id+'&select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,labor_hours,pack_minutes,version,created_at,updated_at,is_favorite');
+            const res=await this._sbFetch('GET','recipes?id=eq.'+row.id+'&select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,prod_minutes,pack_minutes,version,created_at,updated_at,is_favorite');
             const rows=await res.json();
-            if(rows&&rows[0]){ const r=rows[0]; const recipe={id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batchSize:r.batch_size||'',batchUnit:r.batch_unit||'oz',cureTime:r.cure_time||'',superfat:r.superfat||'',fragranceRate:r.fragrance_rate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',refUrl:r.ref_url||'',unitSize:r.unit_size||'',unitsPerBatch:r.units_per_batch||'',laborHours:r.labor_hours??'',packMinutes:r.pack_minutes??'',version:r.version||'v1',created:r.created_at||'',updated_at:r.updated_at||'',is_favorite:r.is_favorite||false}; const idx=this.recipes.findIndex(x=>x.id===recipe.id); if(idx>=0) this.recipes[idx]=recipe; else this.recipes.push(recipe); }
+            if(rows&&rows[0]){ const r=rows[0]; const recipe={id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batchSize:r.batch_size||'',batchUnit:r.batch_unit||'oz',cureTime:r.cure_time||'',superfat:r.superfat||'',fragranceRate:r.fragrance_rate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',refUrl:r.ref_url||'',unitSize:r.unit_size||'',unitsPerBatch:r.units_per_batch||'',prodMinutes:r.prod_minutes??'',packMinutes:r.pack_minutes??'',version:r.version||'v1',created:r.created_at||'',updated_at:r.updated_at||'',is_favorite:r.is_favorite||false}; const idx=this.recipes.findIndex(x=>x.id===recipe.id); if(idx>=0) this.recipes[idx]=recipe; else this.recipes.push(recipe); }
             applied++;
           } else if(row.table==='inventory'){
             const res=await this._sbFetch('GET','inventory?id=eq.'+row.id+'&select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,purchase_price,purchase_size,purchase_unit,updated_at');
@@ -2100,16 +2100,16 @@ const App = {
     if((unitSizeUnit||'g').toLowerCase()==='oz') usz = usz*28.3495;
     return Math.round(batchWeightG/usz*100)/100;
   },
-  // Labor for one batch. hours = production hrs/batch, packMin = packaging min/unit.
-  _calcLabor(hours, packMin, meta){
+  // Labor for one batch. prodMin = production minutes/batch, packMin = packaging minutes/unit. Rate is $/hr.
+  _calcLabor(prodMin, packMin, meta){
     const rate = parseFloat(this.laborRate)||0;
-    const h = parseFloat(hours), pm = parseFloat(packMin);
-    const hasProd = h>0, hasPack = pm>0;
+    const m = parseFloat(prodMin), pm = parseFloat(packMin);
+    const hasProd = m>0, hasPack = pm>0;
     return Object.assign({
       rate,
-      hours: hasProd ? h : 0,
+      prodMin: hasProd ? m : 0,
       packMin: hasPack ? pm : 0,
-      prodBatch: hasProd ? Math.round(h*rate*10000)/10000 : 0,
+      prodBatch: hasProd ? Math.round(m/60*rate*10000)/10000 : 0,
       packPerUnit: hasPack ? Math.round(pm/60*rate*10000)/10000 : 0,
       set: hasProd || hasPack
     }, meta||{});
@@ -2125,15 +2125,15 @@ const App = {
       const bu = parseFloat(base.unitsPerBatch);
       units = bu>0 ? Math.round(bu*mult*100)/100 : this._unitCount('', base.unitSize, batchG, base.batchUnit);
     }
-    // Labor: variant override, else inherit base (production hrs × multiplier; packaging min/unit unchanged)
-    const hasH = v.labor_hours!=null && v.labor_hours!=='';
+    // Labor: variant override, else inherit base (production min × multiplier; packaging min/unit unchanged)
+    const hasH = v.prod_minutes!=null && v.prod_minutes!=='';  // production minutes / batch
     const hasP = v.pack_minutes!=null && v.pack_minutes!=='';
-    const baseH = base ? parseFloat(base.laborHours) : NaN;
+    const baseH = base ? parseFloat(base.prodMinutes) : NaN;
     const baseP = base ? parseFloat(base.packMinutes) : NaN;
     const labor = this._calcLabor(
-      hasH ? v.labor_hours : (baseH>0 ? Math.round(baseH*mult*10000)/10000 : ''),
+      hasH ? v.prod_minutes : (baseH>0 ? Math.round(baseH*mult*10000)/10000 : ''),
       hasP ? v.pack_minutes : (baseP>0 ? baseP : ''),
-      { inheritedHours: !hasH && baseH>0, baseHours: baseH, mult, inheritedPack: !hasP && baseP>0 }
+      { inheritedProd: !hasH && baseH>0, baseProdMin: baseH, mult, inheritedPack: !hasP && baseP>0 }
     );
     return { mult, batchG, units, labor };
   },
@@ -2196,12 +2196,12 @@ const App = {
     if(labor && labor.set){
       const LC = '#2E6DA4';
       const rateTxt = '$'+labor.rate.toFixed(2)+'/hr';
-      if(labor.hours>0){
+      if(labor.prodMin>0){
         prodPerUnit = hasUnits ? Math.round(labor.prodBatch/numUnits*10000)/10000 : 0;
-        const inh = labor.inheritedHours
-          ? ' &nbsp;(inherited: base '+labor.baseHours+' hr &times; '+labor.mult+')' : '';
+        const inh = labor.inheritedProd
+          ? ' &nbsp;(inherited: base '+labor.baseProdMin+' min &times; '+labor.mult+')' : '';
         laborLines += lineRow('+ Production labor', hasUnits ? '$'+prodPerUnit.toFixed(3)+' / unit' : '$'+labor.prodBatch.toFixed(2)+' / batch', LC)+
-          math(labor.hours+' hr &times; '+rateTxt+' = $'+labor.prodBatch.toFixed(2)+' / batch'+
+          math(labor.prodMin+' min &times; '+rateTxt+' &divide; 60 = $'+labor.prodBatch.toFixed(2)+' / batch'+
             (hasUnits ? ' &divide; '+fmtU(numUnits)+' = $'+prodPerUnit.toFixed(3)+' / unit' : '')+inh, true);
       }
       if(labor.packMin>0){
@@ -2272,7 +2272,7 @@ const App = {
       '<div style="font-size:.78rem;font-weight:700;color:#2E6DA4;margin-bottom:8px">⏱ Labor '+
         '<span style="font-weight:400;color:var(--muted);font-size:.7rem">— changes save automatically</span></div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'+
-        '<div>'+lbl('Production','hrs / batch')+inp('hours', ed.hours, ed.hoursPh||'e.g. 1.5', '0.05')+'</div>'+
+        '<div>'+lbl('Production','min / batch')+inp('prod', ed.prod, ed.prodPh||'e.g. 90', '1')+'</div>'+
         '<div>'+lbl('Packaging','min / unit')+inp('pack', ed.pack, ed.packPh||'e.g. 2', '0.1')+'</div>'+
         '<div>'+lbl('Rate','$ / hr')+inp('rate', this.laborRate, '15', '0.25')+'</div>'+
       '</div>'+
@@ -2292,13 +2292,13 @@ const App = {
       } else if(kind==='recipe'){
         const r = (this.recipes||[]).find(x=>String(x.id)===String(id));
         if(!r){ this._toast('Recipe not found'); return; }
-        if(field==='hours') r.laborHours = num===null ? '' : num;
+        if(field==='prod') r.prodMinutes = num===null ? '' : num;
         else r.packMinutes = num===null ? '' : num;
         this._localSaveR();
         try{ await this._pushSingleRecipe(r); }catch(e){ console.warn('labor push failed', e); }
         this._toast('Labor saved');
       } else {
-        const body = field==='hours' ? {labor_hours:num} : {pack_minutes:num};
+        const body = field==='prod' ? {prod_minutes:num} : {pack_minutes:num};
         const res = await this._sbFetch('PATCH','recipe_variants?id=eq.'+encodeURIComponent(id), body);
         if(!res.ok) throw new Error('HTTP '+res.status);
         this._toast(num===null ? 'Using base recipe time' : 'Labor saved');
@@ -2391,9 +2391,9 @@ const App = {
     const numUnits = this._unitCount(r.unitsPerBatch, r.unitSize, this._batchWeightG(r.ingredients), r.batchUnit);
     const cost = this._calcRecipeCost(r);
     const unitSzLabel = parseFloat(r.unitSize)>0 ? r.unitSize+' '+(r.batchUnit||'g') : '';
-    const labor = this._calcLabor(r.laborHours, r.packMinutes);
+    const labor = this._calcLabor(r.prodMinutes, r.packMinutes);
     const costSection = this._buildCostSection(cost, numUnits, unitSzLabel, labor,
-      { kind:'recipe', id:r.id, hours:r.laborHours, pack:r.packMinutes });
+      { kind:'recipe', id:r.id, prod:r.prodMinutes, pack:r.packMinutes });
 
     // ── Meta pills ──
     const metas = [
@@ -2742,7 +2742,7 @@ const App = {
           <div class="form-group"><label id="fusz-label">${unitLbl}</label><input id="fusz" type="number" step="any" value="${this.h(r.unitSize)}" placeholder="e.g. 100" oninput="App._calcBatchSize()"/></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Production Time <span style="font-size:.7rem;color:var(--muted)">(hrs / batch)</span></label><input id="flabh" type="number" step="0.05" min="0" value="${r.laborHours??''}" placeholder="e.g. 1.5"/></div>
+          <div class="form-group"><label>Production Time <span style="font-size:.7rem;color:var(--muted)">(min / batch)</span></label><input id="fprodm" type="number" step="1" min="0" value="${r.prodMinutes??''}" placeholder="e.g. 1.5"/></div>
           <div class="form-group"><label>Packaging Time <span style="font-size:.7rem;color:var(--muted)">(min / unit)</span></label><input id="fpackm" type="number" step="0.1" min="0" value="${r.packMinutes??''}" placeholder="e.g. 2"/></div>
         </div>
         <div class="form-group" style="margin-top:-4px"><label>Labor Rate <span style="font-size:.7rem;color:var(--muted)">($ / hr — applies to all recipes)</span></label><input id="flabrate" type="number" step="0.25" min="0" value="${this.laborRate}" style="font-size:16px"/></div>
@@ -4827,7 +4827,7 @@ const App = {
         '<div class="form-group"><label>Labor Rate ($/hr)</label>'+num('pr-labor-rate', this.laborRate, '0.25')+'</div>'+
       '</div>'+
       '<div class="form-row">'+
-        '<div class="form-group"><label>Production (hrs / batch)</label>'+num('pr-labor-hrs','', '0.05')+'</div>'+
+        '<div class="form-group"><label>Production (min / batch)</label>'+num('pr-prod-min','', '1')+'</div>'+
         '<div class="form-group"><label>Packaging (min / unit)</label>'+num('pr-pack-min','', '0.1')+'</div>'+
       '</div>'+
       '<div class="form-row">'+
@@ -4851,7 +4851,7 @@ const App = {
       const pkg = cost.pkgBreakdown.reduce((t,p)=>t+(p.found?p.costPer:0),0);
       set('pr-bars', units>0 ? units : '');
       set('pr-labor-rate', this.laborRate);
-      set('pr-labor-hrs', parseFloat(r.laborHours)>0 ? r.laborHours : '');
+      set('pr-prod-min', parseFloat(r.prodMinutes)>0 ? r.prodMinutes : '');
       set('pr-pack-min', parseFloat(r.packMinutes)>0 ? r.packMinutes : '');
       set('pr-pkg', Math.round(pkg*10000)/10000);
       const saved = this._pricing[rid];
@@ -4866,7 +4866,7 @@ const App = {
     const rid = (document.getElementById('pr-recipe')||{}).value;
     const units = val('pr-bars', 0);
     const laborRate = val('pr-labor-rate', 0);
-    const laborHrs = val('pr-labor-hrs', 0);
+    const prodMin = val('pr-prod-min', 0);
     const packMin = val('pr-pack-min', 0);
     const pkgCost = val('pr-pkg', 0);
     const overhead = val('pr-overhead', 0);
@@ -4883,7 +4883,7 @@ const App = {
 
     const cost = this._calcRecipeCost(r);
     const ingPerUnit = cost.total / units;
-    const prodBatch = laborHrs * laborRate;
+    const prodBatch = prodMin / 60 * laborRate;
     const prodPerUnit = prodBatch / units;
     const packPerUnit = packMin / 60 * laborRate;
     const laborPerUnit = prodPerUnit + packPerUnit;
@@ -4898,7 +4898,7 @@ const App = {
       '<div style="font-weight:700;color:var(--accent);margin-bottom:10px">'+this.h(r.name)+' — '+u2+' units'+(parseFloat(r.unitSize)>0?' @ '+r.unitSize+' '+(r.batchUnit||'g'):'')+'</div>'+
       row('Ingredient cost / batch', '$'+cost.total.toFixed(2))+
       row('Ingredient cost / unit', '$'+ingPerUnit.toFixed(2))+
-      row('Production labor ('+laborHrs+' hr @ $'+laborRate.toFixed(2)+'/hr ÷ '+u2+')', '$'+prodPerUnit.toFixed(2)+'/unit')+
+      row('Production labor ('+prodMin+' min @ $'+laborRate.toFixed(2)+'/hr ÷ '+u2+')', '$'+prodPerUnit.toFixed(2)+'/unit')+
       row('Packaging labor ('+packMin+' min/unit)', '$'+packPerUnit.toFixed(2)+'/unit')+
       row('Packaging materials', '$'+pkgCost.toFixed(2)+'/unit')+
       row('Overhead ('+overhead+'% of ingredients + labor)', '$'+overheadPerUnit.toFixed(2)+'/unit')+
@@ -4906,7 +4906,7 @@ const App = {
       '<div class="price-final"><span class="price-final-label">Retail Price ('+margin+'% margin)</span><span class="price-final-val">$'+retailPrice.toFixed(2)+'</span></div>'+
       row('Profit per unit', '$'+profitPerUnit.toFixed(2))+
       row('Profit per batch ('+u2+' units)', '$'+(profitPerUnit*units).toFixed(2))+
-      (!(laborHrs>0) && !(packMin>0) ? '<div style="font-size:.73rem;color:var(--muted);margin-top:8px;font-style:italic">⏱ No labor time on this recipe yet — price excludes labor.</div>' : '')+
+      (!(prodMin>0) && !(packMin>0) ? '<div style="font-size:.73rem;color:var(--muted);margin-top:8px;font-style:italic">⏱ No labor time on this recipe yet — price excludes labor.</div>' : '')+
       (cost.missing>0?'<div style="font-size:.73rem;color:var(--muted);margin-top:8px;font-style:italic">⚠️ '+cost.missing+' ingredients missing cost data — add prices in Inventory for full accuracy.</div>':'')+
       '</div>';
   },
@@ -4922,7 +4922,7 @@ const App = {
       recipe_id: rid,
       recipe_name: r ? r.name : '',
       bars_per_batch: units,
-      labor_minutes: Math.round((val('pr-labor-hrs',0)*60 + val('pr-pack-min',0)*(units||0))*100)/100,
+      labor_minutes: Math.round((val('pr-prod-min',0) + val('pr-pack-min',0)*(units||0))*100)/100,
       labor_rate: val('pr-labor-rate', this.laborRate),
       packaging_cost: val('pr-pkg', 0),
       overhead_pct: val('pr-overhead', 0),
@@ -5151,7 +5151,7 @@ const App = {
     const cost = this._calcRecipeCost(r);
     // Real unit count only — r._units / r._labor are supplied by printVariantPDF
     const numUnits = r._units!=null ? r._units : this._unitCount(r.unitsPerBatch, r.unitSize, this._batchWeightG(r.ingredients), r.batchUnit);
-    const labor = r._labor || this._calcLabor(r.laborHours, r.packMinutes);
+    const labor = r._labor || this._calcLabor(r.prodMinutes, r.packMinutes);
     const ingPerUnit = numUnits>0 ? Math.round(cost.total/numUnits*10000)/10000 : 0;
     const pkgPerUnitTotal = cost.pkgBreakdown.reduce((s,p)=>s+(p.found?p.costPer:0),0);
     const laborPerUnit = numUnits>0 ? (labor.prodBatch/numUnits + labor.packPerUnit) : 0;
@@ -5185,7 +5185,7 @@ const App = {
       r.batchSize?'<div class="mi"><strong>Batch Size</strong><span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>':'',
       numUnits>0?'<div class="mi"><strong>Units/Batch</strong><span>'+(Math.round(numUnits*100)/100)+(parseFloat(r.unitSize)>0?' @ '+r.unitSize+' '+(r.batchUnit||'g'):'')+'</span></div>':'',
       ingPerUnit?'<div class="mi"><strong>Ingr. Cost/Unit</strong><span>$'+ingPerUnit.toFixed(2)+'</span></div>':'',
-      labor.set?'<div class="mi"><strong>Labor</strong><span>'+(labor.hours?labor.hours+' hr/batch':'')+(labor.hours&&labor.packMin?' + ':'')+(labor.packMin?labor.packMin+' min/unit':'')+' @ $'+labor.rate.toFixed(2)+'/hr</span></div>':'',
+      labor.set?'<div class="mi"><strong>Labor</strong><span>'+(labor.prodMin?labor.prodMin+' min/batch':'')+(labor.prodMin&&labor.packMin?' + ':'')+(labor.packMin?labor.packMin+' min/unit':'')+' @ $'+labor.rate.toFixed(2)+'/hr</span></div>':'',
       costPerUnit?'<div class="mi"><strong>Total Cost/Unit</strong><span>$'+costPerUnit.toFixed(2)+'</span></div>':'',
       r.cureTime?'<div class="mi"><strong>Cure Time</strong><span>'+this.h(r.cureTime)+'</span></div>':'',
       cost.total?'<div class="mi"><strong>Est. Cost</strong><span>$'+cost.total.toFixed(2)+'</span></div>':''
@@ -5769,11 +5769,11 @@ const App = {
       const _vCostPerUnit = (_vNumUnits>0&&_vCost.total>0) ? Math.round(_vCost.total/_vNumUnits*1000)/1000 : 0;
       const _vUnitSzLabel = parseFloat(r.unitSize)>0 ? r.unitSize+' '+(r.batchUnit||'g') : '';
       this._lastVariantId = v.id;
-      const _vBaseH = base ? parseFloat(base.laborHours) : NaN;
+      const _vBaseH = base ? parseFloat(base.prodMinutes) : NaN;
       const _vBaseP = base ? parseFloat(base.packMinutes) : NaN;
       const _vCostSection = this._buildCostSection(_vCost, _vNumUnits, _vUnitSzLabel, _vLabor, {
-        kind:'variant', id:v.id, hours:v.labor_hours, pack:v.pack_minutes,
-        hoursPh: _vBaseH>0 ? (Math.round(_vBaseH*_mult*100)/100)+' (base'+(_mult!==1?' ×'+_mult:'')+')' : 'e.g. 1.5',
+        kind:'variant', id:v.id, prod:v.prod_minutes, pack:v.pack_minutes,
+        prodPh: _vBaseH>0 ? (Math.round(_vBaseH*_mult*100)/100)+' (base'+(_mult!==1?' ×'+_mult:'')+')' : 'e.g. 90',
         packPh: _vBaseP>0 ? _vBaseP+' (base)' : 'e.g. 2'
       });
 
@@ -6203,7 +6203,7 @@ const App = {
       '<div style="background:var(--cream);border-radius:12px;padding:12px 14px;margin-bottom:10px">'+
         '<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.6px;margin-bottom:10px">⏱ Labor <span style="font-weight:400;text-transform:none">(optional — overrides base recipe)</span></div>'+
         '<div class="form-row">'+
-          '<div class="form-group"><label>Production (hrs / batch)</label><input id="vf-labh" type="number" step="0.05" min="0" value="'+String(v.labor_hours??'')+'" placeholder="" style="font-size:16px"/></div>'+
+          '<div class="form-group"><label>Production (min / batch)</label><input id="vf-prodm" type="number" step="1" min="0" value="'+String(v.prod_minutes??'')+'" placeholder="" style="font-size:16px"/></div>'+
           '<div class="form-group"><label>Packaging (min / unit)</label><input id="vf-packm" type="number" step="0.1" min="0" value="'+String(v.pack_minutes??'')+'" placeholder="'+(r&&r.packMinutes!==''&&r.packMinutes!=null?r.packMinutes+' (base)':'e.g. 2')+'" style="font-size:16px"/></div>'+
         '</div>'+
         '<div id="vf-lab-hint" style="font-size:.7rem;color:var(--muted)"></div>'+
@@ -6314,12 +6314,12 @@ const App = {
     const base = this.recipes.find(x=>x.id===(this._editVariant&&this._editVariant.base_recipe_id));
     (()=>{
       const mult = parseFloat((document.getElementById('vf-mult')||{}).value)||1;
-      const labEl = document.getElementById('vf-labh'), hint = document.getElementById('vf-lab-hint');
-      const bh = base ? parseFloat(base.laborHours) : NaN;
-      if(labEl) labEl.placeholder = isNaN(bh) ? 'e.g. 1.5' : (Math.round(bh*mult*100)/100)+' (inherited)';
+      const labEl = document.getElementById('vf-prodm'), hint = document.getElementById('vf-lab-hint');
+      const bh = base ? parseFloat(base.prodMinutes) : NaN;
+      if(labEl) labEl.placeholder = isNaN(bh) ? 'e.g. 90' : (Math.round(bh*mult*100)/100)+' (inherited)';
       if(hint) hint.textContent = isNaN(bh)
         ? 'Base recipe has no production time set.'
-        : 'Blank = inherit base '+bh+' hr × '+mult+' multiplier = '+(Math.round(bh*mult*100)/100)+' hr. Packaging blank = base per-unit time.';
+        : 'Blank = inherit base '+bh+' min × '+mult+' multiplier = '+(Math.round(bh*mult*100)/100)+' min. Packaging blank = base per-unit time.';
     })();
     if(totalEl){
       const mult = parseFloat((document.getElementById('vf-mult')||{}).value)||1;
@@ -6386,7 +6386,7 @@ const App = {
         batch_multiplier:parseFloat((document.getElementById('vf-mult')||{}).value)||1,
         units_per_batch:parseFloat((document.getElementById('vf-upb')||{}).value)||null,
         unit_size:parseFloat((document.getElementById('vf-usz')||{}).value)||null,
-        labor_hours:(v=>v===''?null:(isNaN(parseFloat(v))?null:parseFloat(v)))((document.getElementById('vf-labh')||{}).value||''),
+        prod_minutes:(v=>v===''?null:(isNaN(parseFloat(v))?null:parseFloat(v)))((document.getElementById('vf-prodm')||{}).value||''),
         pack_minutes:(v=>v===''?null:(isNaN(parseFloat(v))?null:parseFloat(v)))((document.getElementById('vf-packm')||{}).value||''),
         fragrance_id:(document.getElementById('vf-frag')||{}).value||null,
         fragrance_amount:parseFloat((document.getElementById('vf-frag-amt-g')||{}).value)||null,
@@ -6513,7 +6513,7 @@ const App = {
           const idx = this.recipes.findIndex(x=>x.id===r.id);
           if(idx>=0) this.recipes[idx]=r; else this.recipes.unshift(r);
           this._localSaveR();
-          fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/recipes?on_conflict=id',{method:'POST',headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batch_size:r.batchSize||'',batch_unit:r.batchUnit||'oz',cure_time:r.cureTime||'',superfat:r.superfat||'',fragrance_rate:r.fragranceRate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',ref_url:r.refUrl||'',unit_size:r.unitSize||'',units_per_batch:r.unitsPerBatch||'',labor_hours:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.laborHours),pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.packMinutes),version:r.version||'v1',created_at:r.created||'',is_favorite:!!r.is_favorite})}).catch(e=>console.warn('restore sync failed',e));
+          fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/recipes?on_conflict=id',{method:'POST',headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batch_size:r.batchSize||'',batch_unit:r.batchUnit||'oz',cure_time:r.cureTime||'',superfat:r.superfat||'',fragrance_rate:r.fragranceRate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',ref_url:r.refUrl||'',unit_size:r.unitSize||'',units_per_batch:r.unitsPerBatch||'',prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.prodMinutes),pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.packMinutes),version:r.version||'v1',created_at:r.created||'',is_favorite:!!r.is_favorite})}).catch(e=>console.warn('restore sync failed',e));
 
           this.closeModal('modal-version-history');
           this.renderRecipes();
@@ -6534,7 +6534,7 @@ const App = {
     r.batchSize=String(Math.round((parseFloat(document.getElementById('fbs').value)||0)*28.3495*100)/100); r.batchUnit='g';
     r.unitsPerBatch=document.getElementById('fupb').value;
     r.unitSize=document.getElementById('fusz').value;
-    r.laborHours=(document.getElementById('flabh')||{}).value||'';
+    r.prodMinutes=(document.getElementById('fprodm')||{}).value||'';
     r.packMinutes=(document.getElementById('fpackm')||{}).value||'';
     { const _lr = parseFloat((document.getElementById('flabrate')||{}).value);
       if(!isNaN(_lr) && _lr>=0 && _lr!==this.laborRate){ this.laborRate=_lr; this._persistLaborRate(_lr).catch(e=>this._toast('⚠️ Could not save labor rate: '+e.message)); } }
@@ -6644,7 +6644,7 @@ const App = {
           fragrance_rate:snap.fragranceRate||'', lye:snap.lye||'',
           scent:snap.scent||'', difficulty:snap.difficulty||'',
           ref_url:snap.refUrl||'', unit_size:snap.unitSize||'',
-          units_per_batch:snap.unitsPerBatch||'', labor_hours:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(snap.laborHours), pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(snap.packMinutes), version:snap.version||'v1',
+          units_per_batch:snap.unitsPerBatch||'', prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(snap.prodMinutes), pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(snap.packMinutes), version:snap.version||'v1',
           created_at:snap.created||'', is_favorite:!!snap.is_favorite
         })
       });
@@ -6679,7 +6679,7 @@ const App = {
         ref_url: r.refUrl || '',
         unit_size: r.unitSize || '',
         units_per_batch: r.unitsPerBatch || '',
-        labor_hours: (v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.laborHours),
+        prod_minutes: (v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.prodMinutes),
         pack_minutes: (v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.packMinutes),
         version: r.version || 'v1',
         created_at: r.created || '',
