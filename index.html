@@ -1077,7 +1077,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.26.85.00';
+    const _ver = 'V-5.27.26.87.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1227,14 +1227,17 @@ const App = {
       '</div>';
     document.body.appendChild(m);
   },
+  async _persistLaborRate(v){
+    const res = await this._sbFetch('POST','app_settings?on_conflict=key',{key:'labor_rate', value:String(v)});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    this.laborRate = v;
+    try{ localStorage.setItem('ss_labor_rate', String(v)); }catch(e){}
+  },
   async saveLaborRate(){
     const v = parseFloat((document.getElementById('labor-rate-input')||{}).value);
     if(isNaN(v) || v<0){ this._toast('Enter a valid hourly rate'); return; }
     try{
-      const res = await this._sbFetch('POST','app_settings?on_conflict=key',{key:'labor_rate', value:String(v)});
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      this.laborRate = v;
-      try{ localStorage.setItem('ss_labor_rate', String(v)); }catch(e){}
+      await this._persistLaborRate(v);
       const m = document.getElementById('__labor-rate-modal'); if(m) m.remove();
       this._toast('Labor rate set to $'+v.toFixed(2)+'/hr');
       if(this.subview==='recipe-detail' && this.selRId) this.openRecipeDetail(this.selRId);
@@ -2135,8 +2138,8 @@ const App = {
     return { mult, batchG, units, labor };
   },
 
-  _buildCostSection(cost, numUnits, unitSzLabel, labor){
-    if(!cost.breakdown.length && !cost.pkgBreakdown.length && !(labor&&labor.set)) return '';
+  _buildCostSection(cost, numUnits, unitSzLabel, labor, editor){
+    if(!editor && !cost.breakdown.length && !cost.pkgBreakdown.length && !(labor&&labor.set)) return '';
     const hasUnits = numUnits > 0;
     const fmtU = n => (Math.round(n*100)/100).toString();
     const mathStyle = 'font-size:.7rem;color:var(--muted);padding:0 0 4px;font-family:monospace';
@@ -2231,9 +2234,10 @@ const App = {
     const missingNote = cost.missing > 0 ?
       '<div style="font-size:.72rem;color:var(--muted);margin-top:5px;font-style:italic">⚠️ '+cost.missing+' ingredient'+(cost.missing>1?'s':'')+' missing cost in Inventory.</div>'
       : '';
-    const noLaborNote = !(labor && labor.set)
+    const noLaborNote = (!(labor && labor.set) && !editor)
       ? '<div style="font-size:.72rem;color:var(--muted);margin-top:5px;font-style:italic">⏱ No labor time set — edit the recipe to add production / packaging time.</div>'
       : '';
+    const editorHtml = editor ? this._laborEditorHtml(editor) : '';
 
     return '<div class="section">'+
       '<div class="section-title">💰 Cost Estimate</div>'+
@@ -2246,7 +2250,70 @@ const App = {
       unitsNote+
       missingNote+
       noLaborNote+
+      editorHtml+
     '</div>';
+  },
+
+  // Inline labor editor shown inside the Cost Estimate card (recipe + variant detail). Saves on change.
+  _laborEditorHtml(ed){
+    const kind = ed.kind==='variant' ? 'variant' : 'recipe';
+    const id = String(ed.id||'').replace(/[^A-Za-z0-9_-]/g,'');
+    const val = x => (x===null||x===undefined||x==='') ? '' : String(x);
+    const inp = (field, v, ph, step) =>
+      '<input type="number" inputmode="decimal" min="0" step="'+step+'" value="'+val(v)+'" placeholder="'+this.h(ph||'')+'" '+
+      'onchange="App._saveInlineLabor(\''+kind+'\',\''+id+'\',\''+field+'\',this.value)" '+
+      'style="width:100%;font-size:16px;padding:7px 8px;border:1.5px solid var(--border);border-radius:8px;background:var(--card,#fff);color:var(--text);box-sizing:border-box"/>';
+    const lbl = (t, sub) => '<div style="font-size:.72rem;font-weight:700;color:var(--text);margin-bottom:3px">'+t+
+      ' <span style="font-weight:400;color:var(--muted)">'+sub+'</span></div>';
+    const hint = kind==='variant'
+      ? 'Leave production or packaging blank to use the base recipe&#39;s time (production scales with the batch multiplier).'
+      : 'Production = mixing, pouring, cleanup for the whole batch. Packaging = wrapping/labeling each unit.';
+    return '<div style="margin-top:12px;padding:10px;border:1.5px dashed #2E6DA4;border-radius:10px;background:rgba(46,109,164,.05)">'+
+      '<div style="font-size:.78rem;font-weight:700;color:#2E6DA4;margin-bottom:8px">⏱ Labor '+
+        '<span style="font-weight:400;color:var(--muted);font-size:.7rem">— changes save automatically</span></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'+
+        '<div>'+lbl('Production','hrs / batch')+inp('hours', ed.hours, ed.hoursPh||'e.g. 1.5', '0.05')+'</div>'+
+        '<div>'+lbl('Packaging','min / unit')+inp('pack', ed.pack, ed.packPh||'e.g. 2', '0.1')+'</div>'+
+        '<div>'+lbl('Rate','$ / hr')+inp('rate', this.laborRate, '15', '0.25')+'</div>'+
+      '</div>'+
+      '<div style="font-size:.68rem;color:var(--muted);margin-top:6px">'+hint+' Rate applies to all recipes.</div>'+
+    '</div>';
+  },
+
+  async _saveInlineLabor(kind, id, field, raw){
+    const str = String(raw==null?'':raw).trim();
+    const num = str==='' ? null : parseFloat(str);
+    if(num!==null && (isNaN(num) || num<0)){ this._toast('Enter a number 0 or higher'); return; }
+    try{
+      if(field==='rate'){
+        if(num===null){ this._toast('Enter an hourly rate'); return; }
+        await this._persistLaborRate(num);
+        this._toast('Labor rate set to $'+num.toFixed(2)+'/hr (all recipes)');
+      } else if(kind==='recipe'){
+        const r = (this.recipes||[]).find(x=>String(x.id)===String(id));
+        if(!r){ this._toast('Recipe not found'); return; }
+        if(field==='hours') r.laborHours = num===null ? '' : num;
+        else r.packMinutes = num===null ? '' : num;
+        this._localSaveR();
+        try{ await this._pushSingleRecipe(r); }catch(e){ console.warn('labor push failed', e); }
+        this._toast('Labor saved');
+      } else {
+        const body = field==='hours' ? {labor_hours:num} : {pack_minutes:num};
+        const res = await this._sbFetch('PATCH','recipe_variants?id=eq.'+encodeURIComponent(id), body);
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        this._toast(num===null ? 'Using base recipe time' : 'Labor saved');
+      }
+    }catch(e){ this._toast('⚠️ Could not save: '+e.message); return; }
+    // Re-render current view, keeping scroll position
+    const scrollers = [document.scrollingElement].concat(Array.from(document.querySelectorAll('*')).filter(el=>el.scrollTop>0));
+    const pos = scrollers.map(el=>el?el.scrollTop:0);
+    try{
+      if(this.subview==='variant-detail' && kind==='variant') await this.openVariantDetail(id);
+      else if(this.subview==='variant-detail' && this._lastVariantId) await this.openVariantDetail(this._lastVariantId);
+      else if(this.subview==='recipe-detail' && this.selRId) this.openRecipeDetail(this.selRId);
+    }finally{
+      scrollers.forEach((el,i)=>{ if(el) el.scrollTop = pos[i]; });
+    }
   },
 
   openRecipeDetail(id){
@@ -2325,7 +2392,8 @@ const App = {
     const cost = this._calcRecipeCost(r);
     const unitSzLabel = parseFloat(r.unitSize)>0 ? r.unitSize+' '+(r.batchUnit||'g') : '';
     const labor = this._calcLabor(r.laborHours, r.packMinutes);
-    const costSection = this._buildCostSection(cost, numUnits, unitSzLabel, labor);
+    const costSection = this._buildCostSection(cost, numUnits, unitSzLabel, labor,
+      { kind:'recipe', id:r.id, hours:r.laborHours, pack:r.packMinutes });
 
     // ── Meta pills ──
     const metas = [
@@ -2677,7 +2745,8 @@ const App = {
           <div class="form-group"><label>Production Time <span style="font-size:.7rem;color:var(--muted)">(hrs / batch)</span></label><input id="flabh" type="number" step="0.05" min="0" value="${r.laborHours??''}" placeholder="e.g. 1.5"/></div>
           <div class="form-group"><label>Packaging Time <span style="font-size:.7rem;color:var(--muted)">(min / unit)</span></label><input id="fpackm" type="number" step="0.1" min="0" value="${r.packMinutes??''}" placeholder="e.g. 2"/></div>
         </div>
-        <div style="font-size:.7rem;color:var(--muted);margin:-4px 0 10px">Labor rate: $${this.laborRate.toFixed(2)}/hr (change in Tools). Production = mixing, pouring, cleanup for the whole batch. Packaging = wrapping/labeling each unit.</div>
+        <div class="form-group" style="margin-top:-4px"><label>Labor Rate <span style="font-size:.7rem;color:var(--muted)">($ / hr — applies to all recipes)</span></label><input id="flabrate" type="number" step="0.25" min="0" value="${this.laborRate}" style="font-size:16px"/></div>
+        <div style="font-size:.7rem;color:var(--muted);margin:-4px 0 10px">Production = mixing, pouring, cleanup for the whole batch. Packaging = wrapping/labeling each unit.</div>
         <div class="form-row">
           <div class="form-group"><label>Cure Time</label><input id="fct" value="${this.h(r.cureTime)}" placeholder="4–6 weeks"/></div>
           <div class="form-group"><label>Superfat</label><input id="fsf" value="${this.h(r.superfat)}" placeholder="5%"/></div>
@@ -5699,7 +5768,14 @@ const App = {
       const _vNumUnits = _vUnits;
       const _vCostPerUnit = (_vNumUnits>0&&_vCost.total>0) ? Math.round(_vCost.total/_vNumUnits*1000)/1000 : 0;
       const _vUnitSzLabel = parseFloat(r.unitSize)>0 ? r.unitSize+' '+(r.batchUnit||'g') : '';
-      const _vCostSection = this._buildCostSection(_vCost, _vNumUnits, _vUnitSzLabel, _vLabor);
+      this._lastVariantId = v.id;
+      const _vBaseH = base ? parseFloat(base.laborHours) : NaN;
+      const _vBaseP = base ? parseFloat(base.packMinutes) : NaN;
+      const _vCostSection = this._buildCostSection(_vCost, _vNumUnits, _vUnitSzLabel, _vLabor, {
+        kind:'variant', id:v.id, hours:v.labor_hours, pack:v.pack_minutes,
+        hoursPh: _vBaseH>0 ? (Math.round(_vBaseH*_mult*100)/100)+' (base'+(_mult!==1?' ×'+_mult:'')+')' : 'e.g. 1.5',
+        packPh: _vBaseP>0 ? _vBaseP+' (base)' : 'e.g. 2'
+      });
 
       this.subview = 'variant-detail';
 
@@ -5897,22 +5973,24 @@ const App = {
     const g2oz = g => Math.round((parseFloat(g)||0)/28.3495*10000)/10000;
     const oz2g = oz => Math.round((parseFloat(oz)||0)*28.3495*100)/100;
     const oz2lb = oz => Math.round((parseFloat(oz)||0)/16*10000)/10000;
-    let totalOz = 0;
+    let totalG = 0;
     (this.editR.ingredients||[]).forEach((ing,i)=>{
       if(ing.unit==='ea'||ing.phase==='pkg'||ing.phase==='Packaging') return;
       const ozEl = document.getElementById('ing-oz-'+i);
       const gEl  = document.getElementById('ing-g-'+i);
-      let oz = 0;
-      if(ozEl && ozEl.value.trim()) oz = parseFloat(ozEl.value)||0;
-      else if(gEl && gEl.value.trim()) oz = g2oz(gEl.value);
-      else if(ing.unit==='g') oz = g2oz(ing.amount);
-      else oz = parseFloat(ing.amount)||0;
-      totalOz += oz;
+      // Grams are the source of truth — the oz box is a rounded helper, so read grams first.
+      let g = 0;
+      if(gEl && gEl.value.trim()) g = parseFloat(gEl.value)||0;
+      else if(ozEl && ozEl.value.trim()) g = (parseFloat(ozEl.value)||0)*28.3495;
+      else if(ing.unit==='g') g = parseFloat(ing.amount)||0;
+      else g = (parseFloat(ing.amount)||0)*28.3495;
+      totalG += g;
     });
-    totalOz = Math.round(totalOz*10000)/10000;
+    totalG = Math.round(totalG*100)/100;
+    let totalOz = Math.round(totalG/28.3495*10000)/10000;
     // Convert to display unit
     let displayTotal, displayUnit;
-    if(unit==='g'){ displayTotal=oz2g(totalOz); displayUnit='g'; }
+    if(unit==='g'){ displayTotal=totalG; displayUnit='g'; }
     else if(unit==='lb'){ displayTotal=oz2lb(totalOz); displayUnit='lb'; }
     else { displayTotal=totalOz; displayUnit='oz'; }
     const fbsHidden = document.getElementById('fbs');
@@ -5971,9 +6049,9 @@ const App = {
         const ozEl=document.getElementById('ing-oz-'+i);
         const gEl=document.getElementById('ing-g-'+i);
         let oz=0;
-        if(ozEl&&ozEl.value) oz=parseFloat(ozEl.value)||0;
-        else if(gEl&&gEl.value) oz=Math.round((parseFloat(gEl.value)||0)/28.3495*1000)/1000;
-        else oz=parseFloat(ing.amount)||0;
+        if(gEl&&gEl.value) oz=(parseFloat(gEl.value)||0)/28.3495;
+        else if(ozEl&&ozEl.value) oz=parseFloat(ozEl.value)||0;
+        else oz=ing.unit==='g'?(parseFloat(ing.amount)||0)/28.3495:(parseFloat(ing.amount)||0);
         t+=oz;
       });
       return Math.round(t*1000)/1000;
@@ -6458,6 +6536,8 @@ const App = {
     r.unitSize=document.getElementById('fusz').value;
     r.laborHours=(document.getElementById('flabh')||{}).value||'';
     r.packMinutes=(document.getElementById('fpackm')||{}).value||'';
+    { const _lr = parseFloat((document.getElementById('flabrate')||{}).value);
+      if(!isNaN(_lr) && _lr>=0 && _lr!==this.laborRate){ this.laborRate=_lr; this._persistLaborRate(_lr).catch(e=>this._toast('⚠️ Could not save labor rate: '+e.message)); } }
     r.cureTime=document.getElementById('fct').value; r.superfat=document.getElementById('fsf').value;
     r.fragranceRate=document.getElementById('ffrate')?.value?.trim()||'';
     r.refUrl=document.getElementById('furl')?.value?.trim()||'';
@@ -6478,14 +6558,18 @@ const App = {
       const qtyEl = isNaN(rowIdx) ? null : document.getElementById('ing-qty-'+rowIdx);
       const ozEl  = isNaN(rowIdx) ? null : document.getElementById('ing-oz-'+rowIdx);
       const gEl   = isNaN(rowIdx) ? null : document.getElementById('ing-g-'+rowIdx);
-      let amount = '', unit = 'oz';
+      // Recipes are grams-only. The gram box wins; the oz box is only used if grams is empty (converted on save).
+      const _toG = oz => { const n = parseFloat(oz); return isNaN(n) ? '' : String(Math.round(n*28.3495*100)/100); };
+      let amount = '', unit = 'g';
       if(isPkg && qtyEl && qtyEl.value.trim()) {
         amount = qtyEl.value.trim(); unit = 'ea';
-      } else if(ozEl && ozEl.value.trim()) { amount = ozEl.value.trim(); unit = 'oz'; }
-      else if(gEl && gEl.value.trim()) { amount = gEl.value.trim(); unit = 'g'; }
+      } else if(gEl && gEl.value.trim()) { amount = gEl.value.trim(); unit = 'g'; }
+      else if(ozEl && ozEl.value.trim()) { amount = _toG(ozEl.value.trim()); unit = 'g'; }
       else if(!isNaN(rowIdx) && editIngsCopy[rowIdx]) {
-        amount = editIngsCopy[rowIdx].amount || '';
-        unit   = editIngsCopy[rowIdx].unit   || 'oz';
+        const src = editIngsCopy[rowIdx];
+        if(src.unit==='ea'){ amount = src.amount || ''; unit = 'ea'; }
+        else if(src.unit==='oz'){ amount = _toG(src.amount); unit = 'g'; }
+        else { amount = src.amount || ''; unit = 'g'; }
       }
       let phase = '';
       if(!isNaN(rowIdx) && editIngsCopy[rowIdx] && editIngsCopy[rowIdx].unit==='ea') {
@@ -6500,15 +6584,14 @@ const App = {
       }
       r.ingredients.push({name:n, amount, unit, phase});
     });
-    // Calculate usage_rate (% of batch total) for each ingredient
-    const g2oz = g => Math.round(parseFloat(g)/28.3495*1000)/1000;
-    const batchOz = parseFloat(r.batchSize)||0;
-    if(batchOz > 0){
+    // Batch size + usage_rate (% of batch) — both computed in grams from the saved amounts
+    const _isW = i => !(i.unit==='ea'||i.phase==='pkg');
+    const batchG = Math.round(r.ingredients.filter(_isW).reduce((s,i)=>s+(parseFloat(i.amount)||0),0)*100)/100;
+    if(batchG > 0){
+      r.batchSize = String(batchG);
       r.ingredients = r.ingredients.map(i=>{
-        if(i.unit==='ea'||i.phase==='pkg') return {...i, usage_rate: 0}; // packaging has no weight
-        const oz = i.unit==='g' ? g2oz(i.amount) : (parseFloat(i.amount)||0);
-        const rate = Math.round(oz/batchOz*1000)/10;
-        return {...i, usage_rate: rate};
+        if(!_isW(i)) return {...i, usage_rate: 0}; // packaging has no weight
+        return {...i, usage_rate: Math.round((parseFloat(i.amount)||0)/batchG*10000)/100};
       });
     }
     const isExisting = this.recipes.findIndex(x=>x.id===r.id)>=0;
