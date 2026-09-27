@@ -1077,7 +1077,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.26.87.00';
+    const _ver = 'V-5.27.26.88.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1721,7 +1721,7 @@ const App = {
 
   _scanShowResult(r){
     const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
-    const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
+    const g2oz = g  => (parseFloat(g)||0)/28.3495; // full precision (rounding here turned 280 g into 280.1 g)
     const pColors = {'1':'#5C35C2','2':'#A8527A','3':'#2E7D32','':'#666'};
     const pLabels = {'1':'Phase 1 - Lye & Liquid','2':'Phase 2 - Oils & Butters','3':'Phase 3 - Fragrance & Color','':'Ingredients'};
     const byPhase = {};
@@ -2323,15 +2323,15 @@ const App = {
     if(!r){ this._toast('Recipe not found'); return; }
     const clr=CAT_CLR[r.category]||'#8B7355';
     const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
-    const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
+    const g2oz = g  => (parseFloat(g)||0)/28.3495; // full precision (rounding here turned 280 g into 280.1 g)
     // Per-recipe display unit based on batch_unit setting
     const dUnit = (r.batchUnit||'oz').toLowerCase();
     const toDisp = oz => {
-      if(dUnit==='g')  return Math.round((parseFloat(oz)||0)*28.3495*10)/10;
+      if(dUnit==='g')  return Math.round((parseFloat(oz)||0)*28.3495*100)/100;
       if(dUnit==='lb') return Math.round((parseFloat(oz)||0)/16*1000)/1000;
       return Math.round((parseFloat(oz)||0)*1000)/1000;
     };
-    const dispFmt = oz => toDisp(oz).toFixed(dUnit==='g'?1:2)+' '+dUnit;
+    const dispFmt = oz => (dUnit==='g' ? String(toDisp(oz)) : toDisp(oz).toFixed(2))+' '+dUnit; // grams: whole stays whole, decimals only when needed
     const LYE  = /lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
     const FRAG = /fragrance|scent|\beo\b|essential oil|colorant|pigment|mica|oxide|dye/i;
     const pLabels = {'1':'Phase 1 — Goat Milk & Lye','2':'Phase 2 — Oils & Butters','3':'Phase 3 — Fragrance & Color','':'Ingredients'};
@@ -5157,14 +5157,14 @@ const App = {
     const laborPerUnit = numUnits>0 ? (labor.prodBatch/numUnits + labor.packPerUnit) : 0;
     const costPerUnit = numUnits>0 ? Math.round((ingPerUnit+pkgPerUnitTotal+laborPerUnit)*10000)/10000 : 0;
     const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
-    const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
+    const g2oz = g  => (parseFloat(g)||0)/28.3495; // full precision (rounding here turned 280 g into 280.1 g)
     const ingRow = (i, shade) => {
       const isG=i.unit==='g', ozAmt=isG?g2oz(i.amount):(parseFloat(i.amount)||0), gAmt=isG?(parseFloat(i.amount)||0):oz2g(i.amount);
       return '<tr style="background:'+(shade?'#fdf6f9':'#fff')+'"><td>'+this.h(i.name)+'</td>'+
         '<td style="text-align:right;font-weight:700;white-space:nowrap">'+ozAmt.toFixed(2)+'</td>'+
-        '<td style="text-align:right;color:#555;white-space:nowrap">'+gAmt.toFixed(1)+'</td></tr>';
+        '<td style="text-align:right;color:#555;white-space:nowrap">'+String(Math.round(gAmt*100)/100)+'</td></tr>';
     };
-    const gTotal = arr => { const oz=arr.reduce((s,i)=>s+(i.unit==='g'?g2oz(i.amount):(parseFloat(i.amount)||0)),0); return {oz:oz.toFixed(2),g:oz2g(oz).toFixed(1)}; };
+    const gTotal = arr => { const oz=arr.reduce((s,i)=>s+(i.unit==='g'?g2oz(i.amount):(parseFloat(i.amount)||0)),0); return {oz:oz.toFixed(2),g:String(Math.round(oz*28.3495*100)/100)}; };
     const tRow = (l,oz,g) => '<tr class="tr"><td>'+l+'</td><td style="text-align:right">'+oz+'</td><td style="text-align:right;color:#888">'+g+'</td></tr>';
     const LYE=/lye|naoh|koh|water|milk|goat|beer|liquid|distilled|sodium hydroxide|potassium/i;
     const FRAG=/fragrance|scent|eo|essential oil|colorant|pigment|mica|oxide|dye/i;
@@ -5698,14 +5698,14 @@ const App = {
 
       // ── Identical ingredient rendering to openRecipeDetail ──
       const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
-      const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
+      const g2oz = g  => (parseFloat(g)||0)/28.3495; // full precision (rounding here turned 280 g into 280.1 g)
       const dUnit = (r.batchUnit||'oz').toLowerCase();
       const toDisp = oz => {
-        if(dUnit==='g')  return Math.round((parseFloat(oz)||0)*28.3495*10)/10;
+        if(dUnit==='g')  return Math.round((parseFloat(oz)||0)*28.3495*100)/100;
         if(dUnit==='lb') return Math.round((parseFloat(oz)||0)/16*1000)/1000;
         return Math.round((parseFloat(oz)||0)*1000)/1000;
       };
-      const dispFmt = oz => toDisp(oz).toFixed(dUnit==='g'?1:2)+' '+dUnit;
+      const dispFmt = oz => (dUnit==='g' ? String(toDisp(oz)) : toDisp(oz).toFixed(2))+' '+dUnit; // grams: whole stays whole, decimals only when needed
       const pLabels = {'1':'Phase 1 — Goat Milk & Lye','2':'Phase 2 — Oils & Butters','3':'Phase 3 — Fragrance & Color','additive':'Extra Additives','':'Ingredients'};
       const pColors = {'1':'#5C35C2','2':'#A8527A','3':'#2E7D32','additive':'#E65100','':'#666'};
       const byPhase = {};
@@ -6407,7 +6407,7 @@ const App = {
       if(baseR) {
         const mult = v.batch_multiplier || 1;
         const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
-        const g2oz = g  => Math.round(parseFloat(g)/28.3495*100)/100;
+        const g2oz = g  => (parseFloat(g)||0)/28.3495; // full precision (rounding here turned 280 g into 280.1 g)
         const baseIngs = (baseR.ingredients||[]).map(i=>{
           if(i.unit==='ea'||i.phase==='pkg'||i.phase==='Packaging'){
             return {name:i.name, qty:parseFloat(i.amount)||1, oz:0, g:0, phase:'pkg', unit:'ea'};
