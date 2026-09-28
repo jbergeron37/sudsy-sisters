@@ -1077,7 +1077,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.26.91.00';
+    const _ver = 'V-5.27.26.93.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1282,7 +1282,7 @@ const App = {
         return {
           id:row.id,name:row.name||'',category:row.category||'',description:row.description||'',
           instructions:row.instructions||'',notes:row.notes||'',tags:row.tags||[],
-          ingredients:row.ingredients||[],batchSize:row.batch_size||'',batchUnit:row.batch_unit||'oz',
+          ingredients:row.ingredients||[],batchSize:row.batch_size||'',batchUnit:row.batch_unit||'g',
           cureTime:row.cure_time||'',superfat:row.superfat||'',fragranceRate:row.fragrance_rate||'',
           lye:row.lye||'',scent:row.scent||'',difficulty:row.difficulty||'',refUrl:row.ref_url||'',
           unitSize:row.unit_size||'',unitsPerBatch:row.units_per_batch||'',prodMinutes:row.prod_minutes??'',packMinutes:row.pack_minutes??'',version:row.version||'v1',
@@ -1387,7 +1387,7 @@ const App = {
     if(table==='recipes') return {
       id:obj.id,name:obj.name||'',category:obj.category||'',description:obj.description||'',
       instructions:obj.instructions||'',notes:obj.notes||'',tags:obj.tags||[],
-      ingredients:obj.ingredients||[],batch_size:obj.batchSize||'',batch_unit:obj.batchUnit||'oz',
+      ingredients:obj.ingredients||[],batch_size:obj.batchSize||'',batch_unit:obj.batchUnit||'g',
       cure_time:obj.cureTime||'',superfat:obj.superfat||'',fragrance_rate:obj.fragranceRate||'',
       lye:obj.lye||'',scent:obj.scent||'',difficulty:obj.difficulty||'',ref_url:obj.refUrl||'',
       unit_size:obj.unitSize||'',units_per_batch:obj.unitsPerBatch||'',prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(obj.prodMinutes),pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(obj.packMinutes),version:obj.version||'v1',
@@ -1552,7 +1552,7 @@ const App = {
                 const rr = this.recipes.find(x=>x.id===pItem.id);
                 // Row data is flat DB shape - rebuild app shape
                 const d = pItem.data;
-                const updated = {id:d.id,name:d.name||'',category:d.category||'',description:d.description||'',instructions:d.instructions||'',notes:d.notes||'',tags:d.tags||[],ingredients:d.ingredients||[],batchSize:d.batch_size||'',batchUnit:d.batch_unit||'oz',cureTime:d.cure_time||'',superfat:d.superfat||'',fragranceRate:d.fragrance_rate||'',lye:d.lye||'',scent:d.scent||'',difficulty:d.difficulty||'',refUrl:d.ref_url||'',unitSize:d.unit_size||'',unitsPerBatch:d.units_per_batch||'',prodMinutes:d.prod_minutes??'',packMinutes:d.pack_minutes??'',version:d.version||'v1',created:d.created_at||'',is_favorite:d.is_favorite||false};
+                const updated = {id:d.id,name:d.name||'',category:d.category||'',description:d.description||'',instructions:d.instructions||'',notes:d.notes||'',tags:d.tags||[],ingredients:d.ingredients||[],batchSize:d.batch_size||'',batchUnit:d.batch_unit||'g',cureTime:d.cure_time||'',superfat:d.superfat||'',fragranceRate:d.fragrance_rate||'',lye:d.lye||'',scent:d.scent||'',difficulty:d.difficulty||'',refUrl:d.ref_url||'',unitSize:d.unit_size||'',unitsPerBatch:d.units_per_batch||'',prodMinutes:d.prod_minutes??'',packMinutes:d.pack_minutes??'',version:d.version||'v1',created:d.created_at||'',is_favorite:d.is_favorite||false};
                 const ri = this.recipes.findIndex(x=>x.id===pItem.id);
                 if(ri>=0) this.recipes[ri]=Object.assign({},this.recipes[ri],updated);
               } else if(pItem.table==='inventory'){
@@ -1572,7 +1572,7 @@ const App = {
           if(row.table==='recipes'){
             const res=await this._sbFetch('GET','recipes?id=eq.'+row.id+'&select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,prod_minutes,pack_minutes,version,created_at,updated_at,is_favorite');
             const rows=await res.json();
-            if(rows&&rows[0]){ const r=rows[0]; const recipe={id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batchSize:r.batch_size||'',batchUnit:r.batch_unit||'oz',cureTime:r.cure_time||'',superfat:r.superfat||'',fragranceRate:r.fragrance_rate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',refUrl:r.ref_url||'',unitSize:r.unit_size||'',unitsPerBatch:r.units_per_batch||'',prodMinutes:r.prod_minutes??'',packMinutes:r.pack_minutes??'',version:r.version||'v1',created:r.created_at||'',updated_at:r.updated_at||'',is_favorite:r.is_favorite||false}; const idx=this.recipes.findIndex(x=>x.id===recipe.id); if(idx>=0) this.recipes[idx]=recipe; else this.recipes.push(recipe); }
+            if(rows&&rows[0]){ const r=rows[0]; const recipe={id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batchSize:r.batch_size||'',batchUnit:r.batch_unit||'g',cureTime:r.cure_time||'',superfat:r.superfat||'',fragranceRate:r.fragrance_rate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',refUrl:r.ref_url||'',unitSize:r.unit_size||'',unitsPerBatch:r.units_per_batch||'',prodMinutes:r.prod_minutes??'',packMinutes:r.pack_minutes??'',version:r.version||'v1',created:r.created_at||'',updated_at:r.updated_at||'',is_favorite:r.is_favorite||false}; const idx=this.recipes.findIndex(x=>x.id===recipe.id); if(idx>=0) this.recipes[idx]=recipe; else this.recipes.push(recipe); }
             applied++;
           } else if(row.table==='inventory'){
             const res=await this._sbFetch('GET','inventory?id=eq.'+row.id+'&select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,purchase_price,purchase_size,purchase_unit,updated_at');
@@ -1768,7 +1768,7 @@ const App = {
         rows+'</div>';
     }).join('');
     const metas = [
-      r.batchSize ? '<div class="meta-pill">Batch <span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>' : '',
+      r.batchSize ? '<div class="meta-pill">Batch <span>'+r.batchSize+' '+(r.batchUnit||'g')+'</span></div>' : '',
       r.cureTime  ? '<div class="meta-pill">Cure <span>'+this.h(r.cureTime)+'</span></div>' : '',
       r.superfat  ? '<div class="meta-pill">Superfat <span>'+this.h(r.superfat)+'</span></div>' : '',
       r.fragranceRate ? '<div class="meta-pill">FO Rate <span>'+this.h(r.fragranceRate)+'</span></div>' : '',
@@ -1795,7 +1795,7 @@ const App = {
     const recipe = Object.assign({}, r, {
       id: this.uid(),
       batchSize: r.batchSize||'',
-      batchUnit: r.batchUnit||'oz',
+      batchUnit: r.batchUnit||'g',
       cureTime: r.cureTime||'',
       fragranceRate: r.fragranceRate||'',
       tags: r.tags||[],
@@ -1822,7 +1822,7 @@ const App = {
     const recipe = Object.assign({}, r, {
       id: this.uid(),
       batchSize: r.batchSize||'',
-      batchUnit: r.batchUnit||'oz',
+      batchUnit: r.batchUnit||'g',
       tags: r.tags||[],
       ingredients: (r.ingredients||[]).map(i=>({ name:i.name||'', amount:i.amount||'', unit:i.unit||'oz', phase:i.phase||'' })),
       version: 'v1',
@@ -1961,9 +1961,9 @@ const App = {
     const tags=(r.tags||[]).slice(0,5).map(t=>`<span class="tag">${t}</span>`).join('');
     const favIcon = r.is_favorite ? '★' : '☆';
     const favClr = r.is_favorite ? 'var(--accent)' : 'var(--muted)';
-    const yield_ = r.batchSize ? r.batchSize+' '+(r.batchUnit||'oz') : '';
+    const yield_ = r.batchSize ? r.batchSize+' '+(r.batchUnit||'g') : '';
     const unitInfo = r.unitsPerBatch
-      ? r.unitsPerBatch+' units'+(r.unitSize?' @ '+r.unitSize+' '+(r.batchUnit||'oz')+' each':'')
+      ? r.unitsPerBatch+' units'+(r.unitSize?' @ '+r.unitSize+' '+(r.batchUnit||'g')+' each':'')
       : '';
     const yieldLine = [yield_, unitInfo].filter(Boolean).join(' · ');
     return `<div class="r-card" onclick="App.openRecipeDetail('${r.id}')">
@@ -2325,7 +2325,7 @@ const App = {
     const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
     const g2oz = g  => (parseFloat(g)||0)/28.3495; // full precision (rounding here turned 280 g into 280.1 g)
     // Per-recipe display unit based on batch_unit setting
-    const dUnit = (r.batchUnit||'oz').toLowerCase();
+    const dUnit = (r.batchUnit||'g').toLowerCase();
     const toDisp = oz => {
       if(dUnit==='g')  return Math.round((parseFloat(oz)||0)*28.3495*100)/100;
       if(dUnit==='lb') return Math.round((parseFloat(oz)||0)/16*1000)/1000;
@@ -2397,8 +2397,8 @@ const App = {
 
     // ── Meta pills ──
     const metas = [
-      r.batchSize?`<div class="meta-pill">Batch <span>${r.batchSize} ${r.batchUnit||'oz'}</span></div>`:'',
-      numUnits?`<div class="meta-pill">Units/Batch <span>${numUnits}${r.unitSize?' @ '+r.unitSize+' '+(r.batchUnit||'oz'):''}</span></div>`:'',
+      r.batchSize?`<div class="meta-pill">Batch <span>${r.batchSize} ${r.batchUnit||'g'}</span></div>`:'',
+      numUnits?`<div class="meta-pill">Units/Batch <span>${numUnits}${r.unitSize?' @ '+r.unitSize+' '+(r.batchUnit||'g'):''}</span></div>`:'',
       r.cureTime?`<div class="meta-pill">Cure <span>${this.h(r.cureTime)}</span></div>`:'',
       r.lye&&r.lye!=='None'?`<div class="meta-pill">Lye <span>${r.lye}</span></div>`:'',
       r.scent?`<div class="meta-pill">Scent <span>${this.h(r.scent)}</span></div>`:''
@@ -3421,7 +3421,7 @@ const App = {
     const sel=document.getElementById('calc-recipe');
     const cur=sel.value;
     sel.innerHTML='<option value="">— Choose a recipe —</option>'+
-      this.recipes.filter(r=>r.batchSize).map(r=>`<option value="${r.id}"${r.id===cur?' selected':''}>${this.h(r.name)} (${r.batchSize} ${r.batchUnit||'oz'})</option>`).join('');
+      this.recipes.filter(r=>r.batchSize).map(r=>`<option value="${r.id}"${r.id===cur?' selected':''}>${this.h(r.name)} (${r.batchSize} ${r.batchUnit||'g'})</option>`).join('');
   },
   calcUpdate(){
     const rid=document.getElementById('calc-recipe').value;
@@ -3585,7 +3585,7 @@ const App = {
       recipeId: b.recipe_id,
       recipeName: b.recipe_name,
       batchSize: sd.batchSize || r.batchSize || '',
-      batchUnit: sd.batchUnit || r.batchUnit || 'oz',
+      batchUnit: sd.batchUnit || r.batchUnit||'g',
       additives: sd.additives || [],
       fragrances: sd.fragrances || [],
       notes: b.notes || '',
@@ -3914,7 +3914,7 @@ const App = {
         recipeId: ds.recipeId,
         recipeName: ds.recipeName || base.name,
         batchSize: ds.batchSize || base.batchSize || '',
-        batchUnit: ds.batchUnit || base.batchUnit || 'oz',
+        batchUnit: ds.batchUnit || base.batchUnit||'g',
         additives: ds.additives || [],
         fragrances: ds.fragrances || [],
         notes: ds.notes || '',
@@ -4521,7 +4521,7 @@ const App = {
     if(recSel){
       const cur = recSel.value;
       recSel.innerHTML = '<option value="">— Choose a recipe —</option>' +
-        this.recipes.filter(r=>r.batchSize).map(r=>`<option value="${r.id}"${r.id===cur?' selected':''}>${this.h(r.name)} (${r.batchSize} ${r.batchUnit||'oz'})</option>`).join('');
+        this.recipes.filter(r=>r.batchSize).map(r=>`<option value="${r.id}"${r.id===cur?' selected':''}>${this.h(r.name)} (${r.batchSize} ${r.batchUnit||'g'})</option>`).join('');
     }
     modal.classList.add('open');
   },
@@ -4543,7 +4543,7 @@ const App = {
     const scale = target/orig;
     const cost = this._calcRecipeCost(r);
     const ings = (r.ingredients||[]).map(i=>`<div class="ing-row"><span class="ing-name">${this.h(i.name)}</span><span class="ing-amt">${Math.round(parseFloat(i.amount)*scale*100)/100} ${i.unit}</span></div>`).join('');
-    resultEl.innerHTML=`<div class="calc-result"><div class="section-title">Scaled to ${target} ${r.batchUnit||'oz'}${isBars?' ('+bars+' bars @ '+barwt+' oz)':''}</div>${ings}<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)"><div class="ing-row"><span class="ing-name" style="font-weight:700">Est. Cost</span><span class="ing-amt" style="font-weight:700">$${(cost.total*scale).toFixed(2)}</span></div></div></div>`;
+    resultEl.innerHTML=`<div class="calc-result"><div class="section-title">Scaled to ${target} ${r.batchUnit||'g'}${isBars?' ('+bars+' bars @ '+barwt+' oz)':''}</div>${ings}<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)"><div class="ing-row"><span class="ing-name" style="font-weight:700">Est. Cost</span><span class="ing-amt" style="font-weight:700">$${(cost.total*scale).toFixed(2)}</span></div></div></div>`;
   },
   _calcModeEl(container, mode){
     const grpOz = container.querySelector('[id^="grp-oz"]');
@@ -4682,7 +4682,7 @@ const App = {
     this._localSaveR();
     this.renderRecipes();
     this._toast(r.is_favorite ? '★ Added to favorites' : '☆ Removed from favorites');
-    fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/recipes?on_conflict=id',{method:'POST',headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:r.id,is_favorite:r.is_favorite,name:r.name||'',category:r.category||'',batch_size:r.batchSize||'',batch_unit:r.batchUnit||'oz',version:r.version||'v1',created_at:r.created||'',tags:r.tags||[],ingredients:r.ingredients||[]})}).catch(e=>console.warn('fav sync',e));
+    fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/recipes?on_conflict=id',{method:'POST',headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:r.id,is_favorite:r.is_favorite,name:r.name||'',category:r.category||'',batch_size:r.batchSize||'',batch_unit:r.batchUnit||'g',version:r.version||'v1',created_at:r.created||'',tags:r.tags||[],ingredients:r.ingredients||[]})}).catch(e=>console.warn('fav sync',e));
   },
 
   // ── GLOBAL SEARCH ────────────────────────────────────────────
@@ -4985,7 +4985,7 @@ const App = {
     const lyeTotal  = lyeIngs.reduce((s,i)=>s+toOz(i),0);
     const oilTotal  = oilIngs.reduce((s,i)=>s+toOz(i),0);
     const totalWt   = lyeTotal + oilTotal;
-    const batchUnit = r.batchUnit||'oz';
+    const batchUnit = r.batchUnit||'g';
     const oz2g = v => Math.round(v*28.3495*10)/10;
 
     const rows6 = [0,1,2,3,4,5].map(i=>
@@ -5113,7 +5113,11 @@ const App = {
       body+
       '<div class="footer">Sudsy Sisters LLC &middot; Goat Milk Soapery &middot; Printed '+new Date().toLocaleDateString()+'</div>'+
       '</body></html>';
-    const win = existingWin || window.open('', '_blank');
+    // In an installed/standalone PWA (added to the home screen) there is no browser chrome around
+    // window.open() — it just replaces the visible page with no back/close button. Use the in-app
+    // overlay (with its own Close + Print buttons) whenever we're standalone, or already have no window.
+    const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+    const win = !isStandalone ? (existingWin || window.open('', '_blank')) : null;
     if(win){
       win.document.write(doc);
       win.document.close();
@@ -5129,13 +5133,14 @@ const App = {
     overlay.id = '__print-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column';
     overlay.innerHTML =
-      '<div style="background:#FCBFCE;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'+
-        '<div style="font-family:\'Playfair Display\',serif;font-weight:700;color:#111;font-size:1rem">'+this.h(title||'Print Preview')+'</div>'+
-        '<div style="display:flex;gap:8px;align-items:center">'+
-          '<div style="font-size:.75rem;color:#555">Tap Share → Print</div>'+
+      '<div style="background:#FCBFCE;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px">'+
+        '<div style="font-family:\'Playfair Display\',serif;font-weight:700;color:#111;font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+this.h(title||'Print Preview')+'</div>'+
+        '<div style="display:flex;gap:8px;align-items:center;flex-shrink:0">'+
+          '<button onclick="App._printOverlayPrint()" style="background:#fff;border:1.5px solid #A8527A;color:#A8527A;border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.8rem;font-weight:700;cursor:pointer">🖨 Print</button>'+
           '<button onclick="document.getElementById(\'__print-overlay\').remove()" style="background:rgba(0,0,0,.1);border:none;border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.8rem;font-weight:700;cursor:pointer">✕ Close</button>'+
         '</div>'+
       '</div>'+
+      '<div style="font-size:.72rem;color:#555;text-align:center;padding:4px;flex-shrink:0;background:#fff5f8">If Print doesn\'t open a dialog, use your browser\'s Share button and choose Print.</div>'+
       '<iframe id="__print-iframe" style="flex:1;border:none;width:100%;height:100%"></iframe>';
     document.body.appendChild(overlay);
     // Write doc into iframe
@@ -5143,6 +5148,13 @@ const App = {
     iframe.contentDocument.open();
     iframe.contentDocument.write(doc);
     iframe.contentDocument.close();
+  },
+  _printOverlayPrint(){
+    const iframe = document.getElementById('__print-iframe');
+    try{
+      if(iframe && iframe.contentWindow){ iframe.contentWindow.focus(); iframe.contentWindow.print(); return; }
+    }catch(e){}
+    this._toast('Use your browser\'s Share button and choose Print');
   },
 
   // ── 1. RECIPE & VARIANT PRINT ─────────────────────────────────
@@ -5185,7 +5197,7 @@ const App = {
     const meta=[
       r.category?'<div class="mi"><strong>Category</strong><span>'+this.h(r.category)+'</span></div>':'',
       '<div class="mi"><strong>Version</strong><span>'+this.h(r.version||'v1')+'</span></div>',
-      r.batchSize?'<div class="mi"><strong>Batch Size</strong><span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>':'',
+      r.batchSize?'<div class="mi"><strong>Batch Size</strong><span>'+r.batchSize+' '+(r.batchUnit||'g')+'</span></div>':'',
       numUnits>0?'<div class="mi"><strong>Units/Batch</strong><span>'+(Math.round(numUnits*100)/100)+(parseFloat(r.unitSize)>0?' @ '+r.unitSize+' '+(r.batchUnit||'g'):'')+'</span></div>':'',
       ingPerUnit?'<div class="mi"><strong>Ingr. Cost/Unit</strong><span>$'+ingPerUnit.toFixed(2)+'</span></div>':'',
       labor.set?'<div class="mi"><strong>Labor</strong><span>'+(labor.prodMin?labor.prodMin+' min/batch':'')+(labor.prodMin&&labor.packMin?' + ':'')+(labor.packMin?labor.packMin+' min/unit':'')+' @ $'+labor.rate.toFixed(2)+'/hr</span></div>':'',
@@ -5297,7 +5309,7 @@ const App = {
     const lines = [
       '=== COLOR / LAYER SPLIT ===',
       'Recipe: '+recipeName,
-      'Total: '+totalWt.toFixed(2)+' '+(batchUnit||'oz')+' ('+oz2g(totalWt)+' g)',
+      'Total: '+totalWt.toFixed(2)+' '+(batchUnit||'g')+' ('+oz2g(totalWt)+' g)',
       'Oils & Butters: '+oilTotal.toFixed(2)+' oz ('+oz2g(oilTotal)+' g)',
       'Goat Milk & Lye: '+lyeTotal.toFixed(2)+' oz ('+oz2g(lyeTotal)+' g)',
       ''
@@ -5380,7 +5392,7 @@ const App = {
       '<h2 style="font-family:\'Playfair Display\',serif;font-size:1.2rem;color:#111;margin:0 0 4px">'+recipeName+' — Color &amp; Layer Split</h2>'+
       '<div style="font-size:12px;color:#555;margin-bottom:18px">Printed '+new Date().toLocaleDateString()+'</div>'+
       '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">'+
-        '<div style="background:#FEF2F6;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888">Total Batch</div><div style="font-size:1rem;font-weight:700;margin-top:4px">'+totalWt.toFixed(2)+' '+(batchUnit||'oz')+'</div><div style="font-size:11px;color:#888">'+oz2g(totalWt)+' g</div></div>'+
+        '<div style="background:#FEF2F6;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888">Total Batch</div><div style="font-size:1rem;font-weight:700;margin-top:4px">'+totalWt.toFixed(2)+' '+(batchUnit||'g')+'</div><div style="font-size:11px;color:#888">'+oz2g(totalWt)+' g</div></div>'+
         '<div style="background:#FEF2F6;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888">Milk &amp; Lye</div><div style="font-size:1rem;font-weight:700;margin-top:4px;color:#5C35C2">'+lyeTotal.toFixed(2)+' oz</div><div style="font-size:11px;color:#888">'+oz2g(lyeTotal)+' g</div></div>'+
         '<div style="background:#FEF2F6;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888">Oils &amp; Butters</div><div style="font-size:1rem;font-weight:700;margin-top:4px;color:#A8527A">'+oilTotal.toFixed(2)+' oz</div><div style="font-size:11px;color:#888">'+oz2g(oilTotal)+' g</div></div>'+
       '</div>'+
@@ -5554,7 +5566,7 @@ const App = {
     const r = this.recipes.find(x=>x.id===id);
     if(r){
       document.getElementById('bl-size').value = r.batchSize||'';
-      document.getElementById('bl-unit').value = r.batchUnit||'oz';
+      document.getElementById('bl-unit').value = r.batchUnit||'g';
     }
   },
 
@@ -5689,7 +5701,7 @@ const App = {
         name: v.name,
         category: (base&&base.category)||'Variant',
         batchSize: v.batch_size||(_mult!==1&&_vBatchG>0 ? String(Math.round(_vBatchG*100)/100) : '')||(fr&&fr.batch_size)||(base&&base.batchSize)||'',
-        batchUnit: v.batch_unit||(fr&&fr.batch_unit)||(base&&base.batchUnit)||'g',
+        batchUnit: (v.batch_size?v.batch_unit:'')||((fr&&fr.batch_size)?fr.batch_unit:'')||(base&&base.batchUnit)||'g', // ignore a stored unit with no matching size — that's stale, not real
         cureTime: (fr&&fr.cure_time)||(base&&base.cureTime)||'',
         fragranceRate: (fr&&fr.fragrance_rate)||(base&&base.fragranceRate)||'',
         unitsPerBatch: _vUnits||'',
@@ -5702,7 +5714,7 @@ const App = {
       // ── Identical ingredient rendering to openRecipeDetail ──
       const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
       const g2oz = g  => (parseFloat(g)||0)/28.3495; // full precision (rounding here turned 280 g into 280.1 g)
-      const dUnit = (r.batchUnit||'oz').toLowerCase();
+      const dUnit = (r.batchUnit||'g').toLowerCase();
       const toDisp = oz => {
         if(dUnit==='g')  return Math.round((parseFloat(oz)||0)*28.3495*100)/100;
         if(dUnit==='lb') return Math.round((parseFloat(oz)||0)/16*1000)/1000;
@@ -5745,7 +5757,7 @@ const App = {
       // ── Meta pills — same style as recipe detail ──
       const dateStr = v.made_at ? new Date(v.made_at).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : '';
       const metas = [
-        r.batchSize ? '<div class="meta-pill">Batch <span>'+r.batchSize+' '+(r.batchUnit||'oz')+'</span></div>' : '',
+        r.batchSize ? '<div class="meta-pill">Batch <span>'+r.batchSize+' '+(r.batchUnit||'g')+'</span></div>' : '',
         r.cureTime  ? '<div class="meta-pill">Cure <span>'+this.h(r.cureTime)+'</span></div>' : '',
         r.fragranceRate ? '<div class="meta-pill">FO Rate <span>'+this.h(r.fragranceRate)+'</span></div>' : '',
         dateStr     ? '<div class="meta-pill">Made <span>'+dateStr+'</span></div>' : '',
@@ -5972,7 +5984,7 @@ const App = {
   // Auto-calculate units per batch from batch size ÷ unit size
   _calcBatchSize(){
     if(!this.editR) return;
-    const unit = (document.getElementById('fbu')?.value || this.editR.batchUnit || 'oz').toLowerCase();
+    const unit = (document.getElementById('fbu')?.value || this.editR.batchUnit||'g').toLowerCase();
     const g2oz = g => Math.round((parseFloat(g)||0)/28.3495*10000)/10000;
     const oz2g = oz => Math.round((parseFloat(oz)||0)*28.3495*100)/100;
     const oz2lb = oz => Math.round((parseFloat(oz)||0)/16*10000)/10000;
@@ -6003,7 +6015,7 @@ const App = {
     if(this.editR) this.editR.batchSize = String(displayTotal);
     // Auto-calc units per batch (2 decimal places)
     const unitSzRaw = parseFloat(document.getElementById('fusz')?.value)||0;
-    const curUnit2 = (document.getElementById('fbu')?.value||this.editR?.batchUnit||'oz').toLowerCase();
+    const curUnit2 = (document.getElementById('fbu')?.value||this.editR?.batchUnit||'g').toLowerCase();
     // Convert fusz to oz for consistent division
     const unitSzOz = curUnit2==='g' ? unitSzRaw/28.3495 : unitSzRaw;
     const upb = document.getElementById('fupb');
@@ -6016,7 +6028,7 @@ const App = {
   _calcUnits(){ this._calcBatchSize(); },
 
   _onUnitChange(){
-    const prevUnit = (this.editR&&this.editR.batchUnit||'oz').toLowerCase();
+    const prevUnit = (this.editR&&this.editR.batchUnit||'g').toLowerCase();
     const newUnit  = (document.getElementById('fbu')?.value||'oz').toLowerCase();
     // Convert oz-per-unit value between oz and g
     const fuszEl = document.getElementById('fusz');
@@ -6060,7 +6072,7 @@ const App = {
       return Math.round(t*1000)/1000;
     })();
     if(units > 0 && batchOz > 0){
-      const curUnit = (document.getElementById('fbu')?.value||this.editR?.batchUnit||'oz').toLowerCase();
+      const curUnit = (document.getElementById('fbu')?.value||this.editR?.batchUnit||'g').toLowerCase();
       const rawPerUnit = batchOz / units; // always in oz
       const dispPerUnit = curUnit==='g'
         ? Math.round(rawPerUnit*28.3495*100)/100
@@ -6128,7 +6140,7 @@ const App = {
               '<div style="font-size:.75rem;margin-top:3px">'+
                 '<span style="background:'+clr+'22;color:'+clr+';border-radius:6px;padding:2px 7px;font-weight:700;font-size:.7rem;text-transform:uppercase">'+mold+'</span>'+
                 (v.batch_multiplier&&Number(v.batch_multiplier)!==1?'<span style="margin-left:6px;background:#E9A23B22;color:#E9A23B;border-radius:6px;padding:2px 7px;font-weight:700;font-size:.7rem">'+v.batch_multiplier+'&times;</span>':'')+
-                (v.batch_size?'<span style="margin-left:6px;color:var(--muted)">'+v.batch_size+' '+(v.batch_unit||'oz')+'</span>':'')+
+                (v.batch_size?'<span style="margin-left:6px;color:var(--muted)">'+v.batch_size+' '+(v.batch_unit||'g')+'</span>':'')+
                 (ing?'<span style="margin-left:6px;color:var(--muted)">+'+ing+' additive'+(ing>1?'s':'')+'</span>':'')+
               '</div>'+
               (v.notes?'<div style="font-size:.75rem;color:var(--muted);margin-top:4px">'+this.h(v.notes.slice(0,80))+'</div>':'')+
@@ -6161,7 +6173,7 @@ const App = {
     document.getElementById('variant-form-title').textContent = variantId ? 'Edit Variant' : 'New Variant';
 
     const baseName = r ? r.name : '';
-    const baseSize = r ? r.batchSize+' '+(r.batchUnit||'oz') : '';
+    const baseSize = r ? r.batchSize+' '+(r.batchUnit||'g') : '';
     const fragOpts = (this.fragrances||[]).map(f=>'<option value="'+f.id+'"'+(f.id===v.fragrance_id?' selected':'')+'>'+this.h(f.name)+'</option>').join('');
 
     // Separate added_ingredients into additives vs packaging
@@ -6482,7 +6494,7 @@ const App = {
         const dateStr = date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
         const timeStr = date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
         let by = v.made_by||''; try{ const u=JSON.parse(by); by=u.display_name||u.username||''; }catch(e){}
-        const batchSize = v.batch_size ? v.batch_size+' '+(v.batch_unit||'oz') : '';
+        const batchSize = v.batch_size ? v.batch_size+' '+(v.batch_unit||'g') : '';
         const note = v.batch_notes||v.notes||'';
         const byLine = [by,batchSize,note.slice(0,60)].filter(Boolean).join(' \u00b7 ');
         const tag = '<span style="'+tagStyles[type]+';border-radius:6px;padding:2px 7px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px">'+tagLabels[type]+'</span>';
@@ -6516,7 +6528,7 @@ const App = {
           const idx = this.recipes.findIndex(x=>x.id===r.id);
           if(idx>=0) this.recipes[idx]=r; else this.recipes.unshift(r);
           this._localSaveR();
-          fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/recipes?on_conflict=id',{method:'POST',headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batch_size:r.batchSize||'',batch_unit:r.batchUnit||'oz',cure_time:r.cureTime||'',superfat:r.superfat||'',fragrance_rate:r.fragranceRate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',ref_url:r.refUrl||'',unit_size:r.unitSize||'',units_per_batch:r.unitsPerBatch||'',prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.prodMinutes),pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.packMinutes),version:r.version||'v1',created_at:r.created||'',is_favorite:!!r.is_favorite})}).catch(e=>console.warn('restore sync failed',e));
+          fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/recipes?on_conflict=id',{method:'POST',headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batch_size:r.batchSize||'',batch_unit:r.batchUnit||'g',cure_time:r.cureTime||'',superfat:r.superfat||'',fragrance_rate:r.fragranceRate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',ref_url:r.refUrl||'',unit_size:r.unitSize||'',units_per_batch:r.unitsPerBatch||'',prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.prodMinutes),pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.packMinutes),version:r.version||'v1',created_at:r.created||'',is_favorite:!!r.is_favorite})}).catch(e=>console.warn('restore sync failed',e));
 
           this.closeModal('modal-version-history');
           this.renderRecipes();
@@ -6642,7 +6654,7 @@ const App = {
           id:snap.id, name:snap.name||'', category:snap.category||'',
           description:snap.description||'', instructions:snap.instructions||'',
           notes:snap.notes||'', tags:snap.tags||[], ingredients:snap.ingredients||[],
-          batch_size:snap.batchSize||'', batch_unit:snap.batchUnit||'oz',
+          batch_size:snap.batchSize||'', batch_unit:snap.batchUnit||'g',
           cure_time:snap.cureTime||'', superfat:snap.superfat||'',
           fragrance_rate:snap.fragranceRate||'', lye:snap.lye||'',
           scent:snap.scent||'', difficulty:snap.difficulty||'',
@@ -6672,7 +6684,7 @@ const App = {
         tags: r.tags || [],
         ingredients: r.ingredients || [],
         batch_size: r.batchSize || '',
-        batch_unit: r.batchUnit || 'oz',
+        batch_unit: r.batchUnit||'g',
         cure_time: r.cureTime || '',
         superfat: r.superfat || '',
         fragrance_rate: r.fragranceRate || '',
