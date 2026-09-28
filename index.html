@@ -233,7 +233,7 @@ html,body{height:100%;overflow:hidden;background:var(--cream);color:var(--text);
 [data-theme="dark"] .tag{ background:#2A1A3E!important; color:#D4789A!important; }
 [data-theme="dark"] .sync-status{ background:#2D1A2E!important; color:#B09AB0!important; }
 /* SETTINGS PANEL — slides down from top */
-.settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;display:none;align-items:flex-start;justify-content:center}
+.settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;display:none;align-items:flex-start;justify-content:center;padding-top:calc(var(--safe-t) + 10px)}
 .settings-overlay.open{display:flex}
 .settings-sheet{background:var(--white);border-radius:0 0 20px 20px;width:100%;max-width:480px;padding:0 0 16px;animation:slideDown .24s ease-out;max-height:80vh;overflow-y:auto}
 .settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
@@ -1082,7 +1082,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.26.99.00';
+    const _ver = 'V-5.27.27.00.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -7302,7 +7302,7 @@ ingsSection+instrSection+bNotesSection+rNotesSection+
   }
 };
 
-document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+document.querySelectorAll('.modal-overlay,.settings-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
 App.init();
 
 // Auto-sync when app comes back to foreground (switching back from another app)
