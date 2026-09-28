@@ -1077,7 +1077,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.26.96.00';
+    const _ver = 'V-5.27.26.97.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -5101,7 +5101,7 @@ const App = {
 
   // ── RECIPE PDF PRINT ─────────────────────────────────────────
   // ── BLOB PRINT UTILITIES ─────────────────────────────────────
-  _bPrintCSS: "*{box-sizing:border-box;margin:0;padding:0}html,body{font-family:Lato,sans-serif;font-size:11px;line-height:1.45;color:#111;background:#fff}@page{margin:1in .5in;size:letter portrait}@media print{html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}.hdr{display:flex;align-items:center;gap:14px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}.brand{font-family:'Great Vibes',cursive;font-size:2rem;color:#D4789A;line-height:1}.brand-sub{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:#111;margin-bottom:8px}h3{font-family:'Playfair Display',serif;font-size:.85rem;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.4px}.meta{display:flex;flex-wrap:wrap;gap:8px;background:#FEF2F6;padding:6px 10px;border-radius:8px;margin-bottom:10px}.mi{font-size:10px}.mi strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.4px;font-weight:700}.mi span{font-weight:700;color:#111}.two-col{display:grid;grid-template-columns:52% 46%;gap:2%}table{width:100%;border-collapse:collapse;margin-bottom:10px}th{padding:4px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px}td{padding:3px 8px;border-bottom:1px solid #f0e0ea;font-size:11px}.tr td{font-weight:700;color:#A8527A;border-top:1.5px solid #FCBFCE;background:#FEF2F6}.notes{font-size:10px;line-height:1.5;white-space:pre-wrap}.footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}.section{margin-bottom:14px;page-break-inside:avoid}.sec-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;border-bottom:1px solid #FCBFCE;padding-bottom:3px;margin-bottom:6px}.row-card{padding:8px 10px;border:1px solid #f0e0ea;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:flex-start}.row-name{font-size:11px;font-weight:700}.row-detail{font-size:9.5px;color:#555}",
+  _bPrintCSS: "*{box-sizing:border-box;margin:0;padding:0}html,body{font-family:Lato,sans-serif;font-size:11px;line-height:1.45;color:#111;background:#fff}@page{margin:1in .5in;size:letter portrait}@media print{html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}.hdr{display:flex;align-items:center;gap:14px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}.brand{font-family:'Great Vibes',cursive;font-size:2rem;color:#D4789A;line-height:1}.brand-sub{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:#111;margin-bottom:8px}h3{font-family:'Playfair Display',serif;font-size:.85rem;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.4px}.meta-wrap{margin-bottom:10px}.mrow1{display:flex;flex-wrap:wrap;justify-content:center;text-align:center;gap:18px;background:#FBF7F4;padding:8px 12px;border-radius:8px;margin-bottom:8px}.mrow2{display:flex;flex-wrap:wrap;justify-content:center;text-align:center;gap:18px;align-items:center;background:linear-gradient(135deg,#FEF2F6,#FCE8EF);border:1.5px solid #FCBFCE;padding:10px 14px;border-radius:10px}.mrow2 .mi strong{color:#A8527A}.mi.total strong{font-size:9px;color:#A8527A}.mi.total span{font-size:1.3rem;color:#7A2E52;font-family:'Playfair Display',serif}.mi{font-size:10px}.mi strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.4px;font-weight:700}.mi span{font-weight:700;color:#111}.two-col{display:grid;grid-template-columns:52% 46%;gap:2%}table{width:100%;border-collapse:collapse;margin-bottom:10px}th{padding:4px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px}td{padding:3px 8px;border-bottom:1px solid #f0e0ea;font-size:11px}.tr td{font-weight:700;color:#A8527A;border-top:1.5px solid #FCBFCE;background:#FEF2F6}.notes{font-size:10px;line-height:1.5;white-space:pre-wrap}.footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}.section{margin-bottom:14px;page-break-inside:avoid}.sec-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;border-bottom:1px solid #FCBFCE;padding-bottom:3px;margin-bottom:6px}.row-card{padding:8px 10px;border:1px solid #f0e0ea;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:flex-start}.row-name{font-size:11px;font-weight:700}.row-detail{font-size:9.5px;color:#555}",
 
   // centerTitle: used by the recipe/variant print — a bigger logo, a perfectly centered recipe
   // name in the header row (no "Sudsy Sisters / Goat Milk Soapery" text, the logo already says that),
@@ -5209,24 +5209,28 @@ const App = {
         '<tbody>'+ings.map((i,n)=>ingRow(i,n%2===1)).join('')+tRow('Total',tot.oz,tot.g)+'</tbody></table>';
     };
     let ingHtml=''; ['1','2','3',''].forEach(p=>{if(byP[p]&&byP[p].length)ingHtml+=tbl(pL[p],byP[p],pC[p]);});
-    const meta=[
+    // Recipe info (plain row) vs. pricing (highlighted row, Total Cost/Unit called out big) — both centered.
+    const infoItems=[
       r.category?'<div class="mi"><strong>Category</strong><span>'+this.h(r.category)+'</span></div>':'',
       '<div class="mi"><strong>Version</strong><span>'+this.h(r.version||'v1')+'</span></div>',
       r.batchSize?'<div class="mi"><strong>Batch Size</strong><span>'+r.batchSize+' '+(r.batchUnit||'g')+'</span></div>':'',
       numUnits>0?'<div class="mi"><strong>Units/Batch</strong><span>'+(Math.round(numUnits*100)/100)+(parseFloat(r.unitSize)>0?' @ '+r.unitSize+' '+(r.batchUnit||'g'):'')+'</span></div>':'',
+      r.cureTime?'<div class="mi"><strong>Cure Time</strong><span>'+this.h(r.cureTime)+'</span></div>':''
+    ].filter(Boolean).join('');
+    const priceItems=[
       ingPerUnit?'<div class="mi"><strong>Ingr. Cost/Unit</strong><span>$'+ingPerUnit.toFixed(2)+'</span></div>':'',
       labor.set?'<div class="mi"><strong>Labor</strong><span>'+(labor.prodMin?labor.prodMin+' min/batch':'')+(labor.prodMin&&labor.packMin?' + ':'')+(labor.packMin?labor.packMin+' min/unit':'')+' @ $'+labor.rate.toFixed(2)+'/hr</span></div>':'',
-      costPerUnit?'<div class="mi"><strong>Total Cost/Unit</strong><span>$'+costPerUnit.toFixed(2)+'</span></div>':'',
-      r.cureTime?'<div class="mi"><strong>Cure Time</strong><span>'+this.h(r.cureTime)+'</span></div>':'',
-      cost.total?'<div class="mi"><strong>Est. Cost</strong><span>$'+cost.total.toFixed(2)+'</span></div>':''
+      cost.total?'<div class="mi"><strong>Est. Cost</strong><span>$'+cost.total.toFixed(2)+'</span></div>':'',
+      costPerUnit?'<div class="mi total"><strong>Total Cost / Unit</strong><span>$'+costPerUnit.toFixed(2)+'</span></div>':''
     ].filter(Boolean).join('');
+    const meta=(infoItems?'<div class="mrow1">'+infoItems+'</div>':'')+(priceItems?'<div class="mrow2">'+priceItems+'</div>':'');
     const right=[
       r.description?'<h3>Description</h3><div class="notes">'+this.h(r.description)+'</div>':'',
       r.instructions?'<h3>Instructions</h3><div class="notes">'+this.h(r.instructions)+'</div>':'',
       r.notes?'<h3>Notes</h3><div class="notes">'+this.h(r.notes)+'</div>':'',
       r.scent?'<h3>Fragrance Notes</h3><div class="notes">'+this.h(r.scent)+'</div>':''
     ].filter(Boolean).join('');
-    this._bOpenPrint('<div class="meta">'+meta+'</div><div class="two-col"><div>'+ingHtml+'</div><div>'+right+'</div></div>', r.name, existingWin, true);
+    this._bOpenPrint('<div class="meta-wrap">'+meta+'</div><div class="two-col"><div>'+ingHtml+'</div><div>'+right+'</div></div>', r.name, existingWin, true);
   },
 
   // ── 2. LOW INVENTORY REPORT PRINT ─────────────────────────────
