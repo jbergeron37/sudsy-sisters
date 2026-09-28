@@ -533,10 +533,6 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     <button id="header-settings" onclick="App.openSettings()" title="Settings" style="background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <button id="header-sync-btn" onclick="App.openSyncModal()" title="Sync" style="position:relative;background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px">
-      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-      <span id="sync-badge" style="display:none;position:absolute;top:4px;right:4px;background:#E53935;color:#fff;border-radius:50%;width:16px;height:16px;font-size:.6rem;font-weight:700;align-items:center;justify-content:center;line-height:1">0</span>
-    </button>
     <button id="header-add" onclick="App.handleAdd()">
       <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
@@ -840,7 +836,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
   </div>
 </div>
 <!-- TOOLS MODAL -->
-<div class="modal-overlay" id="modal-tools" style="align-items:flex-start">
+<div class="modal-overlay" id="modal-tools" style="align-items:flex-start;padding-top:calc(var(--safe-t) + 10px)">
   <div class="modal-sheet" style="border-radius:0 0 20px 20px;animation:slideDown .24s ease-out;max-height:60vh">
     <div class="modal-hdr"><div class="modal-title">🔧 Tools</div><button class="modal-close" onclick="App.closeModal('modal-tools')">×</button></div>
     <div class="modal-body" style="padding:0">
@@ -848,6 +844,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
       <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openLowFragReport()"><div><div class="settings-label">Low Stock Fragrances</div><div class="settings-sub">View and print fragrances needing restock</div></div><span style="color:var(--muted)">›</span></div>
       <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openLaborRateModal()"><div><div class="settings-label">⏱ Labor Rate</div><div class="settings-sub">Hourly value of production &amp; packaging time</div></div><span style="color:var(--muted)">›</span></div>
       <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openPricingModal()"><div><div class="settings-label">Pricing Manager</div><div class="settings-sub">Calculate retail price per product</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="settings-row" style="cursor:pointer" onclick="App.closeModal('modal-tools');App.openSyncModal()"><div><div class="settings-label">🔄 Sync</div><div class="settings-sub">Push and pull latest data from cloud</div></div><div style="display:flex;align-items:center;gap:8px"><span id="sync-badge" style="display:none;background:#E53935;color:#fff;border-radius:50%;min-width:18px;height:18px;padding:0 4px;font-size:.65rem;font-weight:700;align-items:center;justify-content:center;line-height:1">0</span><span style="color:var(--muted)">›</span></div></div>
     </div>
   </div>
 </div>
@@ -1085,7 +1082,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.26.98.00';
+    const _ver = 'V-5.27.26.99.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -4230,7 +4227,6 @@ const App = {
     document.getElementById('header-sub').textContent = f.scent_family||'Fragrance';
     document.getElementById('header-back').style.display='flex';
     document.getElementById('header-add').style.display='none';
-    document.getElementById('header-sync').style.display='none';
   },
 
   _adjFragQty(id, dir){
@@ -5150,24 +5146,19 @@ const App = {
   // ── BLOB PRINT UTILITIES ─────────────────────────────────────
   _bPrintCSS: "*{box-sizing:border-box;margin:0;padding:0}html,body{font-family:Lato,sans-serif;font-size:11px;line-height:1.45;color:#111;background:#fff}@page{margin:1in .5in;size:letter portrait}@media print{html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}.hdr{display:flex;align-items:center;gap:14px;border-bottom:3px solid #FCBFCE;padding-bottom:10px;margin-bottom:12px}.brand{font-family:'Great Vibes',cursive;font-size:2rem;color:#D4789A;line-height:1}.brand-sub{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:#111;margin-bottom:8px}h3{font-family:'Playfair Display',serif;font-size:.85rem;color:#111;border-bottom:1px solid #FCBFCE;padding-bottom:2px;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.4px}.meta-wrap{margin-bottom:10px}.mrow1{display:flex;flex-wrap:wrap;justify-content:center;text-align:center;gap:18px;background:#FBF7F4;padding:8px 12px;border-radius:8px;margin-bottom:8px}.mrow2{display:flex;flex-wrap:wrap;justify-content:center;text-align:center;gap:18px;align-items:center;background:linear-gradient(135deg,#FEF2F6,#FCE8EF);border:1.5px solid #FCBFCE;padding:10px 14px;border-radius:10px}.mrow2 .mi strong{color:#A8527A}.mi.total strong{font-size:9px;color:#A8527A}.mi.total span{font-size:1.3rem;color:#7A2E52;font-family:'Playfair Display',serif}.mi{font-size:10px}.mi strong{display:block;font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.4px;font-weight:700}.mi span{font-weight:700;color:#111}.two-col{display:grid;grid-template-columns:52% 46%;gap:2%}table{width:100%;border-collapse:collapse;margin-bottom:10px}th{padding:4px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px}td{padding:3px 8px;border-bottom:1px solid #f0e0ea;font-size:11px}.tr td{font-weight:700;color:#A8527A;border-top:1.5px solid #FCBFCE;background:#FEF2F6}.notes{font-size:10px;line-height:1.5;white-space:pre-wrap}.footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;font-size:8px;color:#777;text-align:center}.section{margin-bottom:14px;page-break-inside:avoid}.sec-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;border-bottom:1px solid #FCBFCE;padding-bottom:3px;margin-bottom:6px}.row-card{padding:8px 10px;border:1px solid #f0e0ea;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:flex-start}.row-name{font-size:11px;font-weight:700}.row-detail{font-size:9.5px;color:#555}",
 
-  // centerTitle: used by the recipe/variant print — a bigger logo, a perfectly centered recipe
-  // name in the header row (no "Sudsy Sisters / Goat Milk Soapery" text, the logo already says that),
-  // and a shorter top page margin. Every other print report keeps the original header untouched.
-  _bOpenPrint(body, title, existingWin, centerTitle){
+  // Shared header for every print report: a bigger logo, a perfectly centered title in the header
+  // row (no "Sudsy Sisters / Goat Milk Soapery" text, the logo already says that), and a shorter
+  // top page margin.
+  _bOpenPrint(body, title, existingWin){
+    // Every print report shares the same header: logo, centered script-font title, balancing
+    // spacer (so the title sits at the true center of the page, not the center of the leftover
+    // space next to the logo).
     const logo = (document.getElementById('header-logo')||{}).src||'';
-    let headerHtml, extraCSS = '';
-    if(centerTitle){
-      const logoTag = logo ? '<img style="width:96px;height:96px;border-radius:15px;object-fit:cover;flex-shrink:0" src="'+logo+'" alt=""/>' : '<div style="width:96px;flex-shrink:0"></div>';
-      // A spacer the same width as the logo balances it out, so the title sits at the true
-      // center of the page rather than the center of the space left over next to the logo.
-      headerHtml = '<div class="hdr" style="gap:14px">'+logoTag+
-        '<h1 class="hdr-title">'+this.h(title||'')+'</h1>'+
-        '<div style="width:96px;flex-shrink:0"></div></div>';
-      extraCSS = '@page{margin:.5in .5in 1in .5in}.hdr-title{flex:1;text-align:center;font-family:\'Kaushan Script\',cursive;font-weight:400;font-size:2.6rem;color:#111;margin:0;letter-spacing:.3px}';
-    } else {
-      const logoTag = logo ? '<img style="width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0" src="'+logo+'" alt=""/>' : '';
-      headerHtml = '<div class="hdr">'+logoTag+'<div><div class="brand">Sudsy Sisters</div><div class="brand-sub">Goat Milk Soapery</div></div></div>';
-    }
+    const logoTag = logo ? '<img style="width:96px;height:96px;border-radius:15px;object-fit:cover;flex-shrink:0" src="'+logo+'" alt=""/>' : '<div style="width:96px;flex-shrink:0"></div>';
+    const headerHtml = '<div class="hdr" style="gap:14px">'+logoTag+
+      '<h1 class="hdr-title">'+this.h(title||'')+'</h1>'+
+      '<div style="width:96px;flex-shrink:0"></div></div>';
+    const extraCSS = '@page{margin:.5in .5in 1in .5in}.hdr-title{flex:1;text-align:center;font-family:\'Kaushan Script\',cursive;font-weight:400;font-size:2.6rem;color:#111;margin:0;letter-spacing:.3px}';
     const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+this.h(title||'Sudsy Sisters')+'</title>'+
       '<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Kaushan+Script&family=Lato:wght@400;700&display=swap" rel="stylesheet">'+
       '<style>'+this._bPrintCSS+extraCSS+'</style></head><body>'+
@@ -5277,7 +5268,7 @@ const App = {
       r.notes?'<h3>Notes</h3><div class="notes">'+this.h(r.notes)+'</div>':'',
       r.scent?'<h3>Fragrance Notes</h3><div class="notes">'+this.h(r.scent)+'</div>':''
     ].filter(Boolean).join('');
-    this._bOpenPrint('<div class="meta-wrap">'+meta+'</div><div class="two-col"><div>'+ingHtml+'</div><div>'+right+'</div></div>', r.name, existingWin, true);
+    this._bOpenPrint('<div class="meta-wrap">'+meta+'</div><div class="two-col"><div>'+ingHtml+'</div><div>'+right+'</div></div>', r.name, existingWin);
   },
 
   // ── 2. LOW INVENTORY REPORT PRINT ─────────────────────────────
@@ -5309,7 +5300,7 @@ const App = {
     });
     sectionsHtml+='<div style="border-top:2px solid #FCBFCE;padding-top:8px;margin-top:8px;display:flex;justify-content:space-between;font-weight:700;font-size:11px">'+
       '<span>Est. Total Replenishment Cost</span><span style="color:#A8527A">~$'+grandTotal.toFixed(2)+'</span></div>';
-    this._bOpenPrint('<h1>Low Inventory Report</h1>'+sectionsHtml, 'Low Inventory Report');
+    this._bOpenPrint(sectionsHtml, 'Low Inventory Report');
   },
 
   // ── 3. PRINT VISIBLE/FILTERED FRAGRANCES ──────────────────────
@@ -5328,8 +5319,7 @@ const App = {
         '<td style="text-align:center;font-size:9.5px;color:'+disClr+'">'+this.h(f.cp_discoloration||'?')+'</td>'+
         '<td style="text-align:right;font-size:9.5px">'+(f.quantity||0)+' '+(f.unit||'oz')+'</td></tr>';
     }).join('');
-    const body='<h1>Fragrances</h1>'+
-      '<table><thead><tr><th>Name</th><th>Notes</th><th style="text-align:center">Acceleration</th><th style="text-align:center">Ricing</th><th style="text-align:center">Discoloration</th><th style="text-align:right">Stock</th></tr></thead>'+
+    const body='<table><thead><tr><th>Name</th><th>Notes</th><th style="text-align:center">Acceleration</th><th style="text-align:center">Ricing</th><th style="text-align:center">Discoloration</th><th style="text-align:right">Stock</th></tr></thead>'+
       '<tbody>'+rows+'</tbody></table>';
     this._bOpenPrint(body, 'Fragrance List');
   },
@@ -5344,8 +5334,7 @@ const App = {
       '<td style="text-align:right">'+(f.reorder_at||2)+' '+(f.unit||'oz')+'</td>'+
       '<td style="text-align:right">'+(f.cost?'$'+parseFloat(f.cost).toFixed(2)+'/oz':'—')+'</td></tr>'
     ).join('');
-    const body='<h1>Low Stock Fragrances</h1>'+
-      '<table><thead><tr><th>Fragrance</th><th style="text-align:center">Family</th><th style="text-align:right">In Stock</th><th style="text-align:right">Reorder At</th><th style="text-align:right">Cost</th></tr></thead>'+
+    const body='<table><thead><tr><th>Fragrance</th><th style="text-align:center">Family</th><th style="text-align:right">In Stock</th><th style="text-align:right">Reorder At</th><th style="text-align:right">Cost</th></tr></thead>'+
       '<tbody>'+rows+'</tbody></table>';
     this._bOpenPrint(body, 'Low Stock Fragrances');
   },
@@ -5455,8 +5444,7 @@ const App = {
     }).join('');
 
     const body =
-      '<h2 style="font-family:\'Playfair Display\',serif;font-size:1.2rem;color:#111;margin:0 0 4px">'+recipeName+' — Color &amp; Layer Split</h2>'+
-      '<div style="font-size:12px;color:#555;margin-bottom:18px">Printed '+new Date().toLocaleDateString()+'</div>'+
+      '<div style="font-size:12px;color:#555;margin-bottom:18px;text-align:center">Printed '+new Date().toLocaleDateString()+'</div>'+
       '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">'+
         '<div style="background:#FEF2F6;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888">Total Batch</div><div style="font-size:1rem;font-weight:700;margin-top:4px">'+totalWt.toFixed(2)+' '+(batchUnit||'g')+'</div><div style="font-size:11px;color:#888">'+oz2g(totalWt)+' g</div></div>'+
         '<div style="background:#FEF2F6;border-radius:8px;padding:10px 12px;text-align:center"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888">Milk &amp; Lye</div><div style="font-size:1rem;font-weight:700;margin-top:4px;color:#5C35C2">'+lyeTotal.toFixed(2)+' oz</div><div style="font-size:11px;color:#888">'+oz2g(lyeTotal)+' g</div></div>'+
@@ -5471,7 +5459,7 @@ const App = {
         '<tbody>'+rowHtml+'</tbody>'+
       '</table>';
 
-    this._bOpenPrint(body, recipeName+' Split');
+    this._bOpenPrint(body, recipeName+' — Color & Layer Split');
   },
 
     // ── TASK 6: INGREDIENT SIMILARITY ───────────────────────────
@@ -6029,7 +6017,6 @@ const App = {
     document.getElementById('header-sub').textContent = 'Batch · '+b.recipe_version;
     document.getElementById('header-back').style.display='flex';
     document.getElementById('header-add').style.display='none';
-    document.getElementById('header-sync').style.display='none';
   },
 
   _editBatchEntry(id){
@@ -7425,8 +7412,8 @@ window.addEventListener('pageshow', function(e){
 </div>
 
 <!-- SYNC MODAL -->
-<div class="modal-overlay" id="modal-sync" style="align-items:flex-start;padding-top:0">
-  <div class="modal-sheet" style="max-height:100vh;height:100vh;display:flex;flex-direction:column;border-radius:0">
+<div class="modal-overlay" id="modal-sync" style="align-items:flex-start;padding-top:calc(var(--safe-t) + 10px)">
+  <div class="modal-sheet" style="max-height:calc(100vh - var(--safe-t) - 10px);height:calc(100vh - var(--safe-t) - 10px);display:flex;flex-direction:column;border-radius:0">
     <div class="modal-hdr">
       <div class="modal-title">&#x1F501; Sync</div>
       <button class="modal-close" onclick="App.closeModal('modal-sync')">&#xD7;</button>
