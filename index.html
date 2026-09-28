@@ -1077,7 +1077,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.26.90.00';
+    const _ver = 'V-5.27.26.91.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -5174,7 +5174,10 @@ const App = {
     (r.ingredients||[]).forEach(i=>{const p=i.phase||(LYE.test(i.name)?'1':FRAG.test(i.name)?'3':'2');if(!byP[p])byP[p]=[];byP[p].push(i);});
     const tbl=(label,ings,color)=>{
       const tot=gTotal(ings);
-      return '<table><thead><tr><th style="background:'+color+'22;color:'+color+';border-left:3px solid '+color+'">'+label+'</th>'+
+      // Fixed column widths + table-layout:fixed so Grams/oz line up the same across every phase table,
+      // regardless of how long that phase's ingredient names are.
+      return '<table style="table-layout:fixed;width:100%"><colgroup><col style="width:auto"/><col style="width:70px"/><col style="width:60px"/></colgroup>'+
+        '<thead><tr><th style="background:'+color+'22;color:'+color+';border-left:3px solid '+color+'">'+label+'</th>'+
         '<th style="background:'+color+'22;color:'+color+';text-align:right">Grams</th><th style="background:'+color+'22;color:'+color+';text-align:right">oz</th></tr></thead>'+
         '<tbody>'+ings.map((i,n)=>ingRow(i,n%2===1)).join('')+tRow('Total',tot.oz,tot.g)+'</tbody></table>';
     };
