@@ -824,6 +824,21 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     <div class="modal-body" style="flex:1;overflow-y:auto" id="calc-modal-body"></div>
   </div>
 </div>
+<!-- GRAMS / OUNCES CONVERTER MODAL -->
+<div class="modal-overlay" id="modal-conv" style="align-items:flex-start;padding-top:calc(var(--safe-t) + 10px)">
+  <div class="modal-sheet" style="border-radius:0 0 20px 20px;animation:slideDown .24s ease-out;max-height:60vh">
+    <div class="modal-hdr"><div class="modal-title">⚖️ Grams ⇄ Ounces</div><button class="modal-close" onclick="App.closeModal('modal-conv')">×</button></div>
+    <div class="modal-body" style="padding:16px 20px">
+      <div style="display:flex;align-items:flex-end;gap:10px">
+        <div class="form-group" style="flex:1;margin:0"><label>Grams</label><input id="conv-g" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" oninput="App._convG()" style="font-size:16px"/></div>
+        <div style="font-size:1.4rem;color:var(--brown);padding-bottom:9px">⇄</div>
+        <div class="form-group" style="flex:1;margin:0"><label>Ounces</label><input id="conv-oz" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" oninput="App._convOz()" style="font-size:16px"/></div>
+      </div>
+      <button class="btn btn-outline" style="margin-top:14px;width:100%" onclick="App._convClear()">Clear</button>
+      <div style="margin-top:10px;font-size:.72rem;color:var(--muted);text-align:center">Type in either box — the other updates instantly. Nothing is saved.</div>
+    </div>
+  </div>
+</div>
 <!-- VERSION HISTORY MODAL -->
 <div class="modal-overlay" id="modal-version-history">
   <div class="modal-sheet">
@@ -1082,7 +1097,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.27.00.00';
+    const _ver = 'V-5.27.27.01.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1840,6 +1855,39 @@ const App = {
     this._scanResult = null;
     this._scanShowStep('pick');
   },
+  // ── GRAMS ⇄ OUNCES POP-UP CONVERTER (convenience only — nothing is saved) ──
+  _convBtn(show){
+    let b=document.getElementById('header-conv');
+    if(!b){
+      if(!show) return;
+      b=document.createElement('button');
+      b.id='header-conv'; b.title='Grams / Ounces converter';
+      b.style.cssText='background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px';
+      b.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8.01" y2="11"/><line x1="12" y1="11" x2="12.01" y2="11"/><line x1="16" y1="11" x2="16.01" y2="11"/><line x1="8" y1="15" x2="8.01" y2="15"/><line x1="12" y1="15" x2="12.01" y2="15"/><line x1="16" y1="15" x2="16.01" y2="15"/><line x1="8" y1="18.5" x2="16" y2="18.5"/></svg>';
+      b.onclick=function(){ App.openConverter(); };
+    }
+    if(show){
+      const hdr=document.getElementById('header'), pr=document.getElementById('header-print');
+      if(pr) hdr.insertBefore(b, pr); else hdr.appendChild(b);
+      b.style.display='flex';
+    } else b.style.display='none';
+  },
+  openConverter(){
+    document.getElementById('conv-g').value=''; document.getElementById('conv-oz').value='';
+    document.getElementById('modal-conv').classList.add('open');
+  },
+  _convG(){
+    const g=parseFloat(document.getElementById('conv-g').value);
+    document.getElementById('conv-oz').value = isNaN(g) ? '' : (g/28.3495).toFixed(2);
+  },
+  _convOz(){
+    const oz=parseFloat(document.getElementById('conv-oz').value);
+    document.getElementById('conv-g').value = isNaN(oz) ? '' : (oz*28.3495).toFixed(2);
+  },
+  _convClear(){
+    document.getElementById('conv-g').value=''; document.getElementById('conv-oz').value='';
+    document.getElementById('conv-g').focus();
+  },
   _hdr(){
     const back=document.getElementById('header-back');
     const title=document.getElementById('header-title');
@@ -1853,6 +1901,7 @@ const App = {
       let vPrintBtn=document.getElementById('header-print');
       if(!vPrintBtn){ vPrintBtn=document.createElement('button'); vPrintBtn.id='header-print'; vPrintBtn.title='Print Variant'; vPrintBtn.style.cssText='background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px'; vPrintBtn.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>'; document.getElementById('header').appendChild(vPrintBtn); }
       vPrintBtn.style.display='flex';
+      this._convBtn(true);
       vPrintBtn.onclick=function(){ App.printVariantPDF(App._varSelId, App._varSelBaseId); };
       title.textContent=App._varSelName||'Variant'; sub.textContent='Variant';
     } else if(this.subview==='recipe-detail'){
@@ -1869,10 +1918,12 @@ const App = {
         document.getElementById('header').appendChild(printBtn);
       }
       printBtn.style.display='flex';
+      this._convBtn(true);
       printBtn.onclick=function(){ App.printRecipePDF(App.selRId); };
       const _rHdr=this.recipes.find(x=>x.id===this.selRId); title.textContent=_rHdr?_rHdr.name:'Recipe'; sub.textContent=_rHdr?_rHdr.category:'';
     } else if(this.subview==='inv-detail'){
       const i=this.inventory.find(x=>x.id===this.selIId);
+      this._convBtn(false);
       back.style.display='flex'; add.style.display='none'; if(sync) sync.style.display='none';
       title.textContent=i?i.name:'Item'; sub.textContent=i?i.category:'';
     } else {
@@ -1887,6 +1938,7 @@ const App = {
       if(st) st.style.display='flex';
       if(tl) tl.style.display='flex';
       if(pb) pb.style.display='none';
+      this._convBtn(false);
       title.textContent=TITLES[this.tab]; sub.textContent='Sudsy Sisters';
     }
   },
