@@ -357,6 +357,12 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 .meta-pill span{font-weight:700;color:var(--brown)}
 .section{background:var(--white);border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 8px var(--shadow);border:1px solid var(--border)}
 .section-title{font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:var(--brown-d);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+/* Collapsible sections in recipe + variant detail (tap the section title) */
+#view-recipe-detail .section-title{cursor:pointer;user-select:none;-webkit-user-select:none;position:relative;padding-right:26px;-webkit-tap-highlight-color:transparent}
+#view-recipe-detail .section-title::after{content:'▾';position:absolute;right:2px;top:0;font-size:1rem;color:var(--muted);transition:transform .2s}
+#view-recipe-detail .section.collapsed > *:not(.section-title){display:none!important}
+#view-recipe-detail .section.collapsed > .section-title{margin-bottom:0;padding-bottom:0;border-bottom:none}
+#view-recipe-detail .section.collapsed > .section-title::after{transform:rotate(-90deg)}
 .ing-row{display:flex;align-items:baseline;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--cream)}
 .ing-row:last-child{border-bottom:none}
 .ing-name{font-size:.87rem;color:var(--text);flex:1}
@@ -1054,7 +1060,7 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────
 const R_CATS  = ['Bar Soap','Liquid Soap','Lotion','Body Butter','Oils','Scrub','Sponges','Jelly','Lips','Bath Bomb','Other'];
-const I_CATS  = ['Oils','Butters','Waxes','Lye & Alkalis','Fragrance & EO','Colorants','Additives','Packaging','Other'];
+const I_CATS  = ['Oils','Butters','Waxes','Lye & Alkalis','Fragrance & EO','Colorants','Additives','Packaging','Filament','Other'];
 const UNITS   = ['oz','lb','g','kg','ml','L','tsp','tbsp','cup','ea'];
 const DIFF    = ['Beginner','Intermediate','Advanced'];
 const LYE_T   = ['NaOH','KOH','Both','None'];
@@ -1097,7 +1103,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.27.02.00';
+    const _ver = 'V-5.27.27.03.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1287,7 +1293,7 @@ const App = {
     this._loadLaborRate();
     try {
       const [rRes,iRes,fRes] = await Promise.all([
-        this._sbFetch('GET','recipes?select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,prod_minutes,pack_minutes,version,created_at,updated_at,is_favorite&order=updated_at.desc'),
+        this._sbFetch('GET','recipes?select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,prod_minutes,pack_minutes,filament,version,created_at,updated_at,is_favorite&order=updated_at.desc'),
         this._sbFetch('GET','inventory?select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,aliases,purchase_price,purchase_size,purchase_unit,updated_at&order=updated_at.desc'),
         this._sbFetch('GET','fragrances?order=updated_at.desc')
       ]);
@@ -1305,7 +1311,7 @@ const App = {
           ingredients:row.ingredients||[],batchSize:row.batch_size||'',batchUnit:row.batch_unit||'g',
           cureTime:row.cure_time||'',superfat:row.superfat||'',fragranceRate:row.fragrance_rate||'',
           lye:row.lye||'',scent:row.scent||'',difficulty:row.difficulty||'',refUrl:row.ref_url||'',
-          unitSize:row.unit_size||'',unitsPerBatch:row.units_per_batch||'',prodMinutes:row.prod_minutes??'',packMinutes:row.pack_minutes??'',version:row.version||'v1',
+          unitSize:row.unit_size||'',unitsPerBatch:row.units_per_batch||'',prodMinutes:row.prod_minutes??'',packMinutes:row.pack_minutes??'',filament:Array.isArray(row.filament)?row.filament:[],version:row.version||'v1',
           created:row.created_at||'',updated_at:row.updated_at||'',is_favorite:row.is_favorite||false
         };
       });
@@ -1410,7 +1416,7 @@ const App = {
       ingredients:obj.ingredients||[],batch_size:obj.batchSize||'',batch_unit:obj.batchUnit||'g',
       cure_time:obj.cureTime||'',superfat:obj.superfat||'',fragrance_rate:obj.fragranceRate||'',
       lye:obj.lye||'',scent:obj.scent||'',difficulty:obj.difficulty||'',ref_url:obj.refUrl||'',
-      unit_size:obj.unitSize||'',units_per_batch:obj.unitsPerBatch||'',prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(obj.prodMinutes),pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(obj.packMinutes),version:obj.version||'v1',
+      unit_size:obj.unitSize||'',units_per_batch:obj.unitsPerBatch||'',prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(obj.prodMinutes),pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(obj.packMinutes),filament:Array.isArray(obj.filament)?obj.filament:[],version:obj.version||'v1',
       created_at:obj.created||'',is_favorite:obj.is_favorite||false
     };
     if(table==='inventory') return {
@@ -1572,7 +1578,7 @@ const App = {
                 const rr = this.recipes.find(x=>x.id===pItem.id);
                 // Row data is flat DB shape - rebuild app shape
                 const d = pItem.data;
-                const updated = {id:d.id,name:d.name||'',category:d.category||'',description:d.description||'',instructions:d.instructions||'',notes:d.notes||'',tags:d.tags||[],ingredients:d.ingredients||[],batchSize:d.batch_size||'',batchUnit:d.batch_unit||'g',cureTime:d.cure_time||'',superfat:d.superfat||'',fragranceRate:d.fragrance_rate||'',lye:d.lye||'',scent:d.scent||'',difficulty:d.difficulty||'',refUrl:d.ref_url||'',unitSize:d.unit_size||'',unitsPerBatch:d.units_per_batch||'',prodMinutes:d.prod_minutes??'',packMinutes:d.pack_minutes??'',version:d.version||'v1',created:d.created_at||'',is_favorite:d.is_favorite||false};
+                const updated = {id:d.id,name:d.name||'',category:d.category||'',description:d.description||'',instructions:d.instructions||'',notes:d.notes||'',tags:d.tags||[],ingredients:d.ingredients||[],batchSize:d.batch_size||'',batchUnit:d.batch_unit||'g',cureTime:d.cure_time||'',superfat:d.superfat||'',fragranceRate:d.fragrance_rate||'',lye:d.lye||'',scent:d.scent||'',difficulty:d.difficulty||'',refUrl:d.ref_url||'',unitSize:d.unit_size||'',unitsPerBatch:d.units_per_batch||'',prodMinutes:d.prod_minutes??'',packMinutes:d.pack_minutes??'',filament:Array.isArray(d.filament)?d.filament:[],version:d.version||'v1',created:d.created_at||'',is_favorite:d.is_favorite||false};
                 const ri = this.recipes.findIndex(x=>x.id===pItem.id);
                 if(ri>=0) this.recipes[ri]=Object.assign({},this.recipes[ri],updated);
               } else if(pItem.table==='inventory'){
@@ -1590,9 +1596,9 @@ const App = {
           applied++;
         } else if(row.winner==='cloud'){
           if(row.table==='recipes'){
-            const res=await this._sbFetch('GET','recipes?id=eq.'+row.id+'&select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,prod_minutes,pack_minutes,version,created_at,updated_at,is_favorite');
+            const res=await this._sbFetch('GET','recipes?id=eq.'+row.id+'&select=id,name,category,description,instructions,notes,tags,ingredients,batch_size,batch_unit,cure_time,superfat,fragrance_rate,lye,scent,difficulty,ref_url,unit_size,units_per_batch,prod_minutes,pack_minutes,filament,version,created_at,updated_at,is_favorite');
             const rows=await res.json();
-            if(rows&&rows[0]){ const r=rows[0]; const recipe={id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batchSize:r.batch_size||'',batchUnit:r.batch_unit||'g',cureTime:r.cure_time||'',superfat:r.superfat||'',fragranceRate:r.fragrance_rate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',refUrl:r.ref_url||'',unitSize:r.unit_size||'',unitsPerBatch:r.units_per_batch||'',prodMinutes:r.prod_minutes??'',packMinutes:r.pack_minutes??'',version:r.version||'v1',created:r.created_at||'',updated_at:r.updated_at||'',is_favorite:r.is_favorite||false}; const idx=this.recipes.findIndex(x=>x.id===recipe.id); if(idx>=0) this.recipes[idx]=recipe; else this.recipes.push(recipe); }
+            if(rows&&rows[0]){ const r=rows[0]; const recipe={id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batchSize:r.batch_size||'',batchUnit:r.batch_unit||'g',cureTime:r.cure_time||'',superfat:r.superfat||'',fragranceRate:r.fragrance_rate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',refUrl:r.ref_url||'',unitSize:r.unit_size||'',unitsPerBatch:r.units_per_batch||'',prodMinutes:r.prod_minutes??'',packMinutes:r.pack_minutes??'',filament:Array.isArray(r.filament)?r.filament:[],version:r.version||'v1',created:r.created_at||'',updated_at:r.updated_at||'',is_favorite:r.is_favorite||false}; const idx=this.recipes.findIndex(x=>x.id===recipe.id); if(idx>=0) this.recipes[idx]=recipe; else this.recipes.push(recipe); }
             applied++;
           } else if(row.table==='inventory'){
             const res=await this._sbFetch('GET','inventory?id=eq.'+row.id+'&select=id,name,category,quantity,unit,cost,reorder_at,supplier,notes,pkg_size,vendor_url,purchase_price,purchase_size,purchase_unit,updated_at');
@@ -2097,6 +2103,22 @@ const App = {
     return fuzzy.length ? pick(fuzzy) : undefined;
   },
 
+  // Detail-view block listing filament rows (recipe + variant). rows: [{name,grams,note,src}]
+  _filDetailHtml(rows, showSrc){
+    rows = (rows||[]).filter(f=>f&&f.name&&parseFloat(f.grams)>0);
+    if(!rows.length) return '';
+    const srcTxt = {base:'inherited', override:'overridden', added:'added here'};
+    return '<div class="section"><div class="section-title">🖨 3D Printing / Filament</div>'+
+      rows.map(f=>{
+        const inv = this._findInvByName(f.name); const cpg = this._invCostPerG(inv);
+        const g = parseFloat(f.grams)||0;
+        const cost = cpg ? '$'+(Math.round(g*cpg*1000)/1000).toFixed(3) : 'no cost';
+        return '<div class="ing-row"><span class="ing-name">'+this.h(f.note||f.name)+
+          '<span style="display:block;font-size:.72rem;color:var(--muted);font-weight:400">'+(f.note?this.h(f.name)+' · ':'')+(showSrc&&srcTxt[f.src]?srcTxt[f.src]:'per unit')+'</span></span>'+
+          '<span class="ing-amt" style="color:#00796B">'+(Math.round(g*100)/100)+' g / '+cost+'</span></div>';
+      }).join('')+'</div>';
+  },
+
   _calcRecipeCost(recipe){
     let ingTotal=0, pkgTotal=0, missing=0;
     const _isPkg = ing => ing.unit==='ea'||ing.phase==='pkg'||
@@ -2125,18 +2147,80 @@ const App = {
         if(!found) missing++;
         ingBreakdown.push({
           name:ing.name, amount:ing.amount, unit:ing.unit,
-          costPer, costPerOz:costPerOzVal, oz, lineCost, found
+          costPer, costPerOz:costPerOzVal, oz, lineCost, found,
+          phase:ing.phase||'', added:!!ing.added
         });
       }
+    });
+
+    // 3D-printing filament: grams per finished unit × $/g (material cost only)
+    const filBreakdown = []; let filTotal = 0;
+    (recipe.filament||[]).forEach(f=>{
+      if(!f || !f.name) return;
+      const grams = parseFloat(f.grams)||0;
+      if(!(grams>0)) return;
+      const inv = this._findInvByName(f.name);
+      const costPerG = this._invCostPerG(inv);
+      const found = !!(inv && costPerG);
+      const lineCost = Math.round(grams*costPerG*10000)/10000;
+      filTotal += lineCost;
+      if(!found) missing++;
+      filBreakdown.push({name:f.name, note:f.note||'', grams, costPerG, lineCost, found});
     });
 
     return {
       total: Math.round(ingTotal*1000)/1000,
       pkgTotal: Math.round(pkgTotal*1000)/1000,
+      filTotal: Math.round(filTotal*10000)/10000,
       breakdown: ingBreakdown,
       pkgBreakdown: pkgBreakdown,
+      filBreakdown: filBreakdown,
       missing
     };
+  },
+
+  // ── FILAMENT + PACKAGING INHERITANCE (recipe → variant) ───────────
+  // Base rows live on the recipe; a variant stores only its changes:
+  //   overrides.fil[baseRowId] = grams (0 removes) · overrides.pkg[lowercase name] = qty (0 removes)
+  //   added_filament = rows only this variant has · added_ingredients (pkg rows) = packaging only this variant has
+  _fid(){ return 'f'+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-3); },
+  _isPkgIng(i){ return !!i && (i.unit==='ea'||i.phase==='pkg'||i.phase==='Packaging'||i.phase==='packaging'); },
+  _invCostPerG(inv){ const o=this._invCostPerOz(inv); return o ? o/28.3495 : 0; },
+  _ovObj(v){ let o=v&&v.overrides; if(typeof o==='string'){ try{ o=JSON.parse(o); }catch(e){ o=null; } } return (o&&typeof o==='object')?o:{}; },
+  _effFilament(base, v){
+    const ov = (this._ovObj(v).fil)||{};
+    const out = [];
+    (base&&base.filament||[]).forEach(f=>{
+      if(!f||!f.name) return;
+      const baseG = parseFloat(f.grams)||0;
+      const o = f.id!=null ? ov[f.id] : undefined;
+      const has = o!==undefined && o!==null && o!=='';
+      const g = has ? (parseFloat(o)||0) : baseG;
+      if(g>0) out.push({id:f.id, name:f.name, grams:g, note:f.note||'', src:has?'override':'base', baseGrams:baseG});
+    });
+    (v&&v.added_filament||[]).forEach(f=>{
+      if(f&&f.name&&parseFloat(f.grams)>0) out.push({id:f.id, name:f.name, grams:parseFloat(f.grams), note:f.note||'', src:'added', baseGrams:0});
+    });
+    return out;
+  },
+  _effPkg(base, v){
+    const ov = (this._ovObj(v).pkg)||{};
+    const out = []; const seen = new Set();
+    (base&&base.ingredients||[]).filter(i=>this._isPkgIng(i)&&i.name).forEach(i=>{
+      const k = i.name.toLowerCase().trim();
+      const baseQ = parseFloat(i.amount)||1;
+      const o = ov[k];
+      const has = o!==undefined && o!==null && o!=='';
+      const q = has ? (parseFloat(o)||0) : baseQ;
+      seen.add(k);
+      if(q>0) out.push({name:i.name, qty:q, src:has?'override':'base', baseQty:baseQ});
+    });
+    (v&&v.added_ingredients||[]).filter(i=>this._isPkgIng(i)&&i.name).forEach(i=>{
+      const k = i.name.toLowerCase().trim();
+      if(seen.has(k)) return;
+      out.push({name:i.name, qty:parseFloat(i.amount)||parseFloat(i.qty)||1, src:'added', baseQty:0});
+    });
+    return out;
   },
 
   // ── UNIT COUNT & LABOR HELPERS ─────────────────────────────
@@ -2196,7 +2280,8 @@ const App = {
   },
 
   _buildCostSection(cost, numUnits, unitSzLabel, labor, editor){
-    if(!editor && !cost.breakdown.length && !cost.pkgBreakdown.length && !(labor&&labor.set)) return '';
+    const filBd = cost.filBreakdown||[];
+    if(!editor && !cost.breakdown.length && !cost.pkgBreakdown.length && !filBd.length && !(labor&&labor.set)) return '';
     const hasUnits = numUnits > 0;
     const fmtU = n => (Math.round(n*100)/100).toString();
     const mathStyle = 'font-size:.7rem;color:var(--muted);padding:0 0 4px;font-family:monospace';
@@ -2212,8 +2297,18 @@ const App = {
         '<span style="font-size:.98rem;font-weight:700;color:var(--brown-d)">'+val+'</span>'+
       '</div>'+(sub?math(sub,true):'');
 
+    // Group header with a divider line above it
+    const grp = (label, clr, first) =>
+      '<div style="'+(first?'':'margin-top:12px;padding-top:9px;border-top:1.5px solid var(--border);')+
+      'font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:'+(clr||'var(--muted)')+';margin-bottom:4px">'+label+'</div>';
+    const subRow = (label, val, clr) =>
+      '<div style="display:flex;justify-content:space-between;padding:3px 0 2px;border-top:1px dotted var(--border);margin-top:3px">'+
+        '<span style="font-size:.78rem;font-weight:700;color:'+(clr||'var(--muted)')+'">'+label+'</span>'+
+        '<span style="font-size:.82rem;font-weight:700;color:'+(clr||'var(--muted)')+'">'+val+'</span></div>';
+    const trim4 = n => String(Math.round(n*10000)/10000);
+
     // 1. Ingredient lines
-    const ingLines = cost.breakdown.map(b=>{
+    const _ingRow = b=>{
       const row = '<div class="ing-row">'+
         '<span class="ing-name" style="color:'+(b.found?'var(--text)':'var(--muted)')+'">'+this.h(b.name)+'</span>'+
         '<span class="ing-amt" style="color:'+(b.found?'var(--brown)':'var(--muted)')+'">'+
@@ -2225,7 +2320,14 @@ const App = {
       return row+math(isOz
         ? b.oz.toFixed(3)+' oz &times; $'+b.costPerOz.toFixed(4)+'/oz = $'+b.lineCost.toFixed(3)
         : b.amount+' '+b.unit+' &rarr; '+b.oz.toFixed(3)+' oz &times; $'+b.costPerOz.toFixed(4)+'/oz = $'+b.lineCost.toFixed(3));
-    }).join('');
+    };
+    const _isAdd = b => !!(b.added || b.phase==='additive');
+    const _baseBd = cost.breakdown.filter(b=>!_isAdd(b)), _addBd = cost.breakdown.filter(_isAdd);
+    const _sum = arr => Math.round(arr.reduce((t,b)=>t+b.lineCost,0)*1000)/1000;
+    const ingLines = _addBd.length
+      ? grp('Base Ingredients','var(--brown-d)',true)+_baseBd.map(_ingRow).join('')+subRow('Base subtotal','$'+_sum(_baseBd).toFixed(3))+
+        grp('Additives &amp; Variant Additions','#E65100')+_addBd.map(_ingRow).join('')+subRow('Additives subtotal','$'+_sum(_addBd).toFixed(3),'#E65100')
+      : cost.breakdown.map(_ingRow).join('');
 
     const batchTotalLine =
       '<div style="display:flex;justify-content:space-between;padding:8px 0 5px;border-top:1.5px solid var(--border);margin-top:4px">'+
@@ -2241,16 +2343,30 @@ const App = {
       : '';
 
     // 3. Packaging (1 container per unit)
-    const pkgLines = cost.pkgBreakdown.map(p=>{
-      const perUnit = p.found ? Math.round(p.costPer * 10000) / 10000 : 0;
+    const pkgLines = (cost.pkgBreakdown.length ? grp('📦 Packaging','#A8527A') : '') + cost.pkgBreakdown.map(p=>{
+      const perUnit = p.found ? Math.round(p.costPer * p.qty * 10000) / 10000 : 0;
       const row = lineRow('+ '+this.h(p.name), p.found ? '$'+perUnit.toFixed(3)+' / unit' : 'no cost set', '#A8527A');
       return p.found ? row+math(p.qty+' &times; $'+p.costPer.toFixed(4)+'/ea = $'+p.lineCost.toFixed(3), true) : row;
     }).join('');
-    const pkgPerUnitTotal = cost.pkgBreakdown.reduce((s,p)=>s + (p.found ? p.costPer : 0), 0);
+    const pkgPerUnitTotal = cost.pkgBreakdown.reduce((s,p)=>s + (p.found ? p.costPer*p.qty : 0), 0);
+
+    // 3b. 3D printing / filament (material only, grams per finished unit)
+    const FC = '#00796B';
+    const filPerUnit = Math.round(filBd.reduce((t,f)=>t+(f.found?f.lineCost:0),0)*10000)/10000;
+    const filLines = filBd.length
+      ? grp('🖨 3D Printing / Filament',FC)+
+        filBd.map(f=>{
+          const lbl = this.h(f.note||f.name);
+          const row = lineRow('+ '+lbl, f.found ? '$'+f.lineCost.toFixed(3)+' / unit' : 'no cost set', FC);
+          return f.found ? row+math((f.note?this.h(f.name)+' &mdash; ':'')+trim4(f.grams)+' g &times; $'+trim4(f.costPerG)+'/g = $'+f.lineCost.toFixed(3), true) : row;
+        }).join('')+
+        totalRow('Filament / Unit','$'+filPerUnit.toFixed(3), filBd.length>1 ? filBd.filter(f=>f.found).map(f=>'$'+f.lineCost.toFixed(3)).join(' + ')+' = $'+filPerUnit.toFixed(3) : '')
+      : '';
 
     // 4. Labor
     let laborLines = '', prodPerUnit = 0, packPerUnit = 0;
     if(labor && labor.set){
+      laborLines += grp('⏱ Labor','#2E6DA4');
       const LC = '#2E6DA4';
       const rateTxt = '$'+labor.rate.toFixed(2)+'/hr';
       if(labor.prodMin>0){
@@ -2278,21 +2394,25 @@ const App = {
     let grandLine = '', unitsNote = '', productLine = '';
     if(hasUnits){
       // Product Cost = ingredients + packaging, NO labor (the number entered into Shopify)
-      const productCost = Math.round((ingPerUnit + pkgPerUnitTotal)*10000)/10000;
+      const productCost = Math.round((ingPerUnit + pkgPerUnitTotal + filPerUnit)*10000)/10000;
+      const _pcParts = ['$'+ingPerUnit.toFixed(3)+' ingr'];
+      if(pkgPerUnitTotal>0) _pcParts.push('$'+pkgPerUnitTotal.toFixed(3)+' pkg');
+      if(filPerUnit>0) _pcParts.push('$'+filPerUnit.toFixed(3)+' filament');
       productLine =
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;margin:8px 0 2px;background:var(--cream);border:1.5px solid var(--border);border-radius:10px">'+
-          '<span style="font-size:.9rem;font-weight:700;color:var(--text)">Product Cost <span style="font-weight:400;font-size:.72rem;color:var(--muted)">(ingredients + packaging, no labor)</span></span>'+
+          '<span style="font-size:.9rem;font-weight:700;color:var(--text)">Product Cost <span style="font-weight:400;font-size:.72rem;color:var(--muted)">('+(filBd.length?'ingredients + packaging + filament':'ingredients + packaging')+', no labor)</span></span>'+
           '<span style="font-size:1.02rem;font-weight:700;color:var(--brown-d)">$'+productCost.toFixed(2)+'</span>'+
         '</div>'+
-        math(pkgPerUnitTotal>0
-          ? '$'+ingPerUnit.toFixed(3)+' ingr + $'+pkgPerUnitTotal.toFixed(3)+' pkg = $'+productCost.toFixed(3)+' / unit'
+        math(_pcParts.length>1
+          ? _pcParts.join(' + ')+' = $'+productCost.toFixed(3)+' / unit'
           : '$'+ingPerUnit.toFixed(3)+' ingr (no packaging set) = $'+productCost.toFixed(3)+' / unit', true);
-      const grand = Math.round((ingPerUnit + pkgPerUnitTotal + prodPerUnit + packPerUnit)*10000)/10000;
+      const grand = Math.round((ingPerUnit + pkgPerUnitTotal + filPerUnit + prodPerUnit + packPerUnit)*10000)/10000;
       const parts = ['$'+ingPerUnit.toFixed(3)+' ingr'];
       if(pkgPerUnitTotal>0) parts.push('$'+pkgPerUnitTotal.toFixed(3)+' pkg');
+      if(filPerUnit>0) parts.push('$'+filPerUnit.toFixed(3)+' filament');
       if(prodPerUnit>0) parts.push('$'+prodPerUnit.toFixed(3)+' production');
       if(packPerUnit>0) parts.push('$'+packPerUnit.toFixed(3)+' packaging labor');
-      grandLine = totalRow('Total Cost / Unit <span style="font-weight:400;font-size:.72rem;color:var(--muted)">(ingredients + packaging + labor)</span>',
+      grandLine = totalRow('Total Cost / Unit <span style="font-weight:400;font-size:.72rem;color:var(--muted)">('+(filBd.length?'ingredients + packaging + filament + labor':'ingredients + packaging + labor')+')</span>',
         '$'+grand.toFixed(3), parts.length>1 ? parts.join(' + ')+' = $'+grand.toFixed(3) : '');
     } else {
       unitsNote = '<div style="font-size:.72rem;color:var(--muted);margin-top:6px;font-style:italic">ℹ️ Set Units per Batch (or a Unit Size) to see per-unit costs.</div>';
@@ -2312,6 +2432,7 @@ const App = {
       batchTotalLine+
       ingUnitLine+
       pkgLines+
+      filLines+
       productLine+
       laborLines+
       grandLine+
@@ -2454,6 +2575,7 @@ const App = {
       '</div>'
     ) : '';
 
+    const filHtml = this._filDetailHtml(r.filament||[], false);
     // ── Cost section ──
     // Real unit count only (no 3.5 oz guess): explicit units/batch, else batch grams ÷ unit size.
     const numUnits = this._unitCount(r.unitsPerBatch, r.unitSize, this._batchWeightG(r.ingredients), r.batchUnit);
@@ -2484,6 +2606,7 @@ const App = {
         </div>
         ${ings?`<div class="section"><div class="section-title">Ingredients</div>${ings}</div>`:''}
         ${pkgHtml}
+        ${filHtml}
         ${costSection}
         ${r.instructions?`<div class="section"><div class="section-title">Instructions</div><div class="prose">${this.h(r.instructions)}</div></div>`:''}
         ${r.notes?`<div class="section"><div class="section-title">Notes</div><div class="prose-muted">${this.h(r.notes)}</div></div>`:''}
@@ -2615,14 +2738,31 @@ const App = {
     // 4. Packaging — deduct from inventory (numUnits containers)
     const numUnits = r.unitsPerBatch ? parseFloat(r.unitsPerBatch) :
       (r.unitSize&&r.batchSize ? Math.floor(parseFloat(r.batchSize)/parseFloat(r.unitSize)) : 0);
-    const pkgItems = (r.ingredients||[]).filter(isPkg);
-    // Also include variant packaging
-    if(v) (v.added_ingredients||[]).filter(isPkg).forEach(p=>pkgItems.push(p));
+    // Base packaging carries over; a variant's overrides / additions apply
+    const pkgItems = this._effPkg(r, v).map(p=>({name:p.name, amount:p.qty}));
     pkgItems.filter(p=>p.name).forEach(p=>{
-      const qty = numUnits||1;
+      const qty = (numUnits||1)*(parseFloat(p.amount)||1);
       const nm = p.name.toLowerCase();
       const inv = this._findInvByName(nm);
       items.push({type:'packaging', name:p.name, qty, dispAmt:qty+' unit'+(qty!==1?'s':''),
+        invId:inv?inv.id:null, found:!!inv, currentQty:inv?inv.quantity:0});
+    });
+
+    // 5. Filament — grams per unit × units made, deducted in grams (converted to the inventory item's own unit)
+    const _fUnits = (()=>{
+      if(v){
+        const fr = v.full_recipe, has = !!(fr && fr.ingredients && fr.ingredients.length);
+        const ings = has ? fr.ingredients.filter(i=>!isPkg(i)&&i.phase!=='pkg').map(i=>({amount:(i.g!=null?i.g:(parseFloat(i.oz)||0)*28.3495), unit:'g', phase:i.phase||''})) : (r.ingredients||[]);
+        const u = this._variantUnitsAndLabor(v, r, ings, has).units;
+        return u>0 ? u : 0;
+      }
+      return this._unitCount(r.unitsPerBatch, r.unitSize, this._batchWeightG(r.ingredients), r.batchUnit);
+    })() || numUnits || 1;
+    this._effFilament(r, v).forEach(f=>{
+      const inv = this._findInvByName(f.name);
+      const total = Math.round(f.grams*_fUnits*100)/100;
+      items.push({type:'filament', name:f.name, note:f.note, grams:total,
+        dispAmt: total+' g ('+(Math.round(f.grams*100)/100)+' g × '+(Math.round(_fUnits*100)/100)+')',
         invId:inv?inv.id:null, found:!!inv, currentQty:inv?inv.quantity:0});
     });
 
@@ -2634,9 +2774,9 @@ const App = {
       const badge = it.found
         ? '<span style="color:#2E7D32;font-size:.75rem">✓ in inventory</span>'
         : '<span style="color:#E65100;font-size:.75rem">⚠ not found</span>';
-      const typeTag = it.type==='packaging' ? '📦 ' : it.type==='fragrance' ? '🌸 ' : '';
+      const typeTag = it.type==='packaging' ? '📦 ' : it.type==='fragrance' ? '🌸 ' : it.type==='filament' ? '🖨 ' : '';
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">'+
-        '<span style="color:'+foundClr+'">'+typeTag+this.h(it.name)+'</span>'+
+        '<span style="color:'+foundClr+'">'+typeTag+this.h(it.name)+(it.note?' <span style="font-size:.72rem;color:var(--muted)">('+this.h(it.note)+')</span>':'')+'</span>'+
         '<div style="text-align:right">'+
           '<span style="font-weight:700;font-size:.85rem;margin-right:6px">'+it.dispAmt+'</span>'+
           badge+
@@ -2697,16 +2837,22 @@ const App = {
       } else {
         const inv = this.inventory.find(i=>i.id===it.invId);
         if(inv){
-          const deductAmt = it.type==='packaging' ? it.qty : it.oz;
-          inv.quantity = Math.round(Math.max(0,(parseFloat(inv.quantity)||0)-deductAmt)*1000)/1000;
+          let deductAmt, _tUnit, _tAmt;
+          if(it.type==='packaging'){ deductAmt = it.qty; _tUnit='ea'; _tAmt=deductAmt; }
+          else if(it.type==='filament'){
+            const _f = this._ozFactor(inv.unit);
+            deductAmt = _f==null ? it.grams : it.grams/28.3495/_f;   // grams → the item's own unit (kg, g, oz, lb)
+            _tUnit='g'; _tAmt=it.grams;
+          } else { deductAmt = it.oz; _tUnit='oz'; _tAmt=deductAmt; }
+          inv.quantity = Math.round(Math.max(0,(parseFloat(inv.quantity)||0)-deductAmt)*100000)/100000;
           inv.updated_at = usedAt;
           deducted++;
           transactions.push({
             id: this.uid(),
             inventory_id: inv.id,
             item_name: inv.name,
-            amount_used: deductAmt,
-            unit: it.type==='packaging' ? 'ea' : 'oz',
+            amount_used: _tAmt,
+            unit: _tUnit,
             recipe_id: p.recipeId||null,
             recipe_name: p.r ? p.r.name : null,
             variant_id: p.variantId||null,
@@ -2799,6 +2945,12 @@ const App = {
           <button class="add-row-btn" onclick="App.autoAssignPhases()" style="flex:1;background:var(--accent-l,#EDE0FF);color:var(--accent)">✨ Auto-phase</button>
         </div>
       </div>
+      <!-- 4b. FILAMENT -->
+      <div class="form-group"><label>🖨 3D Printing / Filament <span style="font-size:.72rem;color:var(--muted);font-weight:400">— grams per finished unit (material cost only)</span></label>
+        <div id="fil-rows">${(r.filament||[]).map((f,i)=>this._filRow(i,f)).join('')}</div>
+        <button class="add-row-btn" onclick="App.addFilRow()" style="color:#00796B;border-color:#00796B">🖨 + Add Filament</button>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:4px">Rows added here carry over to every variant automatically. Variants can override the grams, remove a row, or add their own.</div>
+      </div>
       <!-- 5. NOTES -->
       <div class="form-group"><label>Notes</label><textarea id="fno" placeholder="Tips, warnings…">${this.h(r.notes)}</textarea></div>
       <!-- 6. BATCH SETTINGS -->
@@ -2825,6 +2977,49 @@ const App = {
         </div>
       </div>`;
   },
+  // ── Filament rows (recipe editor) ──
+  _filInvOpts(){
+    let list = (this.inventory||[]).filter(x=>x&&x.name&&(x.category==='Filament'||/filament|\bpla\b|petg|\babs\b|\btpu\b/i.test(x.name)));
+    if(!list.length) list = (this.inventory||[]).filter(x=>x&&x.name);
+    return list.sort((a,b)=>a.name.localeCompare(b.name)).map(n=>'<option value="'+this.h(n.name)+'">').join('');
+  },
+  _filCostTxt(f){
+    const inv = this._findInvByName(f.name||''); const cpg = this._invCostPerG(inv); const g = parseFloat(f.grams)||0;
+    if(!f.name) return '';
+    if(!cpg) return 'no cost set';
+    return '$'+(Math.round(cpg*10000)/10000)+'/g'+(g>0?' · $'+(Math.round(g*cpg*1000)/1000).toFixed(3):'');
+  },
+  _filRow(i,f){
+    const dl='fil-dl-'+i;
+    return '<div class="ing-form-row" id="fil'+i+'" style="flex-wrap:wrap;background:var(--cream);border-radius:10px;padding:6px 8px;gap:6px;margin-bottom:6px">'+
+      '<datalist id="'+dl+'">'+this._filInvOpts()+'</datalist>'+
+      '<span style="align-self:center">🖨</span>'+
+      '<input placeholder="Filament item" list="'+dl+'" value="'+this.h(f.name||'')+'" oninput="App._syncFil('+i+',\'name\',this.value)" style="flex:2;min-width:120px;font-size:16px"/>'+
+      '<input type="number" step="any" min="0" inputmode="decimal" placeholder="g / unit" value="'+this.h(f.grams||'')+'" oninput="App._syncFil('+i+',\'grams\',this.value)" style="width:84px;font-size:16px"/>'+
+      '<button class="ing-del" onclick="App.delFilRow('+i+')">−</button>'+
+      '<input placeholder="Used for (e.g. Wand handle)" value="'+this.h(f.note||'')+'" oninput="App._syncFil('+i+',\'note\',this.value)" style="flex:1 1 100%;font-size:16px"/>'+
+      '<span id="fil-cost-'+i+'" style="flex:1 1 100%;font-size:.72rem;color:#00796B">'+this._filCostTxt(f)+'</span>'+
+    '</div>';
+  },
+  _syncFil(i,field,val){
+    const f=(this.editR.filament||[])[i]; if(!f) return;
+    f[field]=val;
+    const el=document.getElementById('fil-cost-'+i); if(el) el.textContent=this._filCostTxt(f);
+  },
+  addFilRow(){
+    if(!this.editR.filament) this.editR.filament=[];
+    const f={id:this._fid(),name:'',grams:'',note:''};
+    this.editR.filament.push(f);
+    const rows=document.getElementById('fil-rows');
+    if(rows) rows.insertAdjacentHTML('beforeend',this._filRow(this.editR.filament.length-1,f));
+  },
+  delFilRow(i){
+    if(!this.editR.filament) return;
+    this.editR.filament.splice(i,1);
+    const rows=document.getElementById('fil-rows');
+    if(rows) rows.innerHTML=this.editR.filament.map((f,x)=>this._filRow(x,f)).join('');
+  },
+
   // Phase labels for ingredient grouping
   PHASE_LABELS: {'1':'Phase 1 — Milk/Lye','2':'Phase 2 — Oils/Butters','3':'Phase 3 — Fragrance/Color','4':'Phase 4'},
 
@@ -4954,7 +5149,7 @@ const App = {
     if(r){
       const units = this._unitCount(r.unitsPerBatch, r.unitSize, this._batchWeightG(r.ingredients), r.batchUnit);
       const cost = this._calcRecipeCost(r);
-      const pkg = cost.pkgBreakdown.reduce((t,p)=>t+(p.found?p.costPer:0),0);
+      const pkg = cost.pkgBreakdown.reduce((t,p)=>t+(p.found?p.costPer*p.qty:0),0) + (cost.filTotal||0);  // packaging + filament materials / unit
       set('pr-bars', units>0 ? units : '');
       set('pr-labor-rate', this.laborRate);
       set('pr-prod-min', parseFloat(r.prodMinutes)>0 ? r.prodMinutes : '');
@@ -5006,7 +5201,7 @@ const App = {
       row('Ingredient cost / unit', '$'+ingPerUnit.toFixed(2))+
       row('Production labor ('+prodMin+' min @ $'+laborRate.toFixed(2)+'/hr ÷ '+u2+')', '$'+prodPerUnit.toFixed(2)+'/unit')+
       row('Packaging labor ('+packMin+' min/unit)', '$'+packPerUnit.toFixed(2)+'/unit')+
-      row('Packaging materials', '$'+pkgCost.toFixed(2)+'/unit')+
+      row('Packaging &amp; filament materials', '$'+pkgCost.toFixed(2)+'/unit')+
       row('Overhead ('+overhead+'% of ingredients + labor)', '$'+overheadPerUnit.toFixed(2)+'/unit')+
       row('<strong>Total cost / unit</strong>', '<strong>$'+totalCostPerUnit.toFixed(2)+'</strong>')+
       '<div class="price-final"><span class="price-final-label">Retail Price ('+margin+'% margin)</span><span class="price-final-val">$'+retailPrice.toFixed(2)+'</span></div>'+
@@ -5281,9 +5476,10 @@ const App = {
     const numUnits = r._units!=null ? r._units : this._unitCount(r.unitsPerBatch, r.unitSize, this._batchWeightG(r.ingredients), r.batchUnit);
     const labor = r._labor || this._calcLabor(r.prodMinutes, r.packMinutes);
     const ingPerUnit = numUnits>0 ? Math.round(cost.total/numUnits*10000)/10000 : 0;
-    const pkgPerUnitTotal = cost.pkgBreakdown.reduce((s,p)=>s+(p.found?p.costPer:0),0);
+    const pkgPerUnitTotal = cost.pkgBreakdown.reduce((s,p)=>s+(p.found?p.costPer*p.qty:0),0);
+    const filPerUnit = Math.round((cost.filBreakdown||[]).reduce((s,f)=>s+(f.found?f.lineCost:0),0)*10000)/10000;
     const laborPerUnit = numUnits>0 ? (labor.prodBatch/numUnits + labor.packPerUnit) : 0;
-    const costPerUnit = numUnits>0 ? Math.round((ingPerUnit+pkgPerUnitTotal+laborPerUnit)*10000)/10000 : 0;
+    const costPerUnit = numUnits>0 ? Math.round((ingPerUnit+pkgPerUnitTotal+filPerUnit+laborPerUnit)*10000)/10000 : 0;
     const oz2g = oz => Math.round(parseFloat(oz)*28.3495*100)/100;
     const g2oz = g  => (parseFloat(g)||0)/28.3495; // full precision (rounding here turned 280 g into 280.1 g)
     const ingRow = (i, shade) => {
@@ -5320,6 +5516,7 @@ const App = {
     ].filter(Boolean).join('');
     const priceItems=[
       ingPerUnit?'<div class="mi"><strong>Ingr. Cost/Unit</strong><span>$'+ingPerUnit.toFixed(2)+'</span></div>':'',
+      filPerUnit?'<div class="mi"><strong>Filament/Unit</strong><span>$'+filPerUnit.toFixed(2)+'</span></div>':'',
       labor.set?'<div class="mi"><strong>Labor</strong><span>'+(labor.prodMin?labor.prodMin+' min/batch':'')+(labor.prodMin&&labor.packMin?' + ':'')+(labor.packMin?labor.packMin+' min/unit':'')+' @ $'+labor.rate.toFixed(2)+'/hr</span></div>':'',
       cost.total?'<div class="mi"><strong>Est. Cost</strong><span>$'+cost.total.toFixed(2)+'</span></div>':'',
       costPerUnit?'<div class="mi total"><strong>Total Cost / Unit</strong><span>$'+costPerUnit.toFixed(2)+'</span></div>':''
@@ -5331,7 +5528,14 @@ const App = {
       r.notes?'<h3>Notes</h3><div class="notes">'+this.h(r.notes)+'</div>':'',
       r.scent?'<h3>Fragrance Notes</h3><div class="notes">'+this.h(r.scent)+'</div>':''
     ].filter(Boolean).join('');
-    this._bOpenPrint('<div class="meta-wrap">'+meta+'</div><div class="two-col"><div>'+ingHtml+'</div><div>'+right+'</div></div>', r.name, existingWin);
+    const _trim4 = n => String(Math.round(n*10000)/10000);
+    const filPrint = (cost.filBreakdown||[]).length
+      ? '<div class="section" style="text-align:center"><div class="sec-title" style="text-align:center">3D Printing / Filament</div>'+
+        cost.filBreakdown.map(f=>'<div style="font-size:10.5px;padding:1px 0"><strong>'+this.h(f.note||f.name)+'</strong>'+(f.note?' &mdash; '+this.h(f.name):'')+': '+
+          (f.found ? _trim4(f.grams)+' g &times; $'+_trim4(f.costPerG)+'/g = $'+f.lineCost.toFixed(3) : _trim4(f.grams)+' g (no cost set)')+'</div>').join('')+
+        '<div style="font-weight:700;color:#A8527A;font-size:11px;padding-top:3px">Filament / Unit: $'+filPerUnit.toFixed(3)+'</div></div>'
+      : '';
+    this._bOpenPrint('<div class="meta-wrap">'+meta+'</div>'+filPrint+'<div class="two-col"><div>'+ingHtml+'</div><div>'+right+'</div></div>', r.name, existingWin);
   },
 
   // ── 2. LOW INVENTORY REPORT PRINT ─────────────────────────────
@@ -5792,7 +5996,7 @@ const App = {
         // full_recipe stored — use it directly (oz/g already computed)
         fr.ingredients.forEach(i=>{
           if(_isPkg(i)) pkgIngredients.push({name:i.name, amount:String(i.qty||i.amount||1), unit:'ea', phase:'pkg'});
-          else ingredients.push({ name:i.name, amount:String(i.oz||0), unit:'oz', phase:i.phase||'' });
+          else ingredients.push({ name:i.name, amount:String(i.oz||0), unit:'oz', phase:i.phase||'', added: i.phase==='additive' || !!i.frag_id });
         });
       } else {
         // Legacy: reconstruct from base + additives + fragrances
@@ -5802,13 +6006,17 @@ const App = {
         });
         (v.fragrances_used||[]).filter(f=>f&&f.id).forEach(f=>{
           const frag=(this.fragrances||[]).find(x=>x.id===f.id);
-          ingredients.push({name:frag?frag.name:'Fragrance', amount:String(f.amount||0), unit:'oz', phase:'3'});
+          ingredients.push({name:frag?frag.name:'Fragrance', amount:String(f.amount||0), unit:'oz', phase:'3', added:true});
         });
         (v.added_ingredients||[]).filter(a=>a&&a.name).forEach(a=>{
           if(_isPkg(a)) pkgIngredients.push(a);
-          else ingredients.push(a);
+          else ingredients.push(Object.assign({}, a, {added:true}));
         });
       }
+
+      // Live-resolved packaging + filament: base rows carry over, then this variant's overrides / additions apply
+      const _effFil = this._effFilament(base, v);
+      if(base) pkgIngredients = this._effPkg(base, v).map(p=>({name:p.name, amount:String(p.qty), unit:'ea', phase:'pkg'}));
 
       const { mult:_mult, batchG:_vBatchG, units:_vUnits, labor:_vLabor } = this._variantUnitsAndLabor(v, base, ingredients, !!(fr && fr.ingredients && fr.ingredients.length));
 
@@ -5883,8 +6091,10 @@ const App = {
 
       // ── Cost estimate (includes packaging) ──
       const _vCost = this._calcRecipeCost(Object.assign({}, r, {
-        ingredients: [...ingredients, ...pkgIngredients]  // _calcRecipeCost handles the split
+        ingredients: [...ingredients, ...pkgIngredients],  // _calcRecipeCost handles the split
+        filament: _effFil.map(f=>({name:f.name, grams:f.grams, note:f.note}))
       }));
+      const _vFilHtml = this._filDetailHtml(_effFil, true);
       const _vPkgHtml = pkgIngredients.length ? (
         '<div class="section"><div class="section-title">📦 Packaging</div>'+
         pkgIngredients.map(p=>{
@@ -5942,6 +6152,7 @@ const App = {
           </div>
           ${ings ? '<div class="section"><div class="section-title">Ingredients</div>'+ings+'</div>' : ''}
           ${_vPkgHtml}
+          ${_vFilHtml}
           ${_vCostSection}
           ${splitHtml}
           ${(fr&&fr.description)||(base&&base.description) ? '<div class="section"><div class="section-title">Description</div><div class="prose-muted" style="font-style:italic">'+this.h((fr&&fr.description)||(base&&base.description))+'</div></div>' : ''}
@@ -6305,7 +6516,15 @@ const App = {
 
     // Build packaging rows — start with any variant overrides/additions
     // Store pkg separately, render with _variantPkgRow
-    this._editVariant._pkgItems = existingPkg.map(p=>({...p})); // only variant-specific pkg, never inherit from base
+    this._editVariant._pkgItems = existingPkg.map(p=>({...p})); // variant-added pkg only; base pkg is shown as inherited rows below
+    { const _ov=this._ovObj(v);
+      this._editVariant.overrides = {fil:Object.assign({},_ov.fil||{}), pkg:Object.assign({},_ov.pkg||{})};
+      if(!Array.isArray(this._editVariant.added_filament)) this._editVariant.added_filament=[];
+      this._editVariant.added_filament.forEach(f=>{ if(!f.id) f.id=this._fid(); });
+      this._vfBasePkg = (r&&r.ingredients||[]).filter(i=>this._isPkgIng(i)&&i.name).map(i=>({name:i.name, qty:parseFloat(i.amount)||1}));
+      this._vfBaseFil = (r&&r.filament||[]).filter(f=>f&&f.name&&f.id).map(f=>({id:f.id,name:f.name,grams:parseFloat(f.grams)||0,note:f.note||''}));
+    }
+    const filAddedHtml = this._editVariant.added_filament.map((f,i)=>this._variantFilRow(i,f)).join('');
     const pkgHtml = this._editVariant._pkgItems.map((p,i)=>this._variantPkgRow(i,p)).join('');
 
     document.getElementById('variant-form-body').innerHTML =
@@ -6353,8 +6572,16 @@ const App = {
         '<div style="display:flex;gap:6px;padding:0 0 4px;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase">'+
           '<div style="flex:2">Item</div><div style="width:80px;text-align:center">Qty</div><div style="width:24px"></div>'+
         '</div>'+
+        this._vfInheritedPkgHtml()+
         '<div id="vf-pkg-rows">'+pkgHtml+'</div>'+
         '<button class="add-row-btn" onclick="App._addVariantPkgRow()" style="color:#A8527A;border-color:#A8527A">📦 Add Packaging</button>'+
+      '</div>'+
+      // 5b. FILAMENT
+      '<div class="form-group" style="margin-top:4px">'+
+        '<label>🖨 3D Printing / Filament <span style="font-weight:400;color:var(--muted)">(grams per finished unit)</span></label>'+
+        this._vfInheritedFilHtml()+
+        '<div id="vf-fil-rows">'+filAddedHtml+'</div>'+
+        '<button class="add-row-btn" onclick="App._addVariantFilRow()" style="color:#00796B;border-color:#00796B">🖨 + Add Filament (this variant only)</button>'+
       '</div>'+
       // 6. FRAGRANCE & COLOR
       '<div style="background:var(--cream);border-radius:12px;padding:12px 14px;margin-top:8px">'+
@@ -6377,6 +6604,75 @@ const App = {
       '</div>';
     document.getElementById('modal-variant-form').classList.add('open');
     this._onVariantMultChange();
+  },
+
+  // Inherited base rows in the variant form: blank = inherit, number = override, 0 = remove for this variant
+  _ovStatus(kind, key, baseVal, unitLbl){
+    const o=(this._editVariant.overrides||{})[kind]||{};
+    const v=o[key];
+    if(v===undefined||v===null||v==='') return 'inherits base ('+baseVal+unitLbl+')';
+    return (parseFloat(v)||0)===0 ? '✖ removed for this variant' : '✎ override: '+v+unitLbl+' (base '+baseVal+unitLbl+')';
+  },
+  _vfInheritedPkgHtml(){
+    const list=this._vfBasePkg||[]; if(!list.length) return '';
+    const o=(this._editVariant.overrides&&this._editVariant.overrides.pkg)||{};
+    return '<div style="font-size:.7rem;color:var(--muted);margin:2px 0 4px">From base recipe — leave blank to keep, type a qty to change, 0 to remove for this variant:</div>'+
+      list.map((p,i)=>{
+        const k=p.name.toLowerCase().trim(); const val=(o[k]===undefined||o[k]===null)?'':o[k];
+        return '<div class="ing-form-row" style="background:var(--cream);border-radius:8px;padding:5px 8px;gap:6px;margin-bottom:4px;flex-wrap:wrap">'+
+          '<span style="align-self:center">📌</span><span style="flex:2;align-self:center;font-size:.85rem">'+this.h(p.name)+'</span>'+
+          '<input type="number" min="0" step="1" inputmode="decimal" placeholder="'+p.qty+'" value="'+this.h(val)+'" oninput="App._setPkgOv('+i+',this.value)" style="width:70px;font-size:16px"/>'+
+          '<span id="vpo-'+i+'" style="flex:1 1 100%;font-size:.7rem;color:var(--muted)">'+this._ovStatus('pkg',k,p.qty,'')+'</span></div>';
+      }).join('');
+  },
+  _setPkgOv(i,val){
+    const p=(this._vfBasePkg||[])[i]; if(!p) return;
+    const k=p.name.toLowerCase().trim(); const ov=this._editVariant.overrides.pkg;
+    if(val===''||val==null) delete ov[k]; else ov[k]=parseFloat(val)||0;
+    const el=document.getElementById('vpo-'+i); if(el) el.textContent=this._ovStatus('pkg',k,p.qty,'');
+  },
+  _vfInheritedFilHtml(){
+    const list=this._vfBaseFil||[]; if(!list.length) return '';
+    const o=(this._editVariant.overrides&&this._editVariant.overrides.fil)||{};
+    return '<div style="font-size:.7rem;color:var(--muted);margin:2px 0 4px">From base recipe — leave blank to inherit, type grams to override, 0 to remove for this variant:</div>'+
+      list.map((f,i)=>{
+        const val=(o[f.id]===undefined||o[f.id]===null)?'':o[f.id];
+        return '<div class="ing-form-row" style="background:var(--cream);border-radius:8px;padding:5px 8px;gap:6px;margin-bottom:4px;flex-wrap:wrap">'+
+          '<span style="align-self:center">📌</span>'+
+          '<span style="flex:2;align-self:center;font-size:.85rem"><strong>'+this.h(f.note||f.name)+'</strong>'+(f.note?'<span style="display:block;font-size:.7rem;color:var(--muted)">'+this.h(f.name)+'</span>':'')+'</span>'+
+          '<input type="number" min="0" step="any" inputmode="decimal" placeholder="'+f.grams+' g" value="'+this.h(val)+'" oninput="App._setFilOv('+i+',this.value)" style="width:84px;font-size:16px"/>'+
+          '<span id="vfo-'+i+'" style="flex:1 1 100%;font-size:.7rem;color:var(--muted)">'+this._ovStatus('fil',f.id,f.grams,' g')+'</span></div>';
+      }).join('');
+  },
+  _setFilOv(i,val){
+    const f=(this._vfBaseFil||[])[i]; if(!f) return;
+    const ov=this._editVariant.overrides.fil;
+    if(val===''||val==null) delete ov[f.id]; else ov[f.id]=parseFloat(val)||0;
+    const el=document.getElementById('vfo-'+i); if(el) el.textContent=this._ovStatus('fil',f.id,f.grams,' g');
+  },
+  _variantFilRow(i,f){
+    const dl='vfil-dl-'+i;
+    return '<div class="ing-form-row" id="vfil'+i+'" style="flex-wrap:wrap;background:var(--cream);border-radius:8px;padding:5px 8px;gap:6px;margin-bottom:4px">'+
+      '<datalist id="'+dl+'">'+this._filInvOpts()+'</datalist>'+
+      '<span style="align-self:center">🖨</span>'+
+      '<input placeholder="Filament item" list="'+dl+'" value="'+this.h(f.name||'')+'" oninput="App._syncVariantFil('+i+',\'name\',this.value)" style="flex:2;min-width:120px;font-size:16px"/>'+
+      '<input type="number" step="any" min="0" inputmode="decimal" placeholder="g / unit" value="'+this.h(f.grams||'')+'" oninput="App._syncVariantFil('+i+',\'grams\',this.value)" style="width:84px;font-size:16px"/>'+
+      '<button class="ing-del" onclick="App._delVariantFilRow('+i+')">−</button>'+
+      '<input placeholder="Used for (e.g. Bath bomb head)" value="'+this.h(f.note||'')+'" oninput="App._syncVariantFil('+i+',\'note\',this.value)" style="flex:1 1 100%;font-size:16px"/>'+
+    '</div>';
+  },
+  _syncVariantFil(i,field,val){ const f=(this._editVariant.added_filament||[])[i]; if(f) f[field]=val; },
+  _addVariantFilRow(){
+    if(!this._editVariant.added_filament) this._editVariant.added_filament=[];
+    const f={id:this._fid(),name:'',grams:'',note:''};
+    this._editVariant.added_filament.push(f);
+    const rows=document.getElementById('vf-fil-rows');
+    if(rows) rows.insertAdjacentHTML('beforeend',this._variantFilRow(this._editVariant.added_filament.length-1,f));
+  },
+  _delVariantFilRow(i){
+    this._editVariant.added_filament.splice(i,1);
+    const rows=document.getElementById('vf-fil-rows');
+    if(rows) rows.innerHTML=this._editVariant.added_filament.map((f,x)=>this._variantFilRow(x,f)).join('');
   },
 
   _variantPkgRow(i, p){
@@ -6510,6 +6806,17 @@ const App = {
       const v = Object.assign({}, this._editVariant, {
         added_ingredients: _allAdded,
         _pkgItems: undefined,  // strip internal field before POST
+        added_filament: (this._editVariant.added_filament||[]).filter(f=>f&&(f.name||'').trim()&&parseFloat(f.grams)>0)
+          .map(f=>({id:f.id||this._fid(), name:f.name.trim(), grams:String(parseFloat(f.grams)), note:(f.note||'').trim()})),
+        overrides: (()=>{
+          const bR=this.recipes.find(x=>x.id===this._editVariant.base_recipe_id);
+          const ov=this._editVariant.overrides||{}; const out={fil:{},pkg:{}};
+          const fids=new Set((bR&&bR.filament||[]).map(f=>f.id));
+          Object.keys(ov.fil||{}).forEach(k=>{ if(fids.has(k) && ov.fil[k]!=='' && ov.fil[k]!=null) out.fil[k]=ov.fil[k]; });
+          const pk=new Set((bR&&bR.ingredients||[]).filter(i=>this._isPkgIng(i)&&i.name).map(i=>i.name.toLowerCase().trim()));
+          Object.keys(ov.pkg||{}).forEach(k=>{ if(pk.has(k) && ov.pkg[k]!=='' && ov.pkg[k]!=null) out.pkg[k]=ov.pkg[k]; });
+          return out;
+        })(),
         name,
         notes:(document.getElementById('vf-notes')||{}).value||'',
         mold_type:(document.getElementById('vf-mold')||{}).value||'loaf',
@@ -6560,8 +6867,10 @@ const App = {
           const g = parseFloat(v.fragrance_amount)||0;
           return [{name:frag?frag.name:'Fragrance', oz:g2oz(g), g, phase:'3', frag_id:v.fragrance_id}];
         })() : [];
+        // Packaging in the snapshot follows the live rules (base carries over, overrides applied)
+        const effPkgSnap = this._effPkg(baseR, v).map(p=>({name:p.name, qty:p.qty, oz:0, g:0, phase:'pkg', unit:'ea'}));
         v.full_recipe = Object.assign({}, v.full_recipe||{}, {
-          ingredients: [...baseIngs, ...fragIngs, ...addIngs]
+          ingredients: [...baseIngs.filter(i=>i.phase!=='pkg'), ...fragIngs, ...addIngs.filter(i=>i.phase!=='pkg'), ...effPkgSnap]
         });
       }
 
@@ -6644,7 +6953,7 @@ const App = {
           const idx = this.recipes.findIndex(x=>x.id===r.id);
           if(idx>=0) this.recipes[idx]=r; else this.recipes.unshift(r);
           this._localSaveR();
-          fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/recipes?on_conflict=id',{method:'POST',headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batch_size:r.batchSize||'',batch_unit:r.batchUnit||'g',cure_time:r.cureTime||'',superfat:r.superfat||'',fragrance_rate:r.fragranceRate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',ref_url:r.refUrl||'',unit_size:r.unitSize||'',units_per_batch:r.unitsPerBatch||'',prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.prodMinutes),pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.packMinutes),version:r.version||'v1',created_at:r.created||'',is_favorite:!!r.is_favorite})}).catch(e=>console.warn('restore sync failed',e));
+          fetch('https://brxtdstcvaudxneikazg.supabase.co/rest/v1/recipes?on_conflict=id',{method:'POST',headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyeHRkc3RjdmF1ZHhuZWlrYXpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDE5NjMsImV4cCI6MjA5NDgxNzk2M30.PGxvFmSWnr4_ItFnn6e9llgCQngYaEPu2pRUFrSsJ6c','Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:r.id,name:r.name||'',category:r.category||'',description:r.description||'',instructions:r.instructions||'',notes:r.notes||'',tags:r.tags||[],ingredients:r.ingredients||[],batch_size:r.batchSize||'',batch_unit:r.batchUnit||'g',cure_time:r.cureTime||'',superfat:r.superfat||'',fragrance_rate:r.fragranceRate||'',lye:r.lye||'',scent:r.scent||'',difficulty:r.difficulty||'',ref_url:r.refUrl||'',unit_size:r.unitSize||'',units_per_batch:r.unitsPerBatch||'',prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.prodMinutes),pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.packMinutes),filament:Array.isArray(r.filament)?r.filament:[],version:r.version||'v1',created_at:r.created||'',is_favorite:!!r.is_favorite})}).catch(e=>console.warn('restore sync failed',e));
 
           this.closeModal('modal-version-history');
           this.renderRecipes();
@@ -6715,6 +7024,9 @@ const App = {
       }
       r.ingredients.push({name:n, amount, unit, phase});
     });
+    // Filament rows: kept separate from ingredients (no batch weight, no usage rate)
+    r.filament = (this.editR.filament||[]).filter(f=>f&&(f.name||'').trim()&&parseFloat(f.grams)>0)
+      .map(f=>({id:f.id||this._fid(), name:f.name.trim(), grams:String(parseFloat(f.grams)), note:(f.note||'').trim()}));
     // Batch size + usage_rate (% of batch) — both computed in grams from the saved amounts
     const _isW = i => !(i.unit==='ea'||i.phase==='pkg');
     const batchG = Math.round(r.ingredients.filter(_isW).reduce((s,i)=>s+(parseFloat(i.amount)||0),0)*100)/100;
@@ -6775,7 +7087,7 @@ const App = {
           fragrance_rate:snap.fragranceRate||'', lye:snap.lye||'',
           scent:snap.scent||'', difficulty:snap.difficulty||'',
           ref_url:snap.refUrl||'', unit_size:snap.unitSize||'',
-          units_per_batch:snap.unitsPerBatch||'', prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(snap.prodMinutes), pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(snap.packMinutes), version:snap.version||'v1',
+          units_per_batch:snap.unitsPerBatch||'', prod_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(snap.prodMinutes), pack_minutes:(v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(snap.packMinutes), filament:Array.isArray(snap.filament)?snap.filament:[], version:snap.version||'v1',
           created_at:snap.created||'', is_favorite:!!snap.is_favorite
         })
       });
@@ -6812,6 +7124,7 @@ const App = {
         units_per_batch: r.unitsPerBatch || '',
         prod_minutes: (v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.prodMinutes),
         pack_minutes: (v=>v!==''&&v!=null&&!isNaN(parseFloat(v))?parseFloat(v):null)(r.packMinutes),
+        filament: Array.isArray(r.filament)?r.filament:[],
         version: r.version || 'v1',
         created_at: r.created || '',
         is_favorite: r.is_favorite || false,
@@ -6846,11 +7159,12 @@ const App = {
       // Prefer the saved full_recipe (already includes the batch multiplier, additives, fragrance, packaging)
       const fr = v.full_recipe;
       const hasFR = !!(fr && fr.ingredients && fr.ingredients.length);
-      const ings = hasFR
+      const _ings0 = hasFR
         ? fr.ingredients.map(i => (i.unit==='ea'||i.phase==='pkg'||i.phase==='Packaging')
             ? {name:i.name, amount:String(i.qty||i.amount||1), unit:'ea', phase:'pkg'}
             : {name:i.name, amount:String(i.g!=null ? i.g : Math.round((parseFloat(i.oz)||0)*28.3495*100)/100), unit:'g', phase:i.phase||'', usage_rate:i.usage_rate})
         : [...(baseR.ingredients||[]),...(v.added_ingredients||[])];
+      const ings = [..._ings0.filter(i=>!this._isPkgIng(i)), ...this._effPkg(baseR, v).map(p=>({name:p.name, amount:String(p.qty), unit:'ea', phase:'pkg'}))];
       const vul = this._variantUnitsAndLabor(v, baseR, ings, hasFR);
       const merged = Object.assign({}, baseR, {
         name: baseR.name+' - '+v.name,
@@ -6860,6 +7174,7 @@ const App = {
         unitSize: v.unit_size || baseR.unitSize,
         _units: vul.units,
         _labor: vul.labor,
+        filament: this._effFilament(baseR, v),
         ingredients: ings,
         notes: [baseR.notes, v.colorant?'Colorant: '+v.colorant:'', v.notes].filter(Boolean).join('\n\n'),
         version: v.mold_type?(v.mold_type.charAt(0).toUpperCase()+v.mold_type.slice(1)+' mold'):baseR.version
@@ -7367,6 +7682,22 @@ ingsSection+instrSection+bNotesSection+rNotesSection+
 
 document.querySelectorAll('.modal-overlay,.settings-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
 App.init();
+// Collapsible sections (recipe + variant detail): tap a section title to fold / unfold it; state survives re-renders
+(function(){
+  const host=document.getElementById('view-recipe-detail'); if(!host) return;
+  const st={};
+  const keyOf=sec=>{ const t=sec.querySelector(':scope > .section-title'); return t?t.textContent.trim():null; };
+  const apply=()=>{ host.querySelectorAll('.section').forEach(sec=>{ const k=keyOf(sec); if(k) sec.classList.toggle('collapsed',!!st[k]); }); };
+  host.addEventListener('click',e=>{
+    const t=e.target.closest('.section-title'); if(!t||!host.contains(t)) return;
+    if(e.target.closest('button,a,input,select,textarea')) return;
+    const sec=t.parentElement; if(!sec||!sec.classList.contains('section')) return;
+    const k=keyOf(sec); if(!k) return;
+    sec.classList.toggle('collapsed'); st[k]=sec.classList.contains('collapsed');
+  });
+  new MutationObserver(apply).observe(host,{childList:true});
+  apply();
+})();
 
 // Auto-sync when app comes back to foreground (switching back from another app)
 document.addEventListener('visibilitychange', function(){
