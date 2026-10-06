@@ -1097,7 +1097,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.27.01.00';
+    const _ver = 'V-5.27.27.02.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -2275,8 +2275,18 @@ const App = {
     }
 
     // 5. Grand total per unit (ingredients + packaging + labor) — only with a real unit count
-    let grandLine = '', unitsNote = '';
+    let grandLine = '', unitsNote = '', productLine = '';
     if(hasUnits){
+      // Product Cost = ingredients + packaging, NO labor (the number entered into Shopify)
+      const productCost = Math.round((ingPerUnit + pkgPerUnitTotal)*10000)/10000;
+      productLine =
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;margin:8px 0 2px;background:var(--cream);border:1.5px solid var(--border);border-radius:10px">'+
+          '<span style="font-size:.9rem;font-weight:700;color:var(--text)">Product Cost <span style="font-weight:400;font-size:.72rem;color:var(--muted)">(ingredients + packaging, no labor)</span></span>'+
+          '<span style="font-size:1.02rem;font-weight:700;color:var(--brown-d)">$'+productCost.toFixed(2)+'</span>'+
+        '</div>'+
+        math(pkgPerUnitTotal>0
+          ? '$'+ingPerUnit.toFixed(3)+' ingr + $'+pkgPerUnitTotal.toFixed(3)+' pkg = $'+productCost.toFixed(3)+' / unit'
+          : '$'+ingPerUnit.toFixed(3)+' ingr (no packaging set) = $'+productCost.toFixed(3)+' / unit', true);
       const grand = Math.round((ingPerUnit + pkgPerUnitTotal + prodPerUnit + packPerUnit)*10000)/10000;
       const parts = ['$'+ingPerUnit.toFixed(3)+' ingr'];
       if(pkgPerUnitTotal>0) parts.push('$'+pkgPerUnitTotal.toFixed(3)+' pkg');
@@ -2302,6 +2312,7 @@ const App = {
       batchTotalLine+
       ingUnitLine+
       pkgLines+
+      productLine+
       laborLines+
       grandLine+
       unitsNote+
