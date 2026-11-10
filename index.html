@@ -1103,7 +1103,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.27.03.00';
+    const _ver = 'V-5.27.27.04.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -5444,7 +5444,7 @@ const App = {
     overlay.id = '__print-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column';
     overlay.innerHTML =
-      '<div style="background:#FCBFCE;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px">'+
+      '<div style="background:#FCBFCE;padding:calc(var(--safe-t, env(safe-area-inset-top, 0px)) + 10px) 14px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px">'+
         '<div style="font-family:\'Playfair Display\',serif;font-weight:700;color:#111;font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+this.h(title||'Print Preview')+'</div>'+
         '<div style="display:flex;gap:8px;align-items:center;flex-shrink:0">'+
           '<button onclick="App._printOverlayPrint()" style="background:#fff;border:1.5px solid #A8527A;color:#A8527A;border-radius:8px;padding:6px 12px;font-family:Lato,sans-serif;font-size:.8rem;font-weight:700;cursor:pointer">🖨 Print</button>'+
