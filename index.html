@@ -845,6 +845,12 @@ input:checked + .toggle-slider:before{transform:translateX(22px)}
     </div>
   </div>
 </div>
+<div class="modal-overlay" id="modal-files">
+  <div class="modal-sheet" style="max-height:88vh">
+    <div class="modal-hdr"><div class="modal-title">📎 Recipe Files</div><button class="modal-close" onclick="App.closeModal('modal-files')">×</button></div>
+    <div class="modal-body" id="files-body" style="padding:14px 16px 20px"></div>
+  </div>
+</div>
 <!-- VERSION HISTORY MODAL -->
 <div class="modal-overlay" id="modal-version-history">
   <div class="modal-sheet">
@@ -1103,7 +1109,7 @@ const App = {
 
   init(){
     // Clear stale localStorage if app version changed
-    const _ver = 'V-5.27.27.04.00';
+    const _ver = 'V-5.27.28.00.00';
     const _vEl = document.getElementById('login-ver');
     if(_vEl) _vEl.textContent = _ver;
     if(localStorage.getItem('ss_ver') !== _ver){
@@ -1894,6 +1900,257 @@ const App = {
     document.getElementById('conv-g').value=''; document.getElementById('conv-oz').value='';
     document.getElementById('conv-g').focus();
   },
+
+  // ── RECIPE FILES: private Supabase bucket 'recipe-files' + table recipe_files ─────────────
+  // Paper recipes / instructions (photos + multi-page PDFs) attached to a recipe. Variants show
+  // their base recipe's files plus their own. Files open through short-lived signed links.
+  _rfPdfJsUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  _rfPdfWorkerUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  _rfList: [], _rfSigned: {}, _rfPending: null,
+  _filesCtx(){
+    return this.subview==='variant-detail'
+      ? {recipeId:this._varSelBaseId, variantId:this._varSelId}
+      : {recipeId:this.selRId, variantId:null};
+  },
+  _filesBtn(show){
+    let b=document.getElementById('header-files');
+    if(!b){
+      if(!show) return;
+      b=document.createElement('button');
+      b.id='header-files'; b.title='Recipe files (photos & PDFs)';
+      b.style.cssText='background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px;position:relative';
+      b.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>'+
+        '<span id="files-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:#A8527A;color:#fff;font-size:.62rem;font-weight:700;border-radius:9px;padding:1px 5px;line-height:1.3"></span>';
+      b.onclick=function(){ App.openFiles(); };
+    }
+    if(show){
+      const hdr=document.getElementById('header'), ref=document.getElementById('header-conv')||document.getElementById('header-print');
+      if(ref) hdr.insertBefore(b, ref); else hdr.appendChild(b);
+      b.style.display='flex';
+      this._filesBadge();
+    } else b.style.display='none';
+  },
+  async _filesLoad(){
+    const ctx=this._filesCtx(); if(!ctx.recipeId){ this._rfList=[]; return []; }
+    const res=await this._sbFetch('GET','recipe_files?recipe_id=eq.'+encodeURIComponent(ctx.recipeId)+'&order=created_at.asc');
+    if(!res.ok) throw new Error('Could not load files');
+    const rows=(await res.json()).filter(r=>!r.variant_id || r.variant_id===ctx.variantId);
+    this._rfList=rows; return rows;
+  },
+  async _filesBadge(){
+    try{
+      const rows=await this._filesLoad();
+      const bd=document.getElementById('files-badge'); if(!bd) return;
+      bd.textContent=rows.length; bd.style.display=rows.length?'block':'none';
+    }catch(e){}
+  },
+  async _filesSign(paths){
+    const need=paths.filter(p=>!this._rfSigned[p] || this._rfSigned[p].exp<Date.now()+60000);
+    if(need.length){
+      const res=await fetch(this.SB_URL+'/storage/v1/object/sign/recipe-files',{method:'POST',
+        headers:{'apikey':this.SB_KEY,'Authorization':'Bearer '+this.SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({expiresIn:3600,paths:need})});
+      if(!res.ok) throw new Error('Could not open file link');
+      (await res.json()).forEach(r=>{ if(r.signedURL) this._rfSigned[r.path]={url:this.SB_URL+'/storage/v1'+r.signedURL,exp:Date.now()+3600000}; });
+    }
+    return paths.map(p=>this._rfSigned[p]&&this._rfSigned[p].url);
+  },
+  async openFiles(){
+    document.getElementById('modal-files').classList.add('open');
+    document.getElementById('files-body').innerHTML='<div style="text-align:center;color:var(--muted);padding:24px">Loading…</div>';
+    try{ await this._filesLoad(); }catch(e){ document.getElementById('files-body').innerHTML='<div style="text-align:center;color:#c0392b;padding:24px">⚠️ '+this.h(e.message)+'</div>'; return; }
+    await this._filesRender();
+  },
+  async _filesRender(){
+    const body=document.getElementById('files-body'); if(!body) return;
+    const ctx=this._filesCtx(); const list=this._rfList;
+    let urls=[]; try{ urls=await this._filesSign(list.filter(f=>f.kind==='image').map(f=>f.path)); }catch(e){}
+    const imgUrl={}; list.filter(f=>f.kind==='image').forEach((f,i)=>imgUrl[f.id]=urls[i]);
+    const pend=this._rfPending;
+    const pendHtml = pend ? '<div style="background:#fff7fa;border:1.5px solid #A8527A;border-radius:12px;padding:10px;margin-bottom:10px">'+
+        '<div style="font-size:.74rem;color:var(--muted);margin-bottom:4px">Name this file ('+this.h(pend.file.name)+')</div>'+
+        '<input id="rf-title" value="'+this.h(pend.title)+'" placeholder="e.g. Original recipe card" style="width:100%;font-size:16px;margin-bottom:8px" onkeydown="if(event.key===\'Enter\')App._filesSavePending()"/>'+
+        '<div style="display:flex;gap:8px"><button class="btn btn-outline" style="flex:1" onclick="App._filesCancelPending()">Cancel</button>'+
+        '<button class="btn btn-primary" style="flex:1" id="rf-save" onclick="App._filesSavePending()">Save</button></div></div>' : '';
+    const rows=list.map(f=>{
+      const fromBase = ctx.variantId && !f.variant_id;
+      const thumb = f.kind==='image' && imgUrl[f.id]
+        ? '<img src="'+imgUrl[f.id]+'" style="width:100%;height:100%;object-fit:cover"/>'
+        : '<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:1.4rem">📄</div>';
+      const meta=(f.kind==='pdf'?'PDF'+(f.pages?' · '+f.pages+' page'+(f.pages>1?'s':''):''):'Photo')+(f.size_bytes?' · '+(f.size_bytes>1048576?(f.size_bytes/1048576).toFixed(1)+' MB':Math.max(1,Math.round(f.size_bytes/1024))+' KB'):'');
+      return '<div style="display:flex;align-items:center;gap:11px;padding:9px;border:1px solid '+(fromBase?'#d8c9f2':'var(--border)')+';border-radius:12px;margin-bottom:8px;background:'+(fromBase?'#f6f1ff':'#fffafc')+'">'+
+        '<div onclick="App.openFileViewer(\''+f.id+'\')" style="display:flex;align-items:center;gap:11px;flex:1;min-width:0;cursor:pointer">'+
+          '<div style="width:56px;height:70px;border-radius:7px;overflow:hidden;border:1px solid #ddd;background:#fff;flex-shrink:0">'+thumb+'</div>'+
+          '<div style="min-width:0"><div style="font-weight:700;font-size:.9rem;overflow:hidden;text-overflow:ellipsis">'+this.h(f.title||'Untitled')+
+          (fromBase?' <span style="font-size:.62rem;background:#e8f5e9;color:#2e7d32;border-radius:6px;padding:1px 6px;font-weight:700">FROM BASE</span>':'')+'</div>'+
+          '<div style="font-size:.74rem;color:var(--muted)">'+meta+'</div></div></div>'+
+        (fromBase?'':'<button onclick="App._filesDelete(\''+f.id+'\')" style="width:34px;height:34px;border-radius:9px;border:1px solid #e8b9c8;background:#fff;font-size:1rem;cursor:pointer">🗑</button>')+
+      '</div>';
+    }).join('');
+    body.innerHTML = pendHtml + (rows || (pend?'':'<div style="text-align:center;color:var(--muted);padding:18px 0 8px;font-size:.88rem">No files yet. Add a photo or PDF of the paper recipe.</div>')) +
+      '<label class="btn btn-primary" style="display:block;text-align:center;margin-top:6px;cursor:pointer;padding:13px;font-size:.95rem">＋ Add'+
+      '<input type="file" accept="image/*,application/pdf" style="display:none" onchange="App._filesPick(this)"/></label>'+
+      '<div style="font-size:.68rem;color:var(--muted);text-align:center;margin-top:9px">Stored privately · tap a file to open it</div>';
+    if(pend){ const t=document.getElementById('rf-title'); if(t){ t.focus(); t.select(); } }
+  },
+  _filesPick(input){
+    const f=input.files&&input.files[0]; input.value='';
+    if(!f) return;
+    const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name), isImg=(f.type||'').startsWith('image/');
+    if(!isPdf && !isImg){ this._toast('Choose a photo or a PDF'); return; }
+    this._rfPending={file:f, title:f.name.replace(/\.[^.]+$/,'').replace(/^IMG_\d+$/i,'')};
+    this._filesRender();
+  },
+  _filesCancelPending(){ this._rfPending=null; this._filesRender(); },
+  _rfShrink(file){
+    return new Promise((resolve,reject)=>{
+      const url=URL.createObjectURL(file), img=new Image();
+      img.onload=()=>{
+        const MAX=2000, sc=Math.min(1,MAX/Math.max(img.naturalWidth,img.naturalHeight));
+        const c=document.createElement('canvas'); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc);
+        const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(b=>b?resolve(b):reject(new Error('Could not process photo')),'image/jpeg',0.82);
+      };
+      img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('Could not read that photo')); };
+      img.src=url;
+    });
+  },
+  _rfLoadPdfJs(){
+    if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if(this._rfPdfLoading) return this._rfPdfLoading;
+    this._rfPdfLoading=new Promise((resolve,reject)=>{
+      const sc=document.createElement('script'); sc.src=this._rfPdfJsUrl;
+      sc.onload=()=>{ window.pdfjsLib.GlobalWorkerOptions.workerSrc=this._rfPdfWorkerUrl; resolve(window.pdfjsLib); };
+      sc.onerror=()=>{ this._rfPdfLoading=null; reject(new Error('PDF viewer could not load (check your connection)')); };
+      document.head.appendChild(sc);
+    });
+    return this._rfPdfLoading;
+  },
+  async _filesSavePending(){
+    const pend=this._rfPending; if(!pend) return;
+    const titleEl=document.getElementById('rf-title'); const title=((titleEl&&titleEl.value)||'').trim() || 'Untitled';
+    const btn=document.getElementById('rf-save'); if(btn){ btn.disabled=true; btn.textContent='Uploading…'; }
+    try{
+      const ctx=this._filesCtx(); const f=pend.file;
+      const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);
+      let blob=f, kind='pdf', mime='application/pdf', ext='.pdf', pages=null;
+      if(!isPdf){ blob=await this._rfShrink(f); kind='image'; mime='image/jpeg'; ext='.jpg'; }
+      else { try{ const lib=await this._rfLoadPdfJs(); const doc=await lib.getDocument({data:await f.arrayBuffer()}).promise; pages=doc.numPages; }catch(e){} }
+      if(blob.size>50*1024*1024) throw new Error('That file is over 50 MB');
+      const path=ctx.recipeId+'/'+(crypto.randomUUID?crypto.randomUUID():this.uid()+this.uid())+ext;
+      const up=await fetch(this.SB_URL+'/storage/v1/object/recipe-files/'+path,{method:'POST',
+        headers:{'apikey':this.SB_KEY,'Authorization':'Bearer '+this.SB_KEY,'Content-Type':mime},body:blob});
+      if(!up.ok) throw new Error('Upload failed ('+up.status+')');
+      const row={id:this.uid()+this.uid(),recipe_id:ctx.recipeId,variant_id:ctx.variantId||null,title,kind,mime,path,size_bytes:blob.size,pages};
+      const ins=await this._sbFetch('POST','recipe_files',row);
+      if(!ins.ok){ await fetch(this.SB_URL+'/storage/v1/object/recipe-files/'+path,{method:'DELETE',headers:{'apikey':this.SB_KEY,'Authorization':'Bearer '+this.SB_KEY}}); throw new Error('Could not save file record'); }
+      this._rfPending=null;
+      await this._filesLoad(); await this._filesRender(); this._filesBadge();
+      this._toast('📎 File added');
+    }catch(e){
+      this._toast('⚠️ '+e.message);
+      if(btn){ btn.disabled=false; btn.textContent='Save'; }
+    }
+  },
+  _filesDelete(id){
+    const f=this._rfList.find(x=>x.id===id); if(!f) return;
+    this._confirm('Delete file?', (f.title||'This file')+' will be removed permanently.', async()=>{
+      try{
+        await fetch(this.SB_URL+'/storage/v1/object/recipe-files/'+f.path,{method:'DELETE',headers:{'apikey':this.SB_KEY,'Authorization':'Bearer '+this.SB_KEY}});
+        const r=await this._sbFetch('DELETE','recipe_files?id=eq.'+encodeURIComponent(id));
+        if(!r.ok) throw new Error('Could not delete');
+        delete this._rfSigned[f.path];
+        await this._filesLoad(); await this._filesRender(); this._filesBadge();
+        this._toast('File deleted');
+      }catch(e){ this._toast('⚠️ '+e.message); }
+    });
+  },
+  async openFileViewer(id){
+    const f=this._rfList.find(x=>x.id===id); if(!f) return;
+    const old=document.getElementById('__file-viewer'); if(old) old.remove();
+    const ov=document.createElement('div'); ov.id='__file-viewer';
+    ov.style.cssText='position:fixed;inset:0;z-index:9500;background:#2a2a2d;display:flex;flex-direction:column';
+    const bs='background:#fff;border:1.5px solid #A8527A;color:#A8527A;border-radius:8px;padding:6px 10px;font-family:Lato,sans-serif;font-size:.78rem;font-weight:700;cursor:pointer';
+    ov.innerHTML='<div style="background:#FCBFCE;padding:calc(var(--safe-t, env(safe-area-inset-top, 0px)) + 10px) 12px 10px;display:flex;align-items:center;gap:6px;flex-shrink:0">'+
+        '<div style="flex:1;min-width:0;font-family:\'Playfair Display\',serif;font-weight:700;color:#111;font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+this.h(f.title||'File')+'</div>'+
+        '<button style="'+bs+'" onclick="App._viewerZoom(-0.5)">−</button><button style="'+bs+'" onclick="App._viewerZoom(0.5)">＋</button>'+
+        '<button style="'+bs+'" onclick="App._filesSave(\''+id+'\')">⬇ Save</button>'+
+        '<button style="'+bs+'" onclick="App._filesPrint(\''+id+'\')">🖨 Print</button>'+
+        '<button style="background:rgba(0,0,0,.12);border:none;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer" onclick="document.getElementById(\'__file-viewer\').remove()">✕</button></div>'+
+      '<div id="fv-scroll" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:10px;touch-action:pan-x pan-y"><div id="fv-pages" style="width:100%;margin:0 auto;display:flex;flex-direction:column;gap:10px"><div style="color:#ddd;text-align:center;padding:40px">Opening…</div></div></div>';
+    document.body.appendChild(ov);
+    this._fvZoom=1;
+    try{
+      const url=(await this._filesSign([f.path]))[0];
+      const pages=document.getElementById('fv-pages');
+      if(f.kind==='image'){
+        pages.innerHTML='<img src="'+url+'" style="width:100%;background:#fff;border-radius:3px"/>';
+      } else {
+        const lib=await this._rfLoadPdfJs();
+        const buf=await (await fetch(url)).arrayBuffer();
+        const doc=await lib.getDocument({data:buf}).promise;
+        pages.innerHTML='';
+        const cw=Math.max(300,document.getElementById('fv-scroll').clientWidth-20), dpr=Math.min(2,window.devicePixelRatio||1);
+        for(let n=1;n<=doc.numPages;n++){
+          if(!document.getElementById('__file-viewer')) return;
+          const pg=await doc.getPage(n), v1=pg.getViewport({scale:1});
+          const vp=pg.getViewport({scale:Math.min(1800,cw*dpr*1.6)/v1.width});
+          const c=document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
+          c.style.cssText='width:100%;background:#fff;border-radius:3px;display:block';
+          pages.appendChild(c);
+          await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+        }
+      }
+    }catch(e){
+      const pages=document.getElementById('fv-pages'); if(pages) pages.innerHTML='<div style="color:#fff;text-align:center;padding:40px">⚠️ '+this.h(e.message)+'</div>';
+    }
+  },
+  _viewerZoom(d){
+    this._fvZoom=Math.max(1,Math.min(3,(this._fvZoom||1)+d));
+    const p=document.getElementById('fv-pages'); if(p) p.style.width=(this._fvZoom*100)+'%';
+  },
+  async _filesBlob(f){
+    const url=(await this._filesSign([f.path]))[0];
+    const r=await fetch(url); if(!r.ok) throw new Error('Could not download file');
+    return await r.blob();
+  },
+  async _filesSave(id){
+    const f=this._rfList.find(x=>x.id===id); if(!f) return;
+    try{
+      const blob=await this._filesBlob(f);
+      const name=(f.title||'recipe-file').replace(/[^\w\- ]+/g,'').trim()+(f.kind==='pdf'?'.pdf':'.jpg');
+      const file=new File([blob],name,{type:f.mime||blob.type});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        try{ await navigator.share({files:[file],title:f.title||name}); return; }catch(e){ if(e&&e.name==='AbortError') return; }
+      }
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    }catch(e){ this._toast('⚠️ '+e.message); }
+  },
+  async _filesPrint(id){
+    const f=this._rfList.find(x=>x.id===id); if(!f) return;
+    try{
+      this._toast('Preparing print…',4000);
+      let imgs=[];
+      if(f.kind==='image'){
+        const blob=await this._filesBlob(f);
+        imgs=[await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(blob); })];
+      } else {
+        const lib=await this._rfLoadPdfJs(); const doc=await lib.getDocument({data:await (await this._filesBlob(f)).arrayBuffer()}).promise;
+        for(let n=1;n<=doc.numPages;n++){
+          const pg=await doc.getPage(n), v1=pg.getViewport({scale:1}), vp=pg.getViewport({scale:1400/v1.width});
+          const c=document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
+          await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+          imgs.push(c.toDataURL('image/jpeg',0.85));
+        }
+      }
+      const doc='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+this.h(f.title||'File')+'</title><style>@page{margin:.35in}html,body{margin:0;background:#fff}img{width:100%;display:block;page-break-after:always;break-after:page}img:last-child{page-break-after:auto;break-after:auto}</style></head><body>'+
+        imgs.map(u=>'<img src="'+u+'"/>').join('')+'</body></html>';
+      this._showPrintOverlay(doc, f.title||'File');
+    }catch(e){ this._toast('⚠️ '+e.message); }
+  },
+
   _hdr(){
     const back=document.getElementById('header-back');
     const title=document.getElementById('header-title');
@@ -1907,7 +2164,7 @@ const App = {
       let vPrintBtn=document.getElementById('header-print');
       if(!vPrintBtn){ vPrintBtn=document.createElement('button'); vPrintBtn.id='header-print'; vPrintBtn.title='Print Variant'; vPrintBtn.style.cssText='background:rgba(0,0,0,.08);border:none;color:#111;cursor:pointer;padding:8px;border-radius:10px;display:flex;align-items:center;margin-right:4px'; vPrintBtn.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>'; document.getElementById('header').appendChild(vPrintBtn); }
       vPrintBtn.style.display='flex';
-      this._convBtn(true);
+      this._convBtn(true); this._filesBtn(true);
       vPrintBtn.onclick=function(){ App.printVariantPDF(App._varSelId, App._varSelBaseId); };
       title.textContent=App._varSelName||'Variant'; sub.textContent='Variant';
     } else if(this.subview==='recipe-detail'){
@@ -1924,12 +2181,12 @@ const App = {
         document.getElementById('header').appendChild(printBtn);
       }
       printBtn.style.display='flex';
-      this._convBtn(true);
+      this._convBtn(true); this._filesBtn(true);
       printBtn.onclick=function(){ App.printRecipePDF(App.selRId); };
       const _rHdr=this.recipes.find(x=>x.id===this.selRId); title.textContent=_rHdr?_rHdr.name:'Recipe'; sub.textContent=_rHdr?_rHdr.category:'';
     } else if(this.subview==='inv-detail'){
       const i=this.inventory.find(x=>x.id===this.selIId);
-      this._convBtn(false);
+      this._convBtn(false); this._filesBtn(false);
       back.style.display='flex'; add.style.display='none'; if(sync) sync.style.display='none';
       title.textContent=i?i.name:'Item'; sub.textContent=i?i.category:'';
     } else {
@@ -1944,7 +2201,7 @@ const App = {
       if(st) st.style.display='flex';
       if(tl) tl.style.display='flex';
       if(pb) pb.style.display='none';
-      this._convBtn(false);
+      this._convBtn(false); this._filesBtn(false);
       title.textContent=TITLES[this.tab]; sub.textContent='Sudsy Sisters';
     }
   },
@@ -5427,14 +5684,10 @@ const App = {
     // In an installed/standalone PWA (added to the home screen) there is no browser chrome around
     // window.open() — it just replaces the visible page with no back/close button. Use the in-app
     // overlay (with its own Close + Print buttons) whenever we're standalone, or already have no window.
-    const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
-    const win = !isStandalone ? (existingWin || window.open('', '_blank')) : null;
-    if(win){
-      win.document.write(doc);
-      win.document.close();
-    } else {
-      this._showPrintOverlay(doc, title);
-    }
+    // Browsers behave the same way now: a new tab (even a blank one) makes Safari's Share > Print
+    // print the page's URL (the login screen) instead of the report, so always use the overlay.
+    try{ if(existingWin && !existingWin.closed) existingWin.close(); }catch(e){}
+    this._showPrintOverlay(doc, title);
   },
 
   _showPrintOverlay(doc, title){
@@ -7148,7 +7401,7 @@ const App = {
   // ── PDF PRINT ────────────────────────────────────────────────
   async printVariantPDF(variantId, recipeId){
     // Open window FIRST synchronously before any async code
-    const win = window.open('', '_blank');
+    const win = null;  // print preview is an in-app overlay now (no popup window needed)
     try {
       const res = await this._sbFetch('GET','recipe_variants?id=eq.'+variantId);
       const rows = await res.json();
@@ -7189,7 +7442,6 @@ const App = {
     const r = this.recipes.find(x=>x.id===b.recipe_id)||{};
     const d = new Date(b.made_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     const ings = (r.ingredients||[]).map(i=>'<tr><td style="padding:4px 8px;border-bottom:1px solid #eee">'+i.name+'</td><td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:700">'+i.amount+' '+i.unit+'</td></tr>').join('');
-    const win = window.open('','_blank');
     const madeByRow = b.made_by ? '<div class="meta-item"><strong>Made By</strong>'+this.h(b.made_by)+'</div>' : '';
     const batchSzRow = b.batch_size ? '<div class="meta-item"><strong>Batch Size</strong>'+b.batch_size+' '+b.batch_unit+'</div>' : '';
     const costRow = b.cost_estimate ? '<div class="meta-item"><strong>Est. Cost</strong>$'+Number(b.cost_estimate).toFixed(2)+'</div>' : '';
@@ -7197,7 +7449,7 @@ const App = {
     const instrSection = r.instructions ? '<div class="section"><h3>Instructions</h3><div class="notes">'+this.h(r.instructions)+'</div></div>' : '';
     const bNotesSection = b.notes ? '<div class="section"><h3>Batch Notes</h3><div class="notes">'+this.h(b.notes)+'</div></div>' : '';
     const rNotesSection = r.notes ? '<div class="section"><h3>Recipe Notes</h3><div class="notes">'+this.h(r.notes)+'</div></div>' : '';
-    win.document.write('<!DOCTYPE html><html><head><title>'+this.h(b.recipe_name)+' - Batch Log</title>'+
+    const _batchDoc = ('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+this.h(b.recipe_name)+' - Batch Log</title>'+
 '<style>'+
 '  body{font-family:Georgia,serif;margin:0 auto;padding:20px;color:#111;max-width:720px}'+
 '  h1{font-size:1.6rem;margin:0 0 2px;color:#D4789A}'+
@@ -7228,8 +7480,7 @@ const App = {
 ingsSection+instrSection+bNotesSection+rNotesSection+
 '<div class="footer">Sudsy Sisters LLC \u00b7 Goat Milk Soapery \u00b7 Printed '+new Date().toLocaleDateString()+'</div>'+
 '</body></html>');
-    win.document.close();
-    setTimeout(()=>win.print(), 500);
+    this._showPrintOverlay(_batchDoc, (b.recipe_name||'')+' - Batch Log');
   },
 
   // ── BARCODE SCANNER ──────────────────────────────────────────
